@@ -363,6 +363,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.8/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.7/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.1.0/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.9/our-store.apk",
@@ -378,14 +379,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.3/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.1.0-b59-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.1.1-b60-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.1.0");
-          res.headers.set("X-Connecto-Store-Build", "59");
+          res.headers.set("X-Connecto-Store-Version", "v2.1.1");
+          res.headers.set("X-Connecto-Store-Build", "60");
           return res;
         }
 
@@ -423,8 +424,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.1.0");
-              downloadHeaders.set("X-Connecto-Store-Build", "59");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.1.1");
+              downloadHeaders.set("X-Connecto-Store-Build", "60");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -513,32 +514,74 @@ Sitemap: https://connecto.fun/sitemap.xml
       cleanPath.includes("pdf-studio") && cleanPath.endsWith(".apk")
     ) {
       try {
-        const pdfResp = await fetch("https://github.com/chinnu2523/connecto/releases/download/v5.2.7/pdf-studio.apk", {
-          redirect: "follow",
-          headers: {
-            "User-Agent": "Connecto-Cloud-Worker/1.1.0"
-          }
-        });
-        if (pdfResp.ok) {
-          const downloadHeaders = new Headers();
-          downloadHeaders.set("Content-Type", "application/vnd.android.package-archive");
-          downloadHeaders.set("Content-Disposition", 'attachment; filename="pdf-studio.apk"');
-          const cl = pdfResp.headers.get("content-length");
-          if (cl) downloadHeaders.set("Content-Length", cl);
-          downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800");
-          downloadHeaders.set("Access-Control-Allow-Origin", "*");
-          downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
-          downloadHeaders.set("X-Connecto-App", "PDF Studio");
-          downloadHeaders.set("X-Connecto-Version", "v1.5.4");
-          return new Response(pdfResp.body, {
-            status: 200,
-            headers: downloadHeaders
-          });
+        const canonicalPdfUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.8/pdf-studio.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.7/pdf-studio.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.6/pdf-studio.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.5/pdf-studio.apk"
+        ];
+        const cache = caches.default;
+        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.5.5-b21-prod.apk", { method: "GET" });
+        let cachedResp = await cache.match(cacheKey);
+        if (cachedResp) {
+          const res = new Response(cachedResp.body, cachedResp);
+          res.headers.set("CF-Cache-Status", "HIT");
+          res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
+          res.headers.set("X-Connecto-Package", "com.app.pdfstudio");
+          res.headers.set("X-Connecto-App", "PDF Studio");
+          res.headers.set("X-Connecto-Version", "v1.5.5");
+          res.headers.set("X-Connecto-Build", "21");
+          return res;
+        }
+
+        for (const targetUrl of canonicalPdfUrls) {
+          try {
+            let currentFetchUrl = targetUrl;
+            let upstreamResp = null;
+            for (let redirectCount = 0; redirectCount < 5; redirectCount++) {
+              const resp = await fetch(currentFetchUrl, {
+                redirect: "manual",
+                headers: {
+                  "User-Agent": "Connecto-Cloud-Worker/1.5.5"
+                }
+              });
+              if (resp.status >= 300 && resp.status < 400) {
+                const loc = resp.headers.get("Location");
+                if (!loc) break;
+                currentFetchUrl = loc.startsWith("http") ? loc : new URL(loc, currentFetchUrl).toString();
+                continue;
+              }
+              upstreamResp = resp;
+              break;
+            }
+
+            if (upstreamResp && upstreamResp.ok) {
+              const downloadHeaders = new Headers();
+              downloadHeaders.set("Content-Type", "application/vnd.android.package-archive");
+              downloadHeaders.set("Content-Disposition", 'attachment; filename="pdf-studio.apk"');
+              const cl = upstreamResp.headers.get("content-length");
+              if (cl) downloadHeaders.set("Content-Length", cl);
+              downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
+              downloadHeaders.set("Access-Control-Allow-Origin", "*");
+              downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
+              downloadHeaders.set("X-Connecto-App", "PDF Studio");
+              downloadHeaders.set("X-Connecto-Version", "v1.5.5");
+              downloadHeaders.set("X-Connecto-Build", "21");
+              downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
+
+              const responseToReturn = new Response(upstreamResp.body, {
+                status: 200,
+                headers: downloadHeaders
+              });
+              ctx.waitUntil(cache.put(cacheKey, responseToReturn.clone()));
+              return responseToReturn;
+            }
+          } catch (_) {}
         }
       } catch (err) {
         console.error("PDF Studio download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.7/pdf-studio.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.8/pdf-studio.apk", 302);
     }
 
     // 3b. Cloudflare Global Edge CDN: Direct APK Download Gateway
@@ -552,6 +595,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.8/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.7/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.6/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.5/connecto-fun.apk",
@@ -1925,14 +1969,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.1.0",
-        version_code: 59,
-        size_bytes: 18961460,
+        version_name: "2.1.1",
+        version_code: 60,
+        size_bytes: 18961463,
         size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Collision-Free Release Sync: Immediate in-app update notification watchdog and verified background package installer IPC",
           "Zero Gradients & OLED Clean Architecture: Eliminated all artificial gradient borders, background blends, and gloss overlays in favor of high-contrast solid OLED tokens, clean surfaces, and smooth pulsating skeleton loaders; tactile spring press micro-interactions across all cards and action buttons",
           "Account Tab Clean UI & UX Redesign: User identity hero card with concentric status ring, verification pip, and 3-column telemetry metrics (Account Tier, SHA-256 Integrity, IPC Session engine)",
           "Modern Architectural Bottom Navigation Dock: Precision sliding spring pill dock with illuminated top micro-pip, paired filled/active and outlined/inactive vector icons, tactile spring press, and haptic feedback",
@@ -2047,9 +2092,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Full PDF editor & creative image editor with typography matching",
         description: "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         category: "Productivity",
-        version_name: "1.5.4",
-        version_code: 20,
-        size_bytes: 67492020,
+        version_name: "1.5.5",
+        version_code: 21,
+        size_bytes: 67492016,
         size_formatted: "64.4 MB",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
@@ -2110,7 +2155,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "1.9.3",
+      store_version: "2.1.1",
       total_apps: appsToReturn.length,
       is_admin: isAdmin,
       apps: appsToReturn
