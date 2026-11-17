@@ -66,14 +66,15 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Private encrypted messaging, calls & workspaces",
         "description": "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         "category": "Communication",
-        "version_name": "5.3.9",
-        "version_code": 153,
-        "size_bytes": 38067629,
+        "version_name": "5.4.0",
+        "version_code": 154,
+        "size_bytes": 38069246,
         "size_formatted": "36.3 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
+            "Centered Scroll-to-Latest Button: Centered the floating jump-to-latest button horizontally (Alignment.BottomCenter) in both Direct Chat and Channel workspaces with realistic spring entrance, cubic bezier motion, and tactile tap scaling",
             "Channel Header Streamlining: Removed redundant pin button and stripped clutter from 3-dot overflow menu (removed Search Messages, Scroll to Bottom, and Channel Info & Topic) for a focused channel header",
             "Channel Tab Clean Architecture: Removed redundant top #general and #announcements horizontal pill row for a streamlined, clutter-free messaging canvas",
             "Fluid EaseInOutCubic Navigation Drawer: Re-engineered channel drawer with cubic bezier transitions, backdrop scaling depth, and instant 0ms tap-outside dismiss on empty space",
@@ -87,7 +88,7 @@ APPS_CATALOG: List[Dict[str, Any]] = [
             "Ease-In & Ease-Out Curve Animations & Transitions: Fluid cubic bezier EaseInOutCubic, EaseInCubic, and EaseOutCubic motion curves implemented across bottom bar indicator, tab navigation, auth form flipping, expandable search bars, and chat view transitions"
         ],
         "is_essential": True,
-        "updated_at": "2026-11-18T00:54:00Z"
+        "updated_at": "2026-11-18T01:05:00Z"
     },
     {
         "id": "jarvis",

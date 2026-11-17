@@ -1949,36 +1949,44 @@ fun ChannelsWorkspaceScreen(
                         derivedStateOf {
                             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
                             val totalCount = listState.layoutInfo.totalItemsCount
-                            totalCount > 0 && lastVisible < totalCount - 1
+                            (totalCount > 0 && lastVisible < totalCount - 1) || listState.canScrollForward
                         }
                     }
 
                     androidx.compose.animation.AnimatedVisibility(
                         visible = canScrollDown && displayMessages.isNotEmpty(),
-                        enter = fadeIn() + scaleIn(initialScale = 0.8f),
-                        exit = fadeOut() + scaleOut(targetScale = 0.8f),
+                        enter = fadeIn(animationSpec = tween(durationMillis = 240, easing = EaseOutCubic)) +
+                                scaleIn(initialScale = 0.65f, animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)) +
+                                slideInVertically(initialOffsetY = { it / 2 }, animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)),
+                        exit = fadeOut(animationSpec = tween(durationMillis = 180, easing = EaseInCubic)) +
+                               scaleOut(targetScale = 0.65f, animationSpec = tween(durationMillis = 180, easing = EaseInCubic)) +
+                               slideOutVertically(targetOffsetY = { it / 2 }, animationSpec = tween(durationMillis = 180, easing = EaseInCubic)),
                         modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 16.dp, bottom = 12.dp)
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 12.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(colors.surface)
-                                .border(1.dp, colors.primary, CircleShape)
-                                .shadow(6.dp, CircleShape)
+                                .size(42.dp)
                                 .pressScaleEffect(
                                     onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         coroutineScope.launch {
                                             if (displayMessages.isNotEmpty()) {
                                                 try {
-                                                    listState.animateScrollToItem(displayMessages.size)
-                                                } catch (_: Exception) {}
+                                                    listState.animateScrollToItem((displayMessages.size - 1).coerceAtLeast(0))
+                                                } catch (_: Exception) {
+                                                    listState.scrollToItem((displayMessages.size - 1).coerceAtLeast(0))
+                                                }
                                             }
                                         }
-                                    }
-                                ),
+                                    },
+                                    targetScale = 0.90f
+                                )
+                                .clip(CircleShape)
+                                .background(colors.surface)
+                                .border(1.2.dp, colors.primary.copy(alpha = 0.8f), CircleShape)
+                                .shadow(8.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.35f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(

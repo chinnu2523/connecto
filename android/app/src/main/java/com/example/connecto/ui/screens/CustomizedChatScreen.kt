@@ -5904,7 +5904,10 @@ fun CustomizedChatScreen(
                         // ================= 2. DIRECT CHAT STREAM WITH IME RESIZE =================
                     val canScrollDown by remember {
                         derivedStateOf {
-                            listState.canScrollForward
+                            listState.canScrollForward || (
+                                listState.layoutInfo.totalItemsCount > 0 &&
+                                (listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) < listState.layoutInfo.totalItemsCount - 1
+                            )
                         }
                     }
 
@@ -6380,39 +6383,58 @@ fun CustomizedChatScreen(
                                 } // end DisableSelection
                             }
 
-                            // Floating "Scroll to Bottom" FAB
+                            // Floating "Scroll to Bottom" FAB (Centered above input dock with realistic spring transition)
                             if (friendMessages.isNotEmpty()) {
                                 Column(
                                     modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(end = 16.dp, bottom = 8.dp)
+                                        .align(Alignment.BottomCenter)
+                                        .padding(bottom = 12.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     AnimatedVisibility(
                                         visible = canScrollDown,
-                                        enter = fadeIn() + scaleIn(),
-                                        exit = fadeOut() + scaleOut()
+                                        enter = fadeIn(animationSpec = tween(durationMillis = 240, easing = EaseOutCubic)) +
+                                                scaleIn(initialScale = 0.65f, animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)) +
+                                                slideInVertically(initialOffsetY = { it / 2 }, animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)),
+                                        exit = fadeOut(animationSpec = tween(durationMillis = 180, easing = EaseInCubic)) +
+                                               scaleOut(targetScale = 0.65f, animationSpec = tween(durationMillis = 180, easing = EaseInCubic)) +
+                                               slideOutVertically(targetOffsetY = { it / 2 }, animationSpec = tween(durationMillis = 180, easing = EaseInCubic))
                                     ) {
+                                        val haptic = LocalHapticFeedback.current
                                         Box(
                                             modifier = Modifier
-                                                .size(38.dp)
+                                                .size(42.dp)
+                                                .pressScaleEffect(
+                                                    onClick = {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                        coroutineScope.launch {
+                                                            val count = friendMessages.size
+                                                            if (count > 0) {
+                                                                try {
+                                                                    listState.animateScrollToItem(count - 1)
+                                                                } catch (_: Exception) {
+                                                                    listState.scrollToItem(count - 1)
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    targetScale = 0.90f
+                                                )
                                                 .clip(CircleShape)
                                                 .background(MaterialTheme.colorScheme.surface)
-                                                .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                                                .shadow(4.dp, CircleShape)
-                                                .clickable {
-                                                    coroutineScope.launch {
-                                                        if (friendMessages.isNotEmpty()) {
-                                                            listState.animateScrollToItem(friendMessages.size)
-                                                        }
-                                                    }
-                                                },
+                                                .border(
+                                                    width = 1.2.dp,
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                                    shape = CircleShape
+                                                )
+                                                .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color.Black.copy(alpha = 0.35f)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.KeyboardArrowDown,
-                                                contentDescription = "Scroll to bottom",
+                                                contentDescription = "Scroll to latest message",
                                                 tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(22.dp)
+                                                modifier = Modifier.size(24.dp)
                                             )
                                         }
                                     }
