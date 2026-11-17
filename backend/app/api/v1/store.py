@@ -53,21 +53,21 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Private encrypted messaging, calls & workspaces",
         "description": "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         "category": "Communication",
-        "version_name": "5.2.4",
-        "version_code": 140,
-        "size_bytes": 38050394,
+        "version_name": "5.2.5",
+        "version_code": 141,
+        "size_bytes": 38059906,
         "size_formatted": "36.3 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
-            "Errors In-Place & Clean Authentication: Relocated error feedback directly above form fields for immediate visibility without layout shifts",
-            "Universal Tactile Physics & Tap Animations: Added spring physics micro-interactions and scale-down press responses on all buttons, rows, and cards",
-            "Zero Empty Screens & Shimmer Loading: Enforced pre-cached workspace channels, SQLite offline fallback, and refined skeleton loaders",
-            "Lighthouse & Web Rendering Optimization: Eliminated render-blocking assets, converted non-composited animations to GPU transforms, and tuned cache lifetimes to 1 year"
+            "Eliminated Auto-Refresh & Accidental Preview Trigger: Silent background revalidations no longer displace scroll position or trigger phantom conversation clicks",
+            "Modern Architectural Bottom Navigation Dock: Precision sliding spring pill dock with illuminated indicator pip, paired filled/active and outlined/inactive vector icons, tactile spring press, and haptic feedback",
+            "Fluid Screen Transitions & Navigation: Smooth elevation cross-fade transitions and spring animations across channels and chat view",
+            "Unslop UI & Typography Polish: Stripped clutter, tuned typography, and unified high-contrast OLED styling"
         ],
         "is_essential": True,
-        "updated_at": "2026-11-10T16:15:00Z"
+        "updated_at": "2026-11-17T11:35:00Z"
     },
     {
         "id": "jarvis",
@@ -101,15 +101,19 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Full PDF editor & creative image editor with typography matching",
         "description": "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         "category": "Productivity",
-        "version_name": "1.5.1",
-        "version_code": 17,
-        "size_bytes": 75441237,
-        "size_formatted": "72.0 MB",
+        "version_name": "1.5.2",
+        "version_code": 18,
+        "size_bytes": 67492020,
+        "size_formatted": "64.4 MB",
         "download_url": "https://connecto.fun/downloads/pdf-studio.apk",
         "icon_url": "https://connecto.fun/static/pdf_studio_logo.png",
         "accent_color": "#EF4444",
         "changelog": [
-            "Scan & Edit Text in Images (On-Device OCR): Detect, select, and edit text embedded within images and scanned documents with ML Kit offline OCR — no internet required",
+            "Scan & Edit Text in Images: Exact pixel-matched font size, stroke weight, style, and color preservation",
+            "Eliminated Auto-Refresh & Accidental Preview Trigger: Intentional drag threshold and pointer shield prevent accidental document openings",
+            "Material 3 Unified Action Dock: Clean Extended FAB with quick actions menu replacing cluttered dual buttons",
+            "Fluid Screen Transitions: Smooth elevation cross-fade entrance and exit transitions across document viewer and editor",
+            "Unslop UI & Typography Polish: Subtle outline borders, refined card radii, and clean contextual badge typography",
             "In-Image Text Erasure & Replacement: Cleanly inpaint/erase original text with local background color sampling and insert custom replacement text with matched typography",
             "Interactive Text Annotation Editing: Tap any placed or detected text annotation in the Image Editor to edit text, change color, adjust font size, toggle bold/italic, or delete",
             "Scanned PDF Auto-Detection: Automatic OCR fallback and one-tap scan action for image-based PDF pages with zero digital text streams",
@@ -130,7 +134,7 @@ APPS_CATALOG: List[Dict[str, Any]] = [
             "Organize Pages: Reorder, rotate, or delete pages losslessly"
         ],
         "is_essential": False,
-        "updated_at": "2026-11-15T19:00:00Z"
+        "updated_at": "2026-11-17T11:35:00Z"
     }
 ]
 

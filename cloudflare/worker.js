@@ -199,13 +199,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.2.4",
-        version_name: "v5.2.4",
-        version_code: 140,
-        build: 140,
-        sha256: "c989f8d1d13f76012e467757c560f2d30f0a1318e9a47973bcf5a8d598332894",
+        version: "5.2.5",
+        version_name: "v5.2.5",
+        version_code: 141,
+        build: 141,
+        sha256: "6ff0761a84ebcecdbb8b0cb8aa9163708ae507e9061cb1f46ca13c60bb14a682",
         filename: "connecto-fun.apk",
-        size_bytes: 38050394,
+        size_bytes: 38059906,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -511,7 +511,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       cleanPath.includes("pdf-studio") && cleanPath.endsWith(".apk")
     ) {
       try {
-        const pdfResp = await fetch("https://github.com/chinnu2523/connecto/releases/download/v5.2.5/pdf-studio.apk", {
+        const pdfResp = await fetch("https://github.com/chinnu2523/connecto/releases/download/v5.2.6/pdf-studio.apk", {
           redirect: "follow",
           headers: {
             "User-Agent": "Connecto-Cloud-Worker/1.1.0"
@@ -527,7 +527,7 @@ Sitemap: https://connecto.fun/sitemap.xml
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
           downloadHeaders.set("X-Connecto-App", "PDF Studio");
-          downloadHeaders.set("X-Connecto-Version", "v1.5.1");
+          downloadHeaders.set("X-Connecto-Version", "v1.5.2");
           return new Response(pdfResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -536,7 +536,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (err) {
         console.error("PDF Studio download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.5/pdf-studio.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.6/pdf-studio.apk", 302);
     }
 
     // 3b. Cloudflare Global Edge CDN: Direct APK Download Gateway
@@ -550,20 +550,22 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.6/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.5/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.4/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.4/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.2/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.0/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.2.4-b140-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.2.5-b141-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.2.4");
-          res.headers.set("X-Connecto-Build", "139");
+          res.headers.set("X-Connecto-Version", "v5.2.5");
+          res.headers.set("X-Connecto-Build", "141");
           return res;
         }
 
@@ -575,7 +577,7 @@ Sitemap: https://connecto.fun/sitemap.xml
               const resp = await fetch(currentFetchUrl, {
                 redirect: "manual",
                 headers: {
-                  "User-Agent": "Connecto-Cloud-Worker/5.2.4"
+                  "User-Agent": "Connecto-Cloud-Worker/5.2.5"
                 }
               });
               if (resp.status >= 300 && resp.status < 400) {
@@ -599,8 +601,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.2.4");
-              downloadHeaders.set("X-Connecto-Build", "139");
+              downloadHeaders.set("X-Connecto-Version", "v5.2.5");
+              downloadHeaders.set("X-Connecto-Build", "141");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1971,19 +1973,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.2.4",
-        version_code: 140,
-        size_bytes: 38050394,
+        version_name: "5.2.5",
+        version_code: 141,
+        size_bytes: 38059906,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Eliminated Auto-Refresh & Accidental Preview Trigger: Silent background revalidations no longer displace scroll position or trigger phantom conversation clicks",
+          "Modern Architectural Bottom Navigation Dock: Precision sliding spring pill dock with illuminated indicator pip, paired filled/active and outlined/inactive vector icons, tactile spring press, and haptic feedback",
+          "Fluid Screen Transitions & Navigation: Smooth elevation cross-fade transitions and spring animations across channels and chat view",
+          "Unslop UI & Typography Polish: Stripped clutter, tuned typography, and unified high-contrast OLED styling",
           "Authentic Elastic Pull Transition Animation Engine: Progressive logarithmic rubber-band tension with 2-phase gesture qualification, 12dp hysteresis deadband, OLED pill indicator, and fluid spring return across Home, Messages, Calls, and Profile tabs",
           "Scroll-to-Top Refresh Protection: Fixed root cause where normal flings and upward scrolling accidentally triggered auto-refresh by locking gesture qualification at touch-down",
           "In-Flight Refresh Freeze Prevention: Reject upward drag manipulation during active refresh to prevent indicator and content offset freezing",
           "App-Wide Tap-To-Top Navigation: Tapping any active bottom bar tab button (Home, Messages, Channels, Calls, Profile) or top header bar smoothly scrolls back to the top with multi-item leap acceleration",
-          "Scroll-to-Top Refresh Protection: Requires user to be settled at the top before downward drag triggers refresh; normal flings and upward scrolling never auto-refresh",
           "Dual-Segmented Black/White Theme Toggle: Tactile squircle pill toggle in Profile Settings with vector icons and dynamic elevation",
           "Channel Workspace Navigation Bar: Elevated top header with interactive workspace switcher capsule, chevron rotation, in-channel search with live message filter & tabular match count, pinned message quick-jump, and 3-dots channel options",
           "Segmented Channel Navigation Bar: Ergonomic horizontal scrollable segmented pill bar with animated liquid active indicator, subtle unread dots, live voice lounge waveform, and haptic feedback",
@@ -2001,7 +2006,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "120fps Gesture Responsiveness: Non-blocking deferred preview gestures, hardware accelerated rendering, and ultra-smooth spring animations"
         ],
         is_essential: true,
-        updated_at: "2026-11-15T13:20:00Z"
+        updated_at: "2026-11-17T11:35:00Z"
       },
       {
         id: "jarvis",
@@ -2037,15 +2042,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Full PDF editor & creative image editor with typography matching",
         description: "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         category: "Productivity",
-        version_name: "1.5.1",
-        version_code: 17,
-        size_bytes: 75441237,
-        size_formatted: "72.0 MB",
+        version_name: "1.5.2",
+        version_code: 18,
+        size_bytes: 67492020,
+        size_formatted: "64.4 MB",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
         accent_color: "#EF4444",
         changelog: [
-          "Scan & Edit Text in Images (On-Device OCR): Detect, select, and edit text embedded within images and scanned documents with ML Kit offline OCR — no internet required",
+          "Scan & Edit Text in Images: Exact pixel-matched font size, stroke weight, style, and color preservation",
+          "Eliminated Auto-Refresh & Accidental Preview Trigger: Intentional drag threshold and pointer shield prevent accidental document openings",
+          "Material 3 Unified Action Dock: Clean Extended FAB with quick actions menu replacing cluttered dual buttons",
+          "Fluid Screen Transitions: Smooth elevation cross-fade entrance and exit transitions across document viewer and editor",
+          "Unslop UI & Typography Polish: Subtle outline borders, refined card radii, and clean contextual badge typography",
           "In-Image Text Erasure & Replacement: Cleanly inpaint/erase original text with local background color sampling and insert custom replacement text with matched typography",
           "Interactive Text Annotation Editing: Tap any placed or detected text annotation in the Image Editor to edit text, change color, adjust font size, toggle bold/italic, or delete",
           "Scanned PDF Auto-Detection: Automatic OCR fallback and one-tap scan action for image-based PDF pages with zero digital text streams",
@@ -2066,7 +2075,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "Organize Pages: Reorder, rotate, or delete pages losslessly"
         ],
         is_essential: false,
-        updated_at: "2026-11-15T19:00:00Z"
+        updated_at: "2026-11-17T11:35:00Z"
       }
     ];
 
@@ -7185,13 +7194,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.2.4",
-      version_name: "v5.2.4",
-      version_code: 140,
-      build: 140,
-      sha256: "c989f8d1d13f76012e467757c560f2d30f0a1318e9a47973bcf5a8d598332894",
+      version: "5.2.5",
+      version_name: "v5.2.5",
+      version_code: 141,
+      build: 141,
+      sha256: "6ff0761a84ebcecdbb8b0cb8aa9163708ae507e9061cb1f46ca13c60bb14a682",
       filename: "connecto-fun.apk",
-      size_bytes: 38045464,
+      size_bytes: 38059906,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
