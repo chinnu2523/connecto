@@ -199,13 +199,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.2.6",
-        version_name: "v5.2.6",
-        version_code: 142,
-        build: 142,
-        sha256: "23eb4645f8710b4c1aa4612013b31ef075be794c5f6050d6dcbb5f8e36889b6b",
+        version: "5.2.7",
+        version_name: "v5.2.7",
+        version_code: 143,
+        build: 143,
+        sha256: "22021b76173350a593ffae49e8831e0fafb79ff21ab678cb98bc1cc327637b1a",
         filename: "connecto-fun.apk",
-        size_bytes: 38059913,
+        size_bytes: 38059370,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -213,6 +213,9 @@ Sitemap: https://connecto.fun/sitemap.xml
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Instantaneous Non-Adjacent Tab Switching: Multi-tab navigation jumps directly to the target page via scrollToPage, completely bypassing intermediate screen composition, layout, and image decoding.",
+          "Zero-Jank Bottom Navigation Engine: Eliminated continuous 60/120fps infinite transitions during idle states, reducing GPU draw overhead and conserving device battery.",
+          "Tactile High-Stiffness Spring Mechanics: Tuned bottom bar pill indicator and action button springs for crisp, responsive touch feedback.",
           "Channel Workspace Navigation Bar: Dedicated top header featuring interactive workspace switcher capsule, animated chevron indicator, in-channel instant message search with live filter & tabular match counter, pinned message quick-jump, and channel options menu.",
           "Segmented Channel Navigation Bar: Smooth horizontal segmented pill bar (#general, #announcements, #gaming, #tournaments, #clips, #voice-lounge) with concentric geometry, active indicator, live sound wave visualizer, and haptic feedback.",
           "Channel Bottom Bar Quick Return: Tapping the Channels bottom bar tab when active smoothly snaps the message timeline to latest messages.",
@@ -363,6 +366,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.9/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.8/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.7/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.1.0/our-store.apk",
@@ -379,14 +383,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.3/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.1.1-b60-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.1.2-b61-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.1.1");
-          res.headers.set("X-Connecto-Store-Build", "60");
+          res.headers.set("X-Connecto-Store-Version", "v2.1.2");
+          res.headers.set("X-Connecto-Store-Build", "61");
           return res;
         }
 
@@ -424,8 +428,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.1.1");
-              downloadHeaders.set("X-Connecto-Store-Build", "60");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.1.2");
+              downloadHeaders.set("X-Connecto-Store-Build", "61");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -440,7 +444,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (err) {
         console.error("Store download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v2.0.7/our-store.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.9/our-store.apk", 302);
     }
 
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK (Restricted strictly to administrators)
@@ -515,6 +519,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalPdfUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.9/pdf-studio.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.8/pdf-studio.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.7/pdf-studio.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.6/pdf-studio.apk",
@@ -581,7 +586,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (err) {
         console.error("PDF Studio download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.8/pdf-studio.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.9/pdf-studio.apk", 302);
     }
 
     // 3b. Cloudflare Global Edge CDN: Direct APK Download Gateway
@@ -595,6 +600,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.9/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.8/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.7/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.6/connecto-fun.apk",
@@ -605,14 +611,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.0/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.2.6-b142-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.2.7-b143-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.2.6");
-          res.headers.set("X-Connecto-Build", "142");
+          res.headers.set("X-Connecto-Version", "v5.2.7");
+          res.headers.set("X-Connecto-Build", "143");
           return res;
         }
 
@@ -624,7 +630,7 @@ Sitemap: https://connecto.fun/sitemap.xml
               const resp = await fetch(currentFetchUrl, {
                 redirect: "manual",
                 headers: {
-                  "User-Agent": "Connecto-Cloud-Worker/5.2.6"
+                  "User-Agent": "Connecto-Cloud-Worker/5.2.7"
                 }
               });
               if (resp.status >= 300 && resp.status < 400) {
@@ -648,8 +654,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.2.6");
-              downloadHeaders.set("X-Connecto-Build", "142");
+              downloadHeaders.set("X-Connecto-Version", "v5.2.7");
+              downloadHeaders.set("X-Connecto-Build", "143");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -664,7 +670,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.4/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.9/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -1969,14 +1975,18 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.1.1",
-        version_code: 60,
-        size_bytes: 18961463,
+        version_name: "2.1.2",
+        version_code: 61,
+        size_bytes: 18961456,
         size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Async Package Installation Pipeline: Moved APK byte streaming, PackageInstaller session commit, and fsync off the UI thread to background I/O workers, eliminating main thread stalls and UI freezes",
+          "OLED Neon Installation Animation: Real-time sweeping electric blue progress indicator with pulsing border and animated active state replacing static progress bars",
+          "0ms Bottom Bar & Tab Navigation: Removed blocking synchronous network queries and package manager checks on tab clicks for instantaneous, lag-free navigation",
+          "Safe Archive Inspection & Android 14+ BAL Hardening: Switched package parsing flags to safe lightweight inspection, differentiating user install aborts from system failures and streamlining direct install prompts",
           "Collision-Free Release Sync: Immediate in-app update notification watchdog and verified background package installer IPC",
           "Zero Gradients & OLED Clean Architecture: Eliminated all artificial gradient borders, background blends, and gloss overlays in favor of high-contrast solid OLED tokens, clean surfaces, and smooth pulsating skeleton loaders; tactile spring press micro-interactions across all cards and action buttons",
           "Account Tab Clean UI & UX Redesign: User identity hero card with concentric status ring, verification pip, and 3-column telemetry metrics (Account Tier, SHA-256 Integrity, IPC Session engine)",
@@ -2022,14 +2032,17 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.2.6",
-        version_code: 142,
-        size_bytes: 38059913,
+        version_name: "5.2.7",
+        version_code: 143,
+        size_bytes: 38059370,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Instantaneous Non-Adjacent Tab Switching: Multi-tab navigation jumps directly to the target page via scrollToPage, completely bypassing intermediate screen composition, layout, and image decoding",
+          "Zero-Jank Bottom Navigation Engine: Eliminated continuous 60/120fps infinite transitions during idle states, reducing GPU draw overhead and conserving device battery",
+          "Tactile High-Stiffness Spring Mechanics: Tuned bottom bar pill indicator and action button springs for crisp, responsive touch feedback",
           "Noise Reduction & Tactile Spring Physics: Refined clean interface, eliminated visual clutter across chat and channel views, and added tactile spring press micro-interactions with smooth transition physics",
           "Eliminated Auto-Refresh & Accidental Preview Trigger: Silent background revalidations no longer displace scroll position or trigger phantom conversation clicks",
           "Modern Architectural Bottom Navigation Dock: Precision sliding spring pill dock with illuminated indicator pip, paired filled/active and outlined/inactive vector icons, tactile spring press, and haptic feedback",
@@ -2155,7 +2168,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "2.1.1",
+      store_version: "2.1.2",
       total_apps: appsToReturn.length,
       is_admin: isAdmin,
       apps: appsToReturn
@@ -7250,13 +7263,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.2.6",
-      version_name: "v5.2.6",
-      version_code: 142,
-      build: 142,
-      sha256: "23eb4645f8710b4c1aa4612013b31ef075be794c5f6050d6dcbb5f8e36889b6b",
+      version: "5.2.7",
+      version_name: "v5.2.7",
+      version_code: 143,
+      build: 143,
+      sha256: "22021b76173350a593ffae49e8831e0fafb79ff21ab678cb98bc1cc327637b1a",
       filename: "connecto-fun.apk",
-      size_bytes: 38059913,
+      size_bytes: 38059370,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",

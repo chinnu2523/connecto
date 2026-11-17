@@ -91,7 +91,8 @@ class MainActivity : FragmentActivity() {
                 val err = intent?.getStringExtra("error_message")
                 when (action) {
                     "com.connecto.store.PACKAGE_INSTALL_FAILED" -> {
-                        viewModel.onInstallFailed(pkg, err)
+                        val isCancelled = intent?.getBooleanExtra("is_cancelled", false) ?: false
+                        viewModel.onInstallFailed(pkg, err, isCancelled)
                     }
                     "com.connecto.store.PACKAGE_INSTALL_PENDING_ACTION" -> {
                         val confirmIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

@@ -147,7 +147,7 @@ fun Modifier.tactilePress(
         targetValue = if (isPressed) pressedScale else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
+            stiffness = Spring.StiffnessHigh
         ),
         label = "tactilePressScale"
     )
@@ -421,16 +421,8 @@ fun StoreApp(
                                     AnimatedContent(
                                         targetState = selectedSection,
                                         transitionSpec = {
-                                            (fadeIn(animationSpec = tween(190)) +
-                                                scaleIn(
-                                                    initialScale = 0.98f,
-                                                    animationSpec = spring(
-                                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                                        stiffness = Spring.StiffnessMediumLow
-                                                    )
-                                                )) togetherWith
-                                            (fadeOut(animationSpec = tween(140)) +
-                                                scaleOut(targetScale = 0.98f, animationSpec = tween(140)))
+                                            fadeIn(animationSpec = tween(120)) togetherWith
+                                                fadeOut(animationSpec = tween(90))
                                         },
                                         label = "navSectionTransition"
                                     ) { currentSection ->
@@ -483,10 +475,6 @@ fun StoreApp(
                                             } else if (section == StoreNavSection.LOGIN) {
                                                 accountScrollToTopTrigger++
                                             }
-                                        }
-                                        if (section == StoreNavSection.UPDATES || section == StoreNavSection.OVERVIEW) {
-                                            vm.loadCatalog(silently = true)
-                                            com.connecto.store.network.StoreRealtimeManager.requestCheckUpdates()
                                         }
                                         selectedSection = section
                                     },
@@ -1347,7 +1335,7 @@ private fun ClassicAppCard(
             // Single App Store Style Tactile Action Button
             val (actionLabel, actionBg, actionFg) = when {
                 appState.error != null -> Triple("RETRY", DangerRed, Color.White)
-                appState.isInstalling -> Triple("INSTALLING…", theme.cardBorder, theme.textPrimary)
+                appState.isInstalling -> Triple("INSTALLING…", ElectricBlueUpdate.copy(alpha = 0.15f), ElectricBlueUpdateLight)
                 appState.isDownloading -> Triple("${appState.downloadProgress}% ✕", theme.cardBorder, theme.textPrimary)
                 appState.installState == StoreApp.InstallState.NOT_INSTALLED -> Triple("GET", theme.cardElevated, theme.textPrimary)
                 appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Triple("UPDATE", ElectricBlueUpdate, Color.White)
@@ -1362,6 +1350,7 @@ private fun ClassicAppCard(
                         1.dp,
                         when {
                             appState.error != null -> DangerRedBorder
+                            appState.isInstalling -> ElectricBlueUpdate.copy(alpha = 0.60f)
                             appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> ElectricBlueUpdate
                             else -> theme.borderHighlight
                         },
@@ -1378,14 +1367,35 @@ private fun ClassicAppCard(
                     .padding(horizontal = 14.dp, vertical = 7.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = actionLabel,
-                    color = actionFg,
-                    fontSize = 11.5.sp,
-                    style = TextStyle(fontFeatureSettings = "tnum"),
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 0.5.sp
-                )
+                if (appState.isInstalling) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(11.dp),
+                            color = ElectricBlueUpdateLight,
+                            strokeWidth = 1.8.dp
+                        )
+                        Text(
+                            text = "INSTALLING…",
+                            color = ElectricBlueUpdateLight,
+                            fontSize = 11.sp,
+                            style = TextStyle(fontFeatureSettings = "tnum"),
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                } else {
+                    Text(
+                        text = actionLabel,
+                        color = actionFg,
+                        fontSize = 11.5.sp,
+                        style = TextStyle(fontFeatureSettings = "tnum"),
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.5.sp
+                    )
+                }
             }
         }
     }
@@ -1566,19 +1576,27 @@ private fun ClassicAppDetailView(
                         val status = if (appState.isInstalling) "Installing directly into Android OS…" else "Downloading package…"
                         Text(status, color = theme.textPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         Text(
-                            if (appState.isInstalling) "Please wait" else "${appState.downloadProgress}%",
-                            color = theme.textMuted,
+                            if (appState.isInstalling) "Please wait…" else "${appState.downloadProgress}%",
+                            color = if (appState.isInstalling) ElectricBlueUpdateLight else theme.textMuted,
                             fontSize = 12.sp,
                             style = TextStyle(fontFeatureSettings = "tnum"),
                             fontWeight = FontWeight.SemiBold
                         )
                     }
-                    LinearProgressIndicator(
-                        progress = { if (appState.isInstalling) 1f else appState.downloadProgress / 100f },
-                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
-                        color = theme.textPrimary,
-                        trackColor = theme.cardElevated
-                    )
+                    if (appState.isInstalling) {
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                            color = ElectricBlueUpdateLight,
+                            trackColor = theme.cardElevated
+                        )
+                    } else {
+                        LinearProgressIndicator(
+                            progress = { appState.downloadProgress / 100f },
+                            modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                            color = theme.textPrimary,
+                            trackColor = theme.cardElevated
+                        )
+                    }
                 }
             }
 
@@ -1599,10 +1617,18 @@ private fun ClassicAppDetailView(
                         .clip(RoundedCornerShape(12.dp))
                         .background(
                             when {
-                                appState.isDownloading || appState.isInstalling -> theme.cardBorder
+                                appState.isInstalling -> ElectricBlueUpdate.copy(alpha = 0.20f)
+                                appState.isDownloading -> theme.cardBorder
                                 appState.installState == StoreApp.InstallState.NOT_INSTALLED -> theme.textPrimary
                                 appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> ElectricBlueUpdate
                                 else -> theme.textPrimary
+                            }
+                        )
+                        .then(
+                            if (appState.isInstalling) {
+                                Modifier.border(1.dp, ElectricBlueUpdate.copy(alpha = 0.70f), RoundedCornerShape(12.dp))
+                            } else {
+                                Modifier
                             }
                         )
                         .tactilePress(
@@ -1617,14 +1643,27 @@ private fun ClassicAppDetailView(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         when {
-                            appState.isDownloading || appState.isInstalling -> {
+                            appState.isInstalling -> {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = ElectricBlueUpdateLight,
+                                    strokeWidth = 2.dp
+                                )
+                                Text(
+                                    text = "INSTALLING…",
+                                    color = ElectricBlueUpdateLight,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                            }
+                            appState.isDownloading -> {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(16.dp),
                                     color = theme.textPrimary,
                                     strokeWidth = 2.dp
                                 )
                                 Text(
-                                    text = if (appState.isInstalling) "INSTALLING…" else "DOWNLOADING…",
+                                    text = "DOWNLOADING (${appState.downloadProgress}%)…",
                                     color = theme.textPrimary,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp
@@ -3555,19 +3594,27 @@ fun ClassicLoginAccountView(
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = if (storeSelfUpdate.isInstalling) "Please wait" else "${storeSelfUpdate.downloadProgress}%",
-                                    color = theme.textMuted,
+                                    text = if (storeSelfUpdate.isInstalling) "Please wait…" else "${storeSelfUpdate.downloadProgress}%",
+                                    color = if (storeSelfUpdate.isInstalling) ElectricBlueUpdateLight else theme.textMuted,
                                     fontSize = 11.5.sp,
                                     style = TextStyle(fontFeatureSettings = "tnum"),
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
-                            LinearProgressIndicator(
-                                progress = { if (storeSelfUpdate.isInstalling) 1f else storeSelfUpdate.downloadProgress / 100f },
-                                modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)),
-                                color = theme.textPrimary,
-                                trackColor = theme.cardElevated
-                            )
+                            if (storeSelfUpdate.isInstalling) {
+                                LinearProgressIndicator(
+                                    modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)),
+                                    color = ElectricBlueUpdateLight,
+                                    trackColor = theme.cardElevated
+                                )
+                            } else {
+                                LinearProgressIndicator(
+                                    progress = { storeSelfUpdate.downloadProgress / 100f },
+                                    modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)),
+                                    color = theme.textPrimary,
+                                    trackColor = theme.cardElevated
+                                )
+                            }
                         }
                     } else {
                         Box(

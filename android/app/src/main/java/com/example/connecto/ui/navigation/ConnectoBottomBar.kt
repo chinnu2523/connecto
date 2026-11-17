@@ -157,16 +157,16 @@ fun ConnectoBottomBar(
         val animatedCenterX by animateDpAsState(
             targetValue = targetCenterX,
             animationSpec = spring(
-                stiffness = 340f,
-                dampingRatio = 0.72f // Fluid organic liquid glide
+                stiffness = 750f,
+                dampingRatio = 0.80f // Ultra-snappy, buttery fluid slide
             ),
             label = "navBulgeCenterX"
         )
 
         // Fluid squish & stretch during movement
         val distance = (targetCenterX - animatedCenterX).value.dp
-        val stretchFactor = 1f + (distance.value.absoluteValue / 60f).coerceAtMost(0.35f)
-        val squishY = 1f - (distance.value.absoluteValue / 140f).coerceAtMost(0.20f)
+        val stretchFactor = 1f + (distance.value.absoluteValue / 60f).coerceAtMost(0.25f)
+        val squishY = 1f - (distance.value.absoluteValue / 140f).coerceAtMost(0.15f)
 
         // Liquid Jelly Spring Rebound on Arrival
         val liquidJiggle = remember { Animatable(0f) }
@@ -175,12 +175,12 @@ fun ConnectoBottomBar(
             liquidJiggle.animateTo(
                 targetValue = 0f,
                 animationSpec = spring(
-                    dampingRatio = 0.48f,
-                    stiffness = 260f
+                    dampingRatio = 0.60f,
+                    stiffness = 450f
                 )
             )
         }
-        val jiggleBounce = 1f + (liquidJiggle.value * 0.25f * sin(liquidJiggle.value * 3f * PI.toFloat()))
+        val jiggleBounce = 1f + (liquidJiggle.value * 0.18f * sin(liquidJiggle.value * 3f * PI.toFloat()))
         val bulgeHeightPx = with(density) { 11.dp.toPx() } * squishY * jiggleBounce
         val bulgeHalfWidthPx = with(density) { (46.dp * stretchFactor).toPx() }
 
@@ -191,23 +191,23 @@ fun ConnectoBottomBar(
             val baseAngle = if (dir > 0) 0f else if (dir < 0) PI.toFloat() else 0f
             val hasPrev = dir != 0
 
-            (0 until 32).map { i ->
-                val angle = if (hasPrev && i < 18) {
+            (0 until 20).map { i ->
+                val angle = if (hasPrev && i < 12) {
                     val spread = (Random.nextFloat() - 0.5f) * 1.6f
                     baseAngle + spread
                 } else {
                     Random.nextFloat() * 2f * PI.toFloat()
                 }
-                val distanceDp = 30f + Random.nextFloat() * 54f
-                val sizeDp = 1.6f + Random.nextFloat() * 2.2f
-                val delay = (Random.nextFloat() * 0.20f)
-                val curvature = (Random.nextFloat() - 0.5f) * 1.8f
-                val tone = when (i % 5) {
+                val distanceDp = 24f + Random.nextFloat() * 40f
+                val sizeDp = 1.6f + Random.nextFloat() * 1.8f
+                val delay = (Random.nextFloat() * 0.15f)
+                val curvature = (Random.nextFloat() - 0.5f) * 1.5f
+                val tone = when (i % 4) {
                     0 -> 2 // white / highlight
-                    1, 2 -> 1 // cyan / accent
+                    1 -> 1 // cyan / accent
                     else -> 0 // primary brand
                 }
-                val streak = 0.8f + Random.nextFloat() * 0.8f
+                val streak = 0.8f + Random.nextFloat() * 0.6f
 
                 TabGatherParticle(
                     initialAngleRad = angle,
@@ -221,34 +221,14 @@ fun ConnectoBottomBar(
             }
         }
 
-        val infiniteTransition = rememberInfiniteTransition(label = "bottomBarIdle")
-        val idleOrbitPhase by infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 2f * PI.toFloat(),
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 3800, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "idleOrbitPhase"
-        )
-        val idleGlowPulse by infiniteTransition.animateFloat(
-            initialValue = 0.85f,
-            targetValue = 1.15f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 1900, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "idleGlowPulse"
-        )
-
         val gatherProgress = remember { Animatable(1f) }
         LaunchedEffect(currentTab) {
             gatherProgress.snapTo(0f)
             gatherProgress.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(
-                    durationMillis = 520,
-                    easing = CubicBezierEasing(0.16f, 0.90f, 0.22f, 1.0f)
+                    durationMillis = 240,
+                    easing = FastOutSlowInEasing
                 )
             )
             previousTabIndex = selectedIndex
@@ -436,26 +416,12 @@ fun ConnectoBottomBar(
                     )
                 }
             } else {
-                val idleMoteCount = 5
-                for (i in 0 until idleMoteCount) {
-                    val phaseOffset = i * (2f * PI.toFloat() / idleMoteCount)
-                    val angle = idleOrbitPhase + phaseOffset
-                    val baseRadiusX = 28.dp.toPx() + (i % 3) * 4.dp.toPx()
-                    val baseRadiusY = 16.dp.toPx() + (i % 2) * 3.dp.toPx()
-
-                    val moteX = pillCenter.x + cos(angle) * baseRadiusX
-                    val moteY = pillCenter.y + sin(angle) * baseRadiusY
-
-                    val moteAlpha = (0.22f + 0.18f * sin(angle * 2f + i.toFloat())).coerceIn(0.08f, 0.45f)
-                    val moteColor = if (i % 2 == 0) primaryColor else accentCyan
-                    val moteRadius = (1.4f + (i % 2) * 0.8f).dp.toPx() * idleGlowPulse
-
-                    drawCircle(
-                        color = moteColor.copy(alpha = moteAlpha),
-                        radius = moteRadius,
-                        center = Offset(moteX, moteY)
-                    )
-                }
+                // Calm, highly optimized static ambient accent when idle — zero frame drops & zero GPU burn!
+                drawCircle(
+                    color = primaryColor.copy(alpha = 0.12f),
+                    radius = 18.dp.toPx() * stretchFactor,
+                    center = pillCenter
+                )
             }
         }
 
@@ -523,7 +489,7 @@ fun ConnectoBottomBar(
                     // Tactile micro-compression on tap (0.92x spring)
                     val buttonPressScale by animateFloatAsState(
                         targetValue = if (isPressed) 0.92f else 1.0f,
-                        animationSpec = spring(stiffness = 550f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                        animationSpec = spring(stiffness = 800f, dampingRatio = Spring.DampingRatioMediumBouncy),
                         label = "buttonPressScale"
                     )
 
@@ -531,7 +497,7 @@ fun ConnectoBottomBar(
                     val iconScale by animateFloatAsState(
                         targetValue = if (isSelected) 1.15f else 1.0f,
                         animationSpec = spring(
-                            stiffness = 360f,
+                            stiffness = 650f,
                             dampingRatio = Spring.DampingRatioMediumBouncy
                         ),
                         label = "tabIconScale"
@@ -540,7 +506,7 @@ fun ConnectoBottomBar(
                     val iconOffsetY by animateDpAsState(
                         targetValue = if (isSelected) (-5.dp) else 0.dp,
                         animationSpec = spring(
-                            stiffness = 380f,
+                            stiffness = 650f,
                             dampingRatio = Spring.DampingRatioMediumBouncy
                         ),
                         label = "tabIconOffsetY"
@@ -551,7 +517,7 @@ fun ConnectoBottomBar(
 
                     val textColor by animateColorAsState(
                         targetValue = if (isSelected) iconPrimary else colors.textSecondary,
-                        animationSpec = spring(stiffness = 500f, dampingRatio = 0.85f),
+                        animationSpec = spring(stiffness = 650f, dampingRatio = 0.85f),
                         label = "tabTextColor"
                     )
 

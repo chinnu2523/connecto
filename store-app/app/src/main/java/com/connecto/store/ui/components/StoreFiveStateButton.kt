@@ -80,7 +80,7 @@ fun StoreFiveStateButton(
         targetValue = if (effectiveState == StoreButtonState.HOVER) pressedScale else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
+            stiffness = Spring.StiffnessHigh
         ),
         label = "btnTactileScale"
     )

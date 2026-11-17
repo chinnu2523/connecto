@@ -603,7 +603,16 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
                         pendingPackageName = app.packageName
                         showPermissionPrompt(appState)
                     } else {
-                        ApkInstaller.installApk(context, file, app.packageName)
+                        val started = ApkInstaller.installApk(context, file, app.packageName)
+                        if (!started) {
+                            updateAppState(app.packageName) {
+                                it.copy(
+                                    isDownloading = false,
+                                    isInstalling = false,
+                                    error = "Package installer could not be launched. Tap to retry."
+                                )
+                            }
+                        }
                     }
                 } else {
                     updateAppState(app.packageName) {
@@ -626,13 +635,13 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         activeDownloadJobs[app.packageName] = job
     }
 
-    fun onInstallFailed(packageName: String?, errorMessage: String?) {
+    fun onInstallFailed(packageName: String?, errorMessage: String?, isCancelled: Boolean = false) {
         val target = packageName ?: return
         updateAppState(target) {
             it.copy(
                 isDownloading = false,
                 isInstalling = false,
-                error = errorMessage ?: "Installation failed. Tap to retry."
+                error = if (isCancelled) null else (errorMessage ?: "Installation failed. Tap to retry.")
             )
         }
     }
@@ -673,7 +682,12 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             pendingInstallFile = null
             pendingPackageName = null
             file?.let {
-                ApkInstaller.installApk(context, it, pkg)
+                viewModelScope.launch {
+                    val ok = ApkInstaller.installApk(context, it, pkg)
+                    if (!ok && pkg != null) {
+                        updateAppState(pkg) { s -> s.copy(isInstalling = false, error = "Installation failed. Tap to retry.") }
+                    }
+                }
             }
         }
     }

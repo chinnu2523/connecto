@@ -39,14 +39,7 @@ class InstallStatusReceiver : BroadcastReceiver() {
                     }
 
                     it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                    // Broadcast to foreground MainActivity to bypass Android 14+ background activity launch restrictions
-                    val notifyIntent = Intent("com.connecto.store.PACKAGE_INSTALL_PENDING_ACTION").apply {
-                        putExtra("package_name", packageName)
-                        putExtra(Intent.EXTRA_INTENT, it)
-                        setPackage(context.packageName)
-                    }
-                    context.sendBroadcast(notifyIntent)
-
+                    var launchedDirectly = false
                     try {
                         val options = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                             android.app.ActivityOptions.makeBasic().apply {
@@ -58,13 +51,19 @@ class InstallStatusReceiver : BroadcastReceiver() {
                             null
                         }
                         context.startActivity(it, options)
+                        launchedDirectly = true
                     } catch (e: Exception) {
-                        Log.e("OurStore", "Failed to start confirm intent with options, trying standard start", e)
-                        try {
-                            context.startActivity(it)
-                        } catch (ex2: Exception) {
-                            Log.e("OurStore", "Standard start also failed (delegated to MainActivity)", ex2)
+                        Log.w("OurStore", "Direct activity start failed from receiver, delegating to MainActivity", e)
+                    }
+
+                    // Only notify MainActivity if direct launch was blocked by system BAL restrictions
+                    if (!launchedDirectly) {
+                        val notifyIntent = Intent("com.connecto.store.PACKAGE_INSTALL_PENDING_ACTION").apply {
+                            putExtra("package_name", packageName)
+                            putExtra(Intent.EXTRA_INTENT, it)
+                            setPackage(context.packageName)
                         }
+                        context.sendBroadcast(notifyIntent)
                     }
                 }
             }
@@ -79,9 +78,15 @@ class InstallStatusReceiver : BroadcastReceiver() {
             else -> {
                 val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
                 Log.e("OurStore", "PackageInstaller failed with status: $status message: $message")
+                val isCancelled = status == PackageInstaller.STATUS_FAILURE_ABORTED ||
+                    status == PackageInstaller.STATUS_FAILURE_INVALID ||
+                    message?.contains("abort", ignoreCase = true) == true ||
+                    message?.contains("cancel", ignoreCase = true) == true
+
                 val broadcast = Intent("com.connecto.store.PACKAGE_INSTALL_FAILED").apply {
                     putExtra("package_name", packageName)
-                    putExtra("error_message", message)
+                    putExtra("error_message", if (isCancelled) null else message)
+                    putExtra("is_cancelled", isCancelled)
                     setPackage(context.packageName)
                 }
                 context.sendBroadcast(broadcast)

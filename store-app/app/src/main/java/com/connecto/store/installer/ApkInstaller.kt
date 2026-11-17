@@ -179,18 +179,20 @@ object ApkInstaller {
 
             finalConn.inputStream.use { input ->
                 destFile.outputStream().use { output ->
-                    val buffer = ByteArray(32768)
+                    val buffer = ByteArray(65536)
                     var bytesRead: Int
-                    var lastReported = 0
+                    var lastReported = -1
                     while (input.read(buffer).also { bytesRead = it } != -1) {
                         coroutineContext.ensureActive()
                         output.write(buffer, 0, bytesRead)
                         downloadedBytes += bytesRead
                         if (totalBytes > 0) {
                             val progress = ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(0, 100)
-                            if (progress != lastReported) {
+                            if (progress >= lastReported + 2 || progress == 100) {
                                 lastReported = progress
-                                onProgress(progress)
+                                withContext(Dispatchers.Main) {
+                                    onProgress(progress)
+                                }
                             }
                         }
                     }
@@ -209,7 +211,9 @@ object ApkInstaller {
                     }
                     Log.i(TAG, "Cryptographic integrity verified: SHA-256 match ($actualSha)")
                 }
-                onProgress(100)
+                withContext(Dispatchers.Main) {
+                    onProgress(100)
+                }
                 destFile
             } else {
                 null
@@ -226,20 +230,22 @@ object ApkInstaller {
     }
 
     /**
-     * Installs [apkFile] using native system PackageInstaller intent,
+     * Installs [apkFile] using native system PackageInstaller intent or IPC session,
      * ensuring web browsers can NEVER intercept the installation and eliminating
      * Background Activity Launch (BAL) restrictions.
+     * Guaranteed to execute heavy I/O off the main thread.
      */
-    fun installApk(context: Context, apkFile: File, packageName: String? = null) {
+    suspend fun installApk(context: Context, apkFile: File, packageName: String? = null): Boolean = withContext(Dispatchers.IO) {
         if (!apkFile.exists() || apkFile.length() < 1024) {
             Log.e(TAG, "Cannot install: APK file does not exist or is too small at ${apkFile.absolutePath}")
-            return
+            return@withContext false
         }
 
         // Pre-flight sanity check: Verify APK parses validly prior to system handoff
+        // Using flag 0 prevents BadParcelableException or resource parse abort on modern Android
         val pm = context.packageManager
         val archiveInfo = try {
-            pm.getPackageArchiveInfo(apkFile.absolutePath, PackageManager.GET_ACTIVITIES)
+            pm.getPackageArchiveInfo(apkFile.absolutePath, 0)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse archive info", e)
             null
@@ -247,7 +253,7 @@ object ApkInstaller {
 
         if (archiveInfo == null) {
             Log.e(TAG, "Pre-flight validation failed: APK archive is corrupted, incomplete, or invalid at ${apkFile.absolutePath}")
-            return
+            return@withContext false
         }
 
         val targetPackage = packageName ?: archiveInfo.packageName
@@ -259,8 +265,7 @@ object ApkInstaller {
         val isSelfUpdate = targetPackage == context.packageName
         if (isSelfUpdate) {
             Log.i(TAG, "Self-update of Our Store detected: launching system package installer intent directly from foreground")
-            installViaSystemIntent(context, apkFile)
-            return
+            return@withContext installViaSystemIntent(context, apkFile)
         }
 
         // Priority 2: For other packages on Android 12+ (API 31+), only attempt PackageInstaller Session IPC
@@ -270,16 +275,17 @@ object ApkInstaller {
             val sessionSuccess = installViaPackageInstaller(context, apkFile, targetPackage)
             if (sessionSuccess) {
                 Log.i(TAG, "PackageInstaller session successfully initiated for $targetPackage")
-                return
+                return@withContext true
             }
         }
 
         // Priority 3: Universal System PackageInstaller Intent (rock-solid for updates and initial installs)
         Log.i(TAG, "Launching system package installer for $targetPackage at ${apkFile.name}")
-        installViaSystemIntent(context, apkFile)
+        return@withContext installViaSystemIntent(context, apkFile)
     }
 
     private fun installViaPackageInstaller(context: Context, apkFile: File, packageName: String): Boolean {
+        var openSession: PackageInstaller.Session? = null
         return try {
             val packageInstaller = context.packageManager.packageInstaller
             val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
@@ -301,6 +307,7 @@ object ApkInstaller {
 
             val sessionId = packageInstaller.createSession(params)
             val session = packageInstaller.openSession(sessionId)
+            openSession = session
 
             apkFile.inputStream().use { input ->
                 session.openWrite("base.apk", 0, apkFile.length()).use { output ->
@@ -324,11 +331,12 @@ object ApkInstaller {
             true
         } catch (e: Exception) {
             Log.w(TAG, "PackageInstaller session failed, falling back to intent", e)
+            try { openSession?.abandon() } catch (_: Exception) {}
             false
         }
     }
 
-    private fun installViaSystemIntent(context: Context, apkFile: File) {
+    private suspend fun installViaSystemIntent(context: Context, apkFile: File): Boolean = withContext(Dispatchers.Main) {
         try {
             apkFile.setReadable(true, false)
 
@@ -367,6 +375,7 @@ object ApkInstaller {
 
             context.startActivity(intent)
             Log.i(TAG, "Successfully started system installer activity for ${apkFile.name}")
+            true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to launch targeted system installer intent, attempting fallback", e)
             try {
@@ -379,8 +388,10 @@ object ApkInstaller {
                     putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
                 }
                 context.startActivity(fallbackIntent)
+                true
             } catch (fallbackErr: Exception) {
                 Log.e(TAG, "All installation methods failed", fallbackErr)
+                false
             }
         }
     }

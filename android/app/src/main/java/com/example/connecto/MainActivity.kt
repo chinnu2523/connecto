@@ -398,10 +398,10 @@ fun ConnectoApp(
     androidx.compose.runtime.LaunchedEffect(tabPagerState.isScrollInProgress) {
         if (!tabPagerState.isScrollInProgress) {
             val offset = tabPagerState.currentPageOffsetFraction
-            if (kotlin.math.abs(offset) > 0.005f) {
+            if (kotlin.math.abs(offset) > 0.01f) {
                 tabPagerState.animateScrollToPage(
                     page = tabPagerState.targetPage,
-                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)
+                    animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing)
                 )
             }
         }
@@ -409,15 +409,25 @@ fun ConnectoApp(
 
     val updateCurrentTab: (ConnectoTab) -> Unit = { tab ->
         currentTab = tab
-        prefs.edit().putString("last_active_tab", tab.name).apply()
         val targetIndex = tabs.indexOf(tab)
         if (targetIndex != -1 && tabPagerState.currentPage != targetIndex) {
             coroutineScope.launch {
-                tabPagerState.animateScrollToPage(
-                    page = targetIndex,
-                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)
-                )
+                val distance = kotlin.math.abs(targetIndex - tabPagerState.currentPage)
+                if (distance > 1) {
+                    // Non-adjacent tab switch (e.g. Home -> Profile): immediate direct jump!
+                    // Completely skips composing, measuring, and laying out intermediate screens
+                    tabPagerState.scrollToPage(targetIndex)
+                } else {
+                    // Adjacent tab switch: crisp, high-performance snappy transition
+                    tabPagerState.animateScrollToPage(
+                        page = targetIndex,
+                        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)
+                    )
+                }
             }
+        }
+        coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            prefs.edit().putString("last_active_tab", tab.name).apply()
         }
     }
     var hasUnreadChats by remember { mutableStateOf(false) }
@@ -898,7 +908,7 @@ fun ConnectoApp(
                                 state = tabPagerState,
                                 modifier = Modifier.fillMaxSize(),
                                 userScrollEnabled = !isDirectChatOpen && !isChannelDrawerOpen,
-                                beyondViewportPageCount = 1
+                                beyondViewportPageCount = 0
                             ) { pageIndex ->
                                 Box(modifier = Modifier.fillMaxSize().clipToBounds()) {
                                     when (tabs[pageIndex]) {
