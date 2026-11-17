@@ -1729,8 +1729,13 @@ private fun ClassicAppDetailView(
                             trackColor = theme.cardElevated
                         )
                     } else {
+                        val animatedProgress by animateFloatAsState(
+                            targetValue = (appState.downloadProgress / 100f).coerceIn(0.01f, 1f),
+                            animationSpec = tween(durationMillis = 180, easing = LinearEasing),
+                            label = "downloadProgressAnim"
+                        )
                         LinearProgressIndicator(
-                            progress = { appState.downloadProgress / 100f },
+                            progress = { animatedProgress },
                             modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                             color = theme.textPrimary,
                             trackColor = theme.cardElevated
@@ -3747,8 +3752,13 @@ fun ClassicLoginAccountView(
                                     trackColor = theme.cardElevated
                                 )
                             } else {
+                                val animatedSelfProgress by animateFloatAsState(
+                                    targetValue = (storeSelfUpdate.downloadProgress / 100f).coerceIn(0.01f, 1f),
+                                    animationSpec = tween(durationMillis = 180, easing = LinearEasing),
+                                    label = "selfDownloadProgressAnim"
+                                )
                                 LinearProgressIndicator(
-                                    progress = { storeSelfUpdate.downloadProgress / 100f },
+                                    progress = { animatedSelfProgress },
                                     modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)),
                                     color = theme.textPrimary,
                                     trackColor = theme.cardElevated

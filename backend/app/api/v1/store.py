@@ -25,14 +25,18 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Autonomous package installer, background updater & security vault",
         "description": "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         "category": "Services",
-        "version_name": "2.1.4",
-        "version_code": 63,
-        "size_bytes": 18961471,
+        "version_name": "2.1.5",
+        "version_code": 64,
+        "size_bytes": 18961450,
         "size_formatted": "18.1 MB",
         "download_url": "https://connecto.fun/downloads/our-store.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
+            "Seamless PlayStore-Style Silent Package Installation: Bypasses OEM third-party antivirus scanning dialogs by routing all package updates through Android PackageInstaller sessions with USER_ACTION_NOT_REQUIRED, PACKAGE_SOURCE_STORE, and requestUpdateOwnership",
+            "Strict Monotonic Download Progress Engine: Fixed download percentage bar jumping backward and forward by caching active download sessions across catalog refresh intervals and enforcing strictly increasing progress increments",
+            "Immediate 1% Render Guard & Asymptotic Fallback: Progress bar displays immediately on tap even on chunked/compressed CDN responses with unknown Content-Length, preventing direct leaps from 0% to installing",
+            "Linear 180ms Progress Smoothing: Added hardware-accelerated animated progress transitions to eliminate all stutter during high-speed multi-megabyte download chunks",
             "Blueprint 03 Floating Notch Tab Bar: Ball hops on notch path with R 28 concave cutout, parabolic arc hopping physics, landing squash, and active label cleanly framed below the notch",
             "Ease-In & Ease-Out Cubic Curve Transitions: Upgraded app modal opening/closing, bottom navigation dock indicator, and section changes to fluid EaseInCubic/EaseOutCubic motion curves",
             "Smooth Tactile Press & Color Transitions: Buttons and interactive cards feature ease-in acceleration on press down and ease-out deceleration on release, paired with animated background color blends",
@@ -52,7 +56,7 @@ APPS_CATALOG: List[Dict[str, Any]] = [
             "Unslop Visual Design Polish: Stripped AI emoji slop, unified 4px spatial grid, and streamlined badge typography across catalog and detail views"
         ],
         "is_essential": True,
-        "updated_at": "2026-11-17T15:40:00Z"
+        "updated_at": "2026-11-18T00:35:00Z"
     },
     {
         "id": "connecto",

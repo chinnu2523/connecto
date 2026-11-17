@@ -71,7 +71,7 @@
 
         <receiver
             android:name=".installer.InstallStatusReceiver"
-            android:exported="false" />
+            android:exported="true" />
 
         <!-- Autonomous background job service to check for app updates periodically -->
         <service

@@ -250,7 +250,21 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val savedSet = wishlistPrefs.getStringSet("saved_apps", emptySet()) ?: emptySet()
-        val uiApps = catalogApps.map { resolveInstallState(ctx, it, savedSet) }
+        val currentSuccess = _uiState.value as? StoreUiState.Success
+        val uiApps = catalogApps.map { app ->
+            val resolved = resolveInstallState(ctx, app, savedSet)
+            val existing = currentSuccess?.apps?.find { it.app.packageName == app.packageName }
+            // Retain active downloading and installing states across catalog refreshes so progress never resets
+            if (existing != null && (existing.isDownloading || existing.isInstalling)) {
+                resolved.copy(
+                    isDownloading = existing.isDownloading,
+                    isInstalling = existing.isInstalling,
+                    downloadProgress = existing.downloadProgress
+                )
+            } else {
+                resolved
+            }
+        }
         val selfUpdate = uiApps.find { (it.app.packageName == "com.connecto.store" || it.app.id == "ourstore") && it.installState == StoreApp.InstallState.UPDATE_AVAILABLE }
         _uiState.value = StoreUiState.Success(
             apps = uiApps,
@@ -588,7 +602,13 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         val job = viewModelScope.launch {
             try {
                 val fileName = "${app.id}-${app.versionName}.apk"
-                val file = ApkInstaller.downloadApk(ctx, app.downloadUrl, fileName) { progress ->
+                val file = ApkInstaller.downloadApk(
+                    context = ctx,
+                    url = app.downloadUrl,
+                    fileName = fileName,
+                    expectedSha256 = null,
+                    expectedSizeBytes = parseFormattedSize(app.sizeFormatted)
+                ) { progress ->
                     updateAppState(app.packageName) { it.copy(downloadProgress = progress) }
                 }
 
@@ -815,9 +835,31 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         } catch (_: Exception) { null }
     }
 
+    private fun parseFormattedSize(sizeStr: String?): Long? {
+        if (sizeStr == null) return null
+        val clean = sizeStr.trim().uppercase()
+        val num = clean.replace(Regex("[^0-9.]"), "").toDoubleOrNull() ?: return null
+        return when {
+            clean.endsWith("GB") -> (num * 1024 * 1024 * 1024).toLong()
+            clean.endsWith("MB") -> (num * 1024 * 1024).toLong()
+            clean.endsWith("KB") -> (num * 1024).toLong()
+            else -> num.toLong()
+        }
+    }
+
     private fun updateAppState(packageName: String, transform: (AppUiState) -> AppUiState) {
         val current = _uiState.value as? StoreUiState.Success ?: return
-        val updatedApps = current.apps.map { if (it.app.packageName == packageName) transform(it) else it }
+        val updatedApps = current.apps.map {
+            if (it.app.packageName == packageName) {
+                val next = transform(it)
+                // Strict Monotonic Progress Enforcement: progress must never drop while downloading
+                if (it.isDownloading && next.isDownloading && next.downloadProgress < it.downloadProgress) {
+                    next.copy(downloadProgress = it.downloadProgress)
+                } else {
+                    next
+                }
+            } else it
+        }
         val selfUpdate = updatedApps.find { (it.app.packageName == "com.connecto.store" || it.app.id == "ourstore") && (it.installState == StoreApp.InstallState.UPDATE_AVAILABLE || it.isDownloading || it.isInstalling) }
         _uiState.value = current.copy(
             apps = updatedApps,
