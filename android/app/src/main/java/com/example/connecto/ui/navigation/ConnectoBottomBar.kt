@@ -62,7 +62,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -136,286 +138,326 @@ fun ConnectoBottomBar(
     val isLiquidGlass = colors.isLiquidGlass
     val glassAlpha = colors.glassAlpha
 
-    Column(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                if (isLiquidGlass) {
-                    if (glassAlpha <= 0.005f) {
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Transparent,
-                                Color.Transparent
-                            )
-                        )
-                    } else {
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = (glassAlpha * 0.25f).coerceIn(0.01f, 0.35f)),
-                                Color(0xFF080A10).copy(alpha = (glassAlpha * 0.85f).coerceIn(0.04f, 0.92f))
-                            )
-                        )
-                    }
-                } else {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            if (!colors.isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF11141C).copy(alpha = 0.88f),
-                            if (!colors.isDark) Color.White.copy(alpha = 0.92f) else Color(0xFF0B0D13).copy(alpha = 0.95f)
-                        )
-                    )
-                }
-            )
+            .height(68.dp)
     ) {
-        // Specular 1px Hairline Top Border
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(
-                    if (isLiquidGlass) {
-                        val rimAlpha = if (glassAlpha <= 0.005f) 0.55f else (0.65f - glassAlpha * 0.20f).coerceIn(0.30f, 0.75f)
-                        Brush.horizontalGradient(
-                            listOf(
-                                Color.White.copy(alpha = 0.10f),
-                                Color.White.copy(alpha = rimAlpha),
-                                Color.White.copy(alpha = rimAlpha * 0.6f),
-                                Color.White.copy(alpha = rimAlpha),
-                                Color.White.copy(alpha = 0.10f)
-                            )
-                        )
-                    } else {
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.08f),
-                                (if (isPureBlack) Color.White else colors.primary).copy(alpha = 0.35f),
-                                Color.White.copy(alpha = 0.18f),
-                                (if (isPureBlack) Color.White else colors.info).copy(alpha = 0.30f),
-                                Color.White.copy(alpha = 0.08f)
-                            )
-                        )
-                    }
-                )
+        val totalWidth = maxWidth
+        val tabCount = ConnectoTab.entries.size
+        val tabWidth = totalWidth / tabCount
+        val selectedIndex = ConnectoTab.entries.indexOf(currentTab).coerceAtLeast(0)
+
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        // Baseline top of the bottom bar (leaving room above for the liquid bulge curve)
+        val baseTopY = with(density) { 12.dp.toPx() }
+
+        // Dynamic tracking center of the active tab with fluid spring physics
+        val targetCenterX = tabWidth * selectedIndex + tabWidth / 2
+        val animatedCenterX by animateDpAsState(
+            targetValue = targetCenterX,
+            animationSpec = spring(
+                stiffness = 340f,
+                dampingRatio = 0.72f // Fluid organic liquid glide
+            ),
+            label = "navBulgeCenterX"
         )
 
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .padding(horizontal = 4.dp, vertical = 2.dp)
-        ) {
-            val totalWidth = maxWidth
-            val tabCount = ConnectoTab.entries.size
-            val tabWidth = totalWidth / tabCount
-            val selectedIndex = ConnectoTab.entries.indexOf(currentTab).coerceAtLeast(0)
+        // Fluid squish & stretch during movement
+        val distance = (targetCenterX - animatedCenterX).value.dp
+        val stretchFactor = 1f + (distance.value.absoluteValue / 60f).coerceAtMost(0.35f)
+        val squishY = 1f - (distance.value.absoluteValue / 140f).coerceAtMost(0.20f)
 
-            // Dynamic tracking center of the active tab with fluid spring physics
-            val targetCenterX = tabWidth * selectedIndex + tabWidth / 2
-            val animatedCenterX by animateDpAsState(
-                targetValue = targetCenterX,
+        // Liquid Jelly Spring Rebound on Arrival
+        val liquidJiggle = remember { Animatable(0f) }
+        LaunchedEffect(currentTab) {
+            liquidJiggle.snapTo(1f)
+            liquidJiggle.animateTo(
+                targetValue = 0f,
                 animationSpec = spring(
-                    stiffness = 380f,
-                    dampingRatio = 0.78f // Clean, professional settle with subtle fluidity
-                ),
-                label = "navPillCenterX"
+                    dampingRatio = 0.48f,
+                    stiffness = 260f
+                )
             )
+        }
+        val jiggleBounce = 1f + (liquidJiggle.value * 0.25f * sin(liquidJiggle.value * 3f * PI.toFloat()))
+        val bulgeHeightPx = with(density) { 11.dp.toPx() } * squishY * jiggleBounce
+        val bulgeHalfWidthPx = with(density) { (46.dp * stretchFactor).toPx() }
 
-            // Fluid squish & stretch during movement
-            val distance = (targetCenterX - animatedCenterX).value.dp
-            val stretchFactor = 1f + (distance.value.absoluteValue / 75f).coerceAtMost(0.32f)
-            val squishY = 1f - (distance.value.absoluteValue / 160f).coerceAtMost(0.15f)
+        // Particle Gather Animation & Ambient Physics State
+        var previousTabIndex by remember { mutableStateOf(selectedIndex) }
+        val particles = remember(currentTab) {
+            val dir = (previousTabIndex - selectedIndex).coerceIn(-2, 2)
+            val baseAngle = if (dir > 0) 0f else if (dir < 0) PI.toFloat() else 0f
+            val hasPrev = dir != 0
 
-            // Particle Gather Animation & Ambient Physics State
-            var previousTabIndex by remember { mutableStateOf(selectedIndex) }
-            val particles = remember(currentTab) {
-                val dir = (previousTabIndex - selectedIndex).coerceIn(-2, 2)
-                val baseAngle = if (dir > 0) 0f else if (dir < 0) PI.toFloat() else 0f
-                val hasPrev = dir != 0
-
-                (0 until 32).map { i ->
-                    val angle = if (hasPrev && i < 18) {
-                        val spread = (Random.nextFloat() - 0.5f) * 1.6f
-                        baseAngle + spread
-                    } else {
-                        Random.nextFloat() * 2f * PI.toFloat()
-                    }
-                    val distanceDp = 30f + Random.nextFloat() * 54f
-                    val sizeDp = 1.6f + Random.nextFloat() * 2.2f
-                    val delay = (Random.nextFloat() * 0.20f)
-                    val curvature = (Random.nextFloat() - 0.5f) * 1.8f
-                    val tone = when (i % 5) {
-                        0 -> 2 // white / highlight
-                        1, 2 -> 1 // cyan / accent
-                        else -> 0 // primary brand
-                    }
-                    val streak = 0.8f + Random.nextFloat() * 0.8f
-
-                    TabGatherParticle(
-                        initialAngleRad = angle,
-                        initialDistanceDp = distanceDp,
-                        sizeDp = sizeDp,
-                        delay = delay,
-                        curvature = curvature,
-                        colorTone = tone,
-                        streakFactor = streak
-                    )
+            (0 until 32).map { i ->
+                val angle = if (hasPrev && i < 18) {
+                    val spread = (Random.nextFloat() - 0.5f) * 1.6f
+                    baseAngle + spread
+                } else {
+                    Random.nextFloat() * 2f * PI.toFloat()
                 }
-            }
+                val distanceDp = 30f + Random.nextFloat() * 54f
+                val sizeDp = 1.6f + Random.nextFloat() * 2.2f
+                val delay = (Random.nextFloat() * 0.20f)
+                val curvature = (Random.nextFloat() - 0.5f) * 1.8f
+                val tone = when (i % 5) {
+                    0 -> 2 // white / highlight
+                    1, 2 -> 1 // cyan / accent
+                    else -> 0 // primary brand
+                }
+                val streak = 0.8f + Random.nextFloat() * 0.8f
 
-            val infiniteTransition = rememberInfiniteTransition(label = "bottomBarIdle")
-            val idleOrbitPhase by infiniteTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = 2f * PI.toFloat(),
-                animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 3800, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart
-                ),
-                label = "idleOrbitPhase"
-            )
-            val idleGlowPulse by infiniteTransition.animateFloat(
-                initialValue = 0.85f,
-                targetValue = 1.15f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 1900, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "idleGlowPulse"
-            )
-
-            val gatherProgress = remember { Animatable(1f) }
-            LaunchedEffect(currentTab) {
-                gatherProgress.snapTo(0f)
-                gatherProgress.animateTo(
-                    targetValue = 1f,
-                    animationSpec = tween(
-                        durationMillis = 520,
-                        easing = CubicBezierEasing(0.16f, 0.90f, 0.22f, 1.0f)
-                    )
+                TabGatherParticle(
+                    initialAngleRad = angle,
+                    initialDistanceDp = distanceDp,
+                    sizeDp = sizeDp,
+                    delay = delay,
+                    curvature = curvature,
+                    colorTone = tone,
+                    streakFactor = streak
                 )
-                previousTabIndex = selectedIndex
+            }
+        }
+
+        val infiniteTransition = rememberInfiniteTransition(label = "bottomBarIdle")
+        val idleOrbitPhase by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 2f * PI.toFloat(),
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 3800, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "idleOrbitPhase"
+        )
+        val idleGlowPulse by infiniteTransition.animateFloat(
+            initialValue = 0.85f,
+            targetValue = 1.15f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1900, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "idleGlowPulse"
+        )
+
+        val gatherProgress = remember { Animatable(1f) }
+        LaunchedEffect(currentTab) {
+            gatherProgress.snapTo(0f)
+            gatherProgress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 520,
+                    easing = CubicBezierEasing(0.16f, 0.90f, 0.22f, 1.0f)
+                )
+            )
+            previousTabIndex = selectedIndex
+        }
+
+        // LAYER 1: Liquid Bulge Background & Specular Top Contour
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val curX = animatedCenterX.toPx()
+            val peakY = (baseTopY - bulgeHeightPx).coerceAtLeast(1.dp.toPx())
+            val leftBulgeX = curX - bulgeHalfWidthPx
+            val rightBulgeX = curX + bulgeHalfWidthPx
+
+            // Liquid Bulge Silhouette Path
+            val bulgePath = Path().apply {
+                moveTo(0f, baseTopY)
+                lineTo(leftBulgeX.coerceAtLeast(0f), baseTopY)
+                // Left smooth curve into peak
+                cubicTo(
+                    leftBulgeX + 16.dp.toPx(), baseTopY,
+                    curX - 22.dp.toPx() * stretchFactor, peakY,
+                    curX, peakY
+                )
+                // Right smooth curve down from peak
+                cubicTo(
+                    curX + 22.dp.toPx() * stretchFactor, peakY,
+                    rightBulgeX - 16.dp.toPx(), baseTopY,
+                    rightBulgeX.coerceAtMost(size.width), baseTopY
+                )
+                lineTo(size.width, baseTopY)
+                lineTo(size.width, size.height)
+                lineTo(0f, size.height)
+                close()
             }
 
-            // LAYER 1: Multi-Tier Ambient Glow, Particle Gather & Idle Orbit
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val pillCenter = Offset(x = animatedCenterX.toPx(), y = 20.dp.toPx())
-                val primaryColor = if (isPureBlack) Color.White else colors.primary
-                val accentCyan = if (isPureBlack) Color(0xFFE0E0E0) else colors.info
-                val glowWhite = Color.White
-
-                // Soft ambient colored glow under active pill
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            primaryColor.copy(alpha = 0.24f),
-                            primaryColor.copy(alpha = 0.06f),
-                            Color.Transparent
-                        ),
-                        radius = 28.dp.toPx(),
-                        center = pillCenter
+            // Fill Liquid Bulge Canvas with ambient glass / background brush
+            val fillBrush = if (isLiquidGlass) {
+                val alpha = if (glassAlpha <= 0.005f) 0.12f else (glassAlpha * 0.88f).coerceIn(0.15f, 0.94f)
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = (glassAlpha * 0.28f).coerceIn(0.04f, 0.38f)),
+                        Color(0xFF080A10).copy(alpha = alpha)
                     ),
-                    radius = 28.dp.toPx(),
-                    center = pillCenter
+                    startY = peakY,
+                    endY = size.height
                 )
+            } else {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        if (!colors.isDark) Color.White.copy(alpha = 0.85f) else Color(0xFF141722).copy(alpha = 0.92f),
+                        if (!colors.isDark) Color(0xFFF1F5F9).copy(alpha = 0.96f) else Color(0xFF0A0C12).copy(alpha = 0.98f)
+                    ),
+                    startY = peakY,
+                    endY = size.height
+                )
+            }
+            drawPath(path = bulgePath, brush = fillBrush)
 
-                // Particle Gather Inward Physics
-                val gProg = gatherProgress.value
-                if (gProg < 1f) {
-                    particles.forEach { p ->
-                        if (gProg >= p.delay) {
-                            val localT = ((gProg - p.delay) / (1f - p.delay)).coerceIn(0f, 1f)
+            // Specular Liquid Rim Stroke along the entire top contour including the Liquid Bulge
+            val rimPath = Path().apply {
+                moveTo(0f, baseTopY)
+                lineTo(leftBulgeX.coerceAtLeast(0f), baseTopY)
+                cubicTo(
+                    leftBulgeX + 16.dp.toPx(), baseTopY,
+                    curX - 22.dp.toPx() * stretchFactor, peakY,
+                    curX, peakY
+                )
+                cubicTo(
+                    curX + 22.dp.toPx() * stretchFactor, peakY,
+                    rightBulgeX - 16.dp.toPx(), baseTopY,
+                    rightBulgeX.coerceAtMost(size.width), baseTopY
+                )
+                lineTo(size.width, baseTopY)
+            }
 
-                            // Gravitational inward suction curve
-                            val easeT = localT.pow(1.85f)
-                            val currentDistPx = p.initialDistanceDp.dp.toPx() * (1f - easeT)
-                            val currentAngle = p.initialAngleRad + p.curvature * (1f - easeT)
+            val primaryColor = if (isPureBlack) Color.White else colors.primary
+            val rimBrush = Brush.horizontalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.08f),
+                    primaryColor.copy(alpha = 0.25f),
+                    Color.White.copy(alpha = 0.85f), // High specular brilliance at the liquid bulge peak
+                    primaryColor.copy(alpha = 0.35f),
+                    Color.White.copy(alpha = 0.08f)
+                ),
+                startX = (curX - 60.dp.toPx()).coerceAtLeast(0f),
+                endX = (curX + 60.dp.toPx()).coerceAtMost(size.width)
+            )
 
-                            val curX = pillCenter.x + currentDistPx * cos(currentAngle)
-                            val curY = pillCenter.y + currentDistPx * sin(currentAngle) * 0.62f
+            drawPath(
+                path = rimPath,
+                brush = rimBrush,
+                style = Stroke(
+                    width = 1.35.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+            )
 
-                            // Fade in on spawn, fade out when reaching center
-                            val particleAlpha = (if (localT < 0.15f) localT / 0.15f else if (localT > 0.88f) (1f - localT) / 0.12f else 1f).coerceIn(0f, 1f)
+            // Multi-Tier Ambient Glow, Particle Gather & Idle Orbit
+            val pillCenter = Offset(x = curX, y = peakY + 16.dp.toPx())
+            val accentCyan = if (isPureBlack) Color(0xFFE0E0E0) else colors.info
+            val glowWhite = Color.White
 
-                            val pColor = when (p.colorTone) {
-                                1 -> accentCyan
-                                2 -> glowWhite
-                                else -> primaryColor
-                            }
+            // Soft ambient colored glow under active bulge
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        primaryColor.copy(alpha = 0.28f),
+                        primaryColor.copy(alpha = 0.07f),
+                        Color.Transparent
+                    ),
+                    radius = 32.dp.toPx() * stretchFactor,
+                    center = pillCenter
+                ),
+                radius = 32.dp.toPx() * stretchFactor,
+                center = pillCenter
+            )
 
-                            // Dynamic motion trailing streak
-                            if (localT > 0.04f && currentDistPx > 4.dp.toPx()) {
-                                val trailT = (localT - 0.08f * p.streakFactor).coerceAtLeast(0f)
-                                val trailEase = trailT.pow(1.85f)
-                                val trailDistPx = p.initialDistanceDp.dp.toPx() * (1f - trailEase)
-                                val trailAngle = p.initialAngleRad + p.curvature * (1f - trailEase)
-                                val trailX = pillCenter.x + trailDistPx * cos(trailAngle)
-                                val trailY = pillCenter.y + trailDistPx * sin(trailAngle) * 0.62f
+            // Particle Gather Inward Physics
+            val gProg = gatherProgress.value
+            if (gProg < 1f) {
+                particles.forEach { p ->
+                    if (gProg >= p.delay) {
+                        val localT = ((gProg - p.delay) / (1f - p.delay)).coerceIn(0f, 1f)
+                        val easeT = localT.pow(1.85f)
+                        val currentDistPx = p.initialDistanceDp.dp.toPx() * (1f - easeT)
+                        val currentAngle = p.initialAngleRad + p.curvature * (1f - easeT)
 
-                                drawLine(
-                                    color = pColor.copy(alpha = particleAlpha * 0.45f),
-                                    start = Offset(trailX, trailY),
-                                    end = Offset(curX, curY),
-                                    strokeWidth = (p.sizeDp.dp.toPx() * 0.85f).coerceAtLeast(1f),
-                                    cap = StrokeCap.Round
-                                )
-                            }
+                        val curPartX = pillCenter.x + currentDistPx * cos(currentAngle)
+                        val curPartY = pillCenter.y + currentDistPx * sin(currentAngle) * 0.62f
 
-                            // Glowing particle head (soft aura + sharp core)
-                            val radiusPx = p.sizeDp.dp.toPx()
-                            drawCircle(
-                                color = pColor.copy(alpha = particleAlpha * 0.35f),
-                                radius = radiusPx * 2.2f,
-                                center = Offset(curX, curY)
-                            )
-                            drawCircle(
-                                color = if (p.colorTone == 2) Color.White.copy(alpha = particleAlpha) else pColor.copy(alpha = particleAlpha * 0.95f),
-                                radius = radiusPx,
-                                center = Offset(curX, curY)
+                        val particleAlpha = (if (localT < 0.15f) localT / 0.15f else if (localT > 0.88f) (1f - localT) / 0.12f else 1f).coerceIn(0f, 1f)
+
+                        val pColor = when (p.colorTone) {
+                            1 -> accentCyan
+                            2 -> glowWhite
+                            else -> primaryColor
+                        }
+
+                        if (localT > 0.04f && currentDistPx > 4.dp.toPx()) {
+                            val trailT = (localT - 0.08f * p.streakFactor).coerceAtLeast(0f)
+                            val trailEase = trailT.pow(1.85f)
+                            val trailDistPx = p.initialDistanceDp.dp.toPx() * (1f - trailEase)
+                            val trailAngle = p.initialAngleRad + p.curvature * (1f - trailEase)
+                            val trailX = pillCenter.x + trailDistPx * cos(trailAngle)
+                            val trailY = pillCenter.y + trailDistPx * sin(trailAngle) * 0.62f
+
+                            drawLine(
+                                color = pColor.copy(alpha = particleAlpha * 0.45f),
+                                start = Offset(trailX, trailY),
+                                end = Offset(curPartX, curPartY),
+                                strokeWidth = (p.sizeDp.dp.toPx() * 0.85f).coerceAtLeast(1f),
+                                cap = StrokeCap.Round
                             )
                         }
-                    }
 
-                    // Coalescence absorption flare at pill center
-                    if (gProg >= 0.55f) {
-                        val flareP = ((gProg - 0.55f) / 0.45f).coerceIn(0f, 1f)
-                        val flareRadius = 10.dp.toPx() + 22.dp.toPx() * flareP
-                        val flareAlpha = (sin(flareP * PI.toFloat()) * 0.42f).coerceIn(0f, 1f)
+                        val radiusPx = p.sizeDp.dp.toPx()
                         drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    glowWhite.copy(alpha = flareAlpha * 0.85f),
-                                    primaryColor.copy(alpha = flareAlpha * 0.45f),
-                                    Color.Transparent
-                                ),
-                                radius = flareRadius,
-                                center = pillCenter
+                            color = pColor.copy(alpha = particleAlpha * 0.35f),
+                            radius = radiusPx * 2.2f,
+                            center = Offset(curPartX, curPartY)
+                        )
+                        drawCircle(
+                            color = if (p.colorTone == 2) Color.White.copy(alpha = particleAlpha) else pColor.copy(alpha = particleAlpha * 0.95f),
+                            radius = radiusPx,
+                            center = Offset(curPartX, curPartY)
+                        )
+                    }
+                }
+
+                if (gProg >= 0.55f) {
+                    val flareP = ((gProg - 0.55f) / 0.45f).coerceIn(0f, 1f)
+                    val flareRadius = 10.dp.toPx() + 22.dp.toPx() * flareP
+                    val flareAlpha = (sin(flareP * PI.toFloat()) * 0.42f).coerceIn(0f, 1f)
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                glowWhite.copy(alpha = flareAlpha * 0.85f),
+                                primaryColor.copy(alpha = flareAlpha * 0.45f),
+                                Color.Transparent
                             ),
                             radius = flareRadius,
                             center = pillCenter
-                        )
-                    }
-                } else {
-                    // Ambient Idle Motes hovering around active capsule when settled
-                    val idleMoteCount = 5
-                    for (i in 0 until idleMoteCount) {
-                        val phaseOffset = i * (2f * PI.toFloat() / idleMoteCount)
-                        val angle = idleOrbitPhase + phaseOffset
-                        val baseRadiusX = 28.dp.toPx() + (i % 3) * 4.dp.toPx()
-                        val baseRadiusY = 16.dp.toPx() + (i % 2) * 3.dp.toPx()
+                        ),
+                        radius = flareRadius,
+                        center = pillCenter
+                    )
+                }
+            } else {
+                val idleMoteCount = 5
+                for (i in 0 until idleMoteCount) {
+                    val phaseOffset = i * (2f * PI.toFloat() / idleMoteCount)
+                    val angle = idleOrbitPhase + phaseOffset
+                    val baseRadiusX = 28.dp.toPx() + (i % 3) * 4.dp.toPx()
+                    val baseRadiusY = 16.dp.toPx() + (i % 2) * 3.dp.toPx()
 
-                        val moteX = pillCenter.x + cos(angle) * baseRadiusX
-                        val moteY = pillCenter.y + sin(angle) * baseRadiusY
+                    val moteX = pillCenter.x + cos(angle) * baseRadiusX
+                    val moteY = pillCenter.y + sin(angle) * baseRadiusY
 
-                        val moteAlpha = (0.22f + 0.18f * sin(angle * 2f + i.toFloat())).coerceIn(0.08f, 0.45f)
-                        val moteColor = if (i % 2 == 0) primaryColor else accentCyan
-                        val moteRadius = (1.4f + (i % 2) * 0.8f).dp.toPx() * idleGlowPulse
+                    val moteAlpha = (0.22f + 0.18f * sin(angle * 2f + i.toFloat())).coerceIn(0.08f, 0.45f)
+                    val moteColor = if (i % 2 == 0) primaryColor else accentCyan
+                    val moteRadius = (1.4f + (i % 2) * 0.8f).dp.toPx() * idleGlowPulse
 
-                        drawCircle(
-                            color = moteColor.copy(alpha = moteAlpha),
-                            radius = moteRadius,
-                            center = Offset(moteX, moteY)
-                        )
-                    }
+                    drawCircle(
+                        color = moteColor.copy(alpha = moteAlpha),
+                        radius = moteRadius,
+                        center = Offset(moteX, moteY)
+                    )
                 }
             }
+        }
 
             // LAYER 2: Professional Liquid Glass Pill (Bubble) Capsule
             val pillWidth = 54.dp * stretchFactor
@@ -485,9 +527,9 @@ fun ConnectoBottomBar(
                         label = "buttonPressScale"
                     )
 
-                    // Smooth icon elevation & bounce on selection
+                    // Smooth icon elevation & bounce on selection into Liquid Bulge
                     val iconScale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.12f else 1.0f,
+                        targetValue = if (isSelected) 1.15f else 1.0f,
                         animationSpec = spring(
                             stiffness = 360f,
                             dampingRatio = Spring.DampingRatioMediumBouncy
@@ -496,7 +538,7 @@ fun ConnectoBottomBar(
                     )
 
                     val iconOffsetY by animateDpAsState(
-                        targetValue = if (isSelected) (-2.dp) else 0.dp,
+                        targetValue = if (isSelected) (-5.dp) else 0.dp,
                         animationSpec = spring(
                             stiffness = 380f,
                             dampingRatio = Spring.DampingRatioMediumBouncy
@@ -611,4 +653,3 @@ fun ConnectoBottomBar(
             }
         }
     }
-}

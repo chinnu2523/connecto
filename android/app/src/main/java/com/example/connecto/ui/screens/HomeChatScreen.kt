@@ -38,6 +38,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Group
@@ -2003,9 +2004,11 @@ fun HomeAppUpdateBanner(
                             .border(1.dp, colors.borderSubtle, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "🚀",
-                            fontSize = 18.sp
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Default.CloudSync,
+                            contentDescription = "Update",
+                            tint = colors.primary,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     Column {

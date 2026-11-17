@@ -12,10 +12,13 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,6 +29,7 @@ import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +54,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -93,6 +98,9 @@ fun ConnectoDragToRefresh(
     val pullOffset = remember { Animatable(0f) }
     var hasTriggeredHaptic by remember { mutableStateOf(false) }
 
+    // Track whether the refresh was physically initiated by an intentional user drag gesture
+    var userInitiatedPull by remember { mutableStateOf(false) }
+
     // Strict two-phase gesture qualification to eliminate accidental refresh during normal scrolling
     var isTouchActive by remember { mutableStateOf(false) }
     var gestureQualifiedForPull by remember { mutableStateOf(false) }
@@ -103,6 +111,7 @@ fun ConnectoDragToRefresh(
 
     LaunchedEffect(isRefreshing) {
         if (!isRefreshing) {
+            userInitiatedPull = false
             isRefreshDispatched = false
             hasTriggeredHaptic = false
             gestureQualifiedForPull = false
@@ -118,14 +127,18 @@ fun ConnectoDragToRefresh(
                 )
             )
         } else {
-            // Smoothly hold at resting indicator position while refreshing
-            pullOffset.animateTo(
-                targetValue = refreshThresholdPx,
-                animationSpec = spring(
-                    dampingRatio = 0.72f,
-                    stiffness = Spring.StiffnessMedium
+            // ONLY translate content and show resting indicator if user manually pulled down
+            if (userInitiatedPull) {
+                pullOffset.animateTo(
+                    targetValue = refreshThresholdPx,
+                    animationSpec = spring(
+                        dampingRatio = 0.72f,
+                        stiffness = Spring.StiffnessMedium
+                    )
                 )
-            )
+            } else {
+                pullOffset.snapTo(0f)
+            }
         }
     }
 
@@ -231,10 +244,12 @@ fun ConnectoDragToRefresh(
 
                 if (reachedThreshold && isEligible) {
                     isRefreshDispatched = true
+                    userInitiatedPull = true
                     // Tactile confirmation feedback
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onRefresh()
                 } else {
+                    userInitiatedPull = false
                     // Elastic rebound bounce back to 0
                     pullOffset.animateTo(
                         targetValue = 0f,
@@ -251,6 +266,7 @@ fun ConnectoDragToRefresh(
                 isTouchActive = false
                 gestureQualifiedForPull = false
                 if (pullOffset.value > 0f && !isRefreshing) {
+                    userInitiatedPull = false
                     pullOffset.animateTo(
                         targetValue = 0f,
                         animationSpec = spring(
@@ -282,25 +298,49 @@ fun ConnectoDragToRefresh(
                 }
         ) {
             content()
+
+            // Touch shield: when actively pulled down, swallow pointer taps to prevent phantom row/preview clicks
+            if (pullOffset.value > 8f || (isRefreshing && userInitiatedPull)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectTapGestures { /* consume accidental taps during active pull-to-refresh */ }
+                        }
+                )
+            }
         }
 
-        // Tactile Elastic Indicator Pill
-        if (pullOffset.value > 4f || isRefreshing) {
+        // Sleek non-intrusive top-edge progress indicator for programmatic/background refresh
+        if (isRefreshing && !userInitiatedPull) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.5.dp)
+                    .align(Alignment.TopCenter),
+                color = colors.primary,
+                trackColor = Color.Transparent
+            )
+        }
+
+        // Tactile Elastic Indicator Pill (displayed only when user is dragging or during user-initiated pull refresh)
+        val isActivelyPullRefreshing = isRefreshing && userInitiatedPull
+        if (pullOffset.value > 8f || isActivelyPullRefreshing) {
             val progress = (pullOffset.value / refreshThresholdPx).coerceIn(0f, 1f)
             val isThresholdReached = pullOffset.value >= refreshThresholdPx
 
             // Dynamic scale with springy overshoot as threshold is crossed
-            val pillScale = if (isRefreshing) {
+            val pillScale = if (isActivelyPullRefreshing) {
                 1.0f
             } else {
                 (0.72f + progress * 0.34f).coerceIn(0.72f, 1.06f)
             }
 
-            val pillAlpha = if (isRefreshing) 1f else (pullOffset.value / (refreshThresholdPx * 0.4f)).coerceIn(0f, 1f)
+            val pillAlpha = if (isActivelyPullRefreshing) 1f else (pullOffset.value / (refreshThresholdPx * 0.4f)).coerceIn(0f, 1f)
 
             val pillBg = if (colors.isDark) Color(0xFF09090B) else Color(0xFFFFFFFF)
             val accentColor = colors.primary
-            val pillBorder = if (isRefreshing || isThresholdReached) accentColor else colors.borderSubtle
+            val pillBorder = if (isActivelyPullRefreshing || isThresholdReached) accentColor else colors.borderSubtle
             val textColor = colors.textPrimary
 
             Box(
@@ -316,7 +356,7 @@ fun ConnectoDragToRefresh(
                     .scale(pillScale)
                     .alpha(pillAlpha)
                     .shadow(
-                        elevation = if (isThresholdReached || isRefreshing) 12.dp else 4.dp,
+                        elevation = if (isThresholdReached || isActivelyPullRefreshing) 12.dp else 4.dp,
                         shape = RoundedCornerShape(22.dp),
                         ambientColor = accentColor.copy(alpha = 0.25f),
                         spotColor = accentColor.copy(alpha = 0.45f)
@@ -326,14 +366,14 @@ fun ConnectoDragToRefresh(
                         shape = RoundedCornerShape(22.dp)
                     )
                     .border(
-                        width = if (isThresholdReached || isRefreshing) 1.5.dp else 1.dp,
+                        width = if (isThresholdReached || isActivelyPullRefreshing) 1.5.dp else 1.dp,
                         color = pillBorder,
                         shape = RoundedCornerShape(22.dp)
                     )
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (isRefreshing) {
+                    if (isActivelyPullRefreshing) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(14.dp),
                             strokeWidth = 2.dp,

@@ -1324,7 +1324,50 @@ fun AuthHomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // ===== CONTINUE AS GUEST BUTTON =====
+            OutlinedButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    com.example.connecto.network.ConnectoApiClient.currentUsername = "guest"
+                    com.example.connecto.network.ConnectoApiClient.currentUserId = "guest_sandbox_user"
+                    com.example.connecto.network.ConnectoApiClient.currentUserDisplayName = "Guest Explorer"
+                    com.example.connecto.network.ConnectoApiClient.currentUserEmail = "guest@connecto.fun"
+                    com.example.connecto.network.ConnectoApiClient.sessionToken = "guest_token_sandbox"
+                    com.example.connecto.network.ConnectoApiClient.updateAdminState(false)
+                    onAuthSuccess("guest")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                )
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "CONTINUE AS GUEST",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
 
             // ===== FEATURE CHIPS =====
             Row(

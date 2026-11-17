@@ -376,6 +376,10 @@ object ConnectoApiClient {
     }
 
     fun triggerSessionExpired(reason: String) {
+        if (currentUsername == "guest" || sessionToken == "guest_token_sandbox") {
+            android.util.Log.d("ConnectoApiClient", "Ignoring session expired in guest mode: $reason")
+            return
+        }
         android.util.Log.w("ConnectoApiClient", "Session expired triggered: $reason")
         sessionToken = null
         currentUserId = null
@@ -4760,7 +4764,7 @@ object ConnectoApiClient {
                     ConnectoNetworkConfig.activeBaseUrl = base
                     val errorDetail = parseErrorMessage(responseText, responseCode)
                     android.util.Log.e("ConnectoSync", "HTTP 401 Unauthorized on $method $fullUrl: $errorDetail")
-                    if (!isAuthEndpoint && !sessionToken.isNullOrBlank() && !token.isNullOrBlank()) {
+                    if (!isAuthEndpoint && !sessionToken.isNullOrBlank() && !token.isNullOrBlank() && currentUsername != "guest" && sessionToken != "guest_token_sandbox") {
                         triggerSessionExpired(errorDetail.ifBlank { "Session has expired or was terminated. Please log in again." })
                     }
                     return Result.failure(Exception(errorDetail))

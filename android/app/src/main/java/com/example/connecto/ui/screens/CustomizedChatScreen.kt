@@ -7,12 +7,16 @@ import java.util.Locale
 import java.util.TimeZone
 import com.example.connecto.network.MessageDto
 import coil.compose.AsyncImage
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -112,6 +116,7 @@ import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -647,6 +652,16 @@ fun CustomizedChatScreen(
     var showCreateVoiceGroupDialog by remember { mutableStateOf(false) }
     var pendingRequestsCount by remember { mutableIntStateOf(0) }
     var friendSearchQuery by remember { mutableStateOf("") }
+    var isSearchOpen by rememberSaveable { mutableStateOf(false) }
+    val searchFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(isSearchOpen) {
+        if (isSearchOpen) {
+            kotlinx.coroutines.delay(120)
+            try {
+                searchFocusRequester.requestFocus()
+            } catch (_: Exception) {}
+        }
+    }
     var typedMessage by remember { mutableStateOf("") }
     var isInputFocused by remember { mutableStateOf(false) }
     var isFriendTyping by remember { mutableStateOf(false) }
@@ -1748,6 +1763,12 @@ fun CustomizedChatScreen(
     BackHandler(enabled = selectedMessageForAction != null) {
         selectedMessageForAction = null
         showMoreOptionsMenu = false
+    }
+
+    // Intercept back button when search is open in friends list
+    BackHandler(enabled = isSearchOpen && selectedFriend == null && !isFriendProfileOpen) {
+        isSearchOpen = false
+        friendSearchQuery = ""
     }
 
     // Real-Time Typing Indicator Observer for Active Direct Chat / Group
@@ -3678,19 +3699,23 @@ fun CustomizedChatScreen(
                     ) {
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("🛑", fontSize = 13.sp)
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color(0xFFEF4444),
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "IRREVERSIBLE ACTION",
+                                    text = "Irreversible Action",
                                     color = Color(0xFFEF4444),
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 12.sp,
-                                    letterSpacing = 0.5.sp
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp
                                 )
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Unfriending @$friendUser will permanently delete all mutual history for BOTH users.",
+                                text = "Unfriending @$friendUser will permanently delete all mutual history for both users.",
                                 color = Color(0xFFFCA5A5),
                                 fontSize = 12.sp,
                                 lineHeight = 16.sp
@@ -3707,17 +3732,21 @@ fun CustomizedChatScreen(
                             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
                             .padding(12.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                text = "THE FOLLOWING DATA WILL BE PERMANENTLY ERASED:",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                letterSpacing = 0.4.sp
+                                text = "The following data will be permanently removed:",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("💬", fontSize = 12.sp)
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Default.ChatBubbleOutline,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "Direct Messages: Mutual chat history & media",
                                     fontSize = 11.5.sp,
@@ -3725,8 +3754,13 @@ fun CustomizedChatScreen(
                                 )
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("📞", fontSize = 12.sp)
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Call,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "Call Logs: Voice & video call logs between users",
                                     fontSize = 11.5.sp,
@@ -3734,8 +3768,13 @@ fun CustomizedChatScreen(
                                 )
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("🔔", fontSize = 12.sp)
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Notifications,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "Notifications: Pending alerts and badges",
                                     fontSize = 11.5.sp,
@@ -3743,8 +3782,13 @@ fun CustomizedChatScreen(
                                 )
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("👥", fontSize = 12.sp)
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Groups,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "Friend Connection: Removed from both rosters",
                                     fontSize = 11.5.sp,
@@ -3794,7 +3838,16 @@ fun CustomizedChatScreen(
                     if (isUnfriending) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
                     } else {
-                        Text("🗑️ Confirm & Delete Everything", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Confirm & Delete", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp)
+                        }
                     }
                 }
             },
@@ -4708,57 +4761,226 @@ fun CustomizedChatScreen(
                         )
                 )
             } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            coroutineScope.launch {
-                                try {
-                                    if (friendsListState.firstVisibleItemIndex > 15) {
-                                        friendsListState.scrollToItem(15)
-                                    }
-                                    friendsListState.animateScrollToItem(0)
-                                } catch (_: Exception) {}
+                if (isSearchOpen) {
+                    val jellyScale by animateFloatAsState(
+                        targetValue = 1f,
+                        animationSpec = spring(
+                            dampingRatio = 0.52f, // Bouncy jelly pop overshoot!
+                            stiffness = 320f
+                        ),
+                        label = "searchJellyScale"
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                            .graphicsLayer {
+                                scaleX = jellyScale
+                                scaleY = jellyScale
                             }
-                        }
-                ) {
-                    ConnectoTopHeader(
-                        title = "DIRECT MESSAGES",
-                        subtitle = "Chat with friends & members",
-                        userInitial = userInitial,
-                        onVoiceGroupClick = null,
-                        onAddFriendClick = null,
-                        pendingFriendRequestsCount = 0,
-                        showProfileButton = false,
-                        onAvatarClick = {},
-                        customAction = {
+                            .height(50.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(
+                                1.5.dp,
+                                Brush.horizontalGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                        Color.White.copy(alpha = 0.45f),
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                    )
+                                ),
+                                RoundedCornerShape(16.dp)
+                            )
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search Active",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            BasicTextField(
+                                value = friendSearchQuery,
+                                onValueChange = { friendSearchQuery = it },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(searchFocusRequester),
+                                textStyle = TextStyle(
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 14.5.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                singleLine = true,
+                                decorationBox = { inner ->
+                                    if (friendSearchQuery.isEmpty()) {
+                                        Text(
+                                            text = "Search friends by name or @username...",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                            fontSize = 13.5.sp
+                                        )
+                                    }
+                                    inner()
+                                }
+                            )
+
+                            if (friendSearchQuery.isNotEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                                        .clickable {
+                                            friendSearchQuery = ""
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear search",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+
+                            // Close Button with sleek animated pill
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Brush.linearGradient(gradientColors))
-                                    .clickable { showCreateGroupChatDialog = true }
-                                    .padding(horizontal = 12.dp, vertical = 7.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        isSearchOpen = false
+                                        friendSearchQuery = ""
+                                    }
+                                    .padding(horizontal = 9.dp, vertical = 5.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.GroupAdd,
-                                    contentDescription = "Create Group Chat",
-                                    tint = contentOnGradient,
-                                    modifier = Modifier.size(16.dp)
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close search",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(15.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Group Chat",
+                                    text = "Close",
                                     fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = contentOnGradient
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                    )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                coroutineScope.launch {
+                                    try {
+                                        if (friendsListState.firstVisibleItemIndex > 15) {
+                                            friendsListState.scrollToItem(15)
+                                        }
+                                        friendsListState.animateScrollToItem(0)
+                                    } catch (_: Exception) {}
+                                }
+                            }
+                    ) {
+                        ConnectoTopHeader(
+                            title = "DIRECT MESSAGES",
+                            subtitle = "Chat with friends & members",
+                            userInitial = userInitial,
+                            onVoiceGroupClick = null,
+                            onAddFriendClick = null,
+                            pendingFriendRequestsCount = 0,
+                            showProfileButton = false,
+                            onAvatarClick = {},
+                            customAction = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // Animated Search Button
+                                    val searchInteraction = remember { MutableInteractionSource() }
+                                    val isSearchPressed by searchInteraction.collectIsPressedAsState()
+                                    val searchScale by animateFloatAsState(
+                                        targetValue = if (isSearchPressed) 0.90f else 1.0f,
+                                        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                                        label = "searchBtnScale"
+                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .graphicsLayer {
+                                                scaleX = searchScale
+                                                scaleY = searchScale
+                                            }
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                                            .clickable(
+                                                interactionSource = searchInteraction,
+                                                indication = null
+                                            ) {
+                                                isSearchOpen = true
+                                            }
+                                            .padding(horizontal = 11.dp, vertical = 7.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Search,
+                                            contentDescription = "Search Friends",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = "Search",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+
+                                    // Group Chat Button
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(Brush.linearGradient(gradientColors))
+                                            .clickable { showCreateGroupChatDialog = true }
+                                            .padding(horizontal = 11.dp, vertical = 7.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.GroupAdd,
+                                            contentDescription = "Create Group Chat",
+                                            tint = contentOnGradient,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = "Group Chat",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = contentOnGradient
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
                 }
             }
 
@@ -4772,11 +4994,19 @@ fun CustomizedChatScreen(
                 targetState = currentScreenState,
                 transitionSpec = {
                     if (targetState == "FRIEND_PROFILE" || (initialState == "FRIENDS_LIST" && targetState == "DIRECT_CHAT")) {
-                        (slideInHorizontally(animationSpec = tween(280, easing = FastOutSlowInEasing), initialOffsetX = { fullWidth -> fullWidth }) + fadeIn(tween(280)))
-                            .togetherWith(slideOutHorizontally(animationSpec = tween(280, easing = FastOutSlowInEasing), targetOffsetX = { fullWidth -> -fullWidth }) + fadeOut(tween(280)))
+                        (fadeIn(animationSpec = tween(220, easing = LinearOutSlowInEasing)) +
+                         scaleIn(initialScale = 0.96f, animationSpec = tween(220, easing = LinearOutSlowInEasing)))
+                            .togetherWith(
+                                fadeOut(animationSpec = tween(160, easing = FastOutLinearInEasing)) +
+                                scaleOut(targetScale = 0.98f, animationSpec = tween(160, easing = FastOutLinearInEasing))
+                            )
                     } else {
-                        (slideInHorizontally(animationSpec = tween(280, easing = FastOutSlowInEasing), initialOffsetX = { fullWidth -> -fullWidth }) + fadeIn(tween(280)))
-                            .togetherWith(slideOutHorizontally(animationSpec = tween(280, easing = FastOutSlowInEasing), targetOffsetX = { fullWidth -> fullWidth }) + fadeOut(tween(280)))
+                        (fadeIn(animationSpec = tween(200, easing = LinearOutSlowInEasing)) +
+                         scaleIn(initialScale = 1.02f, animationSpec = tween(200, easing = LinearOutSlowInEasing)))
+                            .togetherWith(
+                                fadeOut(animationSpec = tween(160, easing = FastOutLinearInEasing)) +
+                                scaleOut(targetScale = 0.96f, animationSpec = tween(160, easing = FastOutLinearInEasing))
+                            )
                     }
                 },
                 label = "friendChatViewTransition",
@@ -4816,48 +5046,6 @@ fun CustomizedChatScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
                     ) {
-                        // Search Bar Item
-                        item(key = "friends_search_bar") {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(46.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
-                                    .padding(horizontal = 14.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = "Search Friends",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                BasicTextField(
-                                    value = friendSearchQuery,
-                                    onValueChange = { friendSearchQuery = it },
-                                    modifier = Modifier.weight(1f),
-                                    textStyle = TextStyle(
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontSize = 14.sp
-                                    ),
-                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                    decorationBox = { inner ->
-                                        if (friendSearchQuery.isEmpty()) {
-                                            Text(
-                                                text = "Search friends by name or username...",
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontSize = 13.sp
-                                            )
-                                        }
-                                        inner()
-                                    }
-                                )
-                            }
-                        }
-
                         // Message Tab Filter Button Group (Segmented Controls)
                         item(key = "friends_filter_button_group") {
                             val filterOptions = listOf(
@@ -4905,16 +5093,15 @@ fun CustomizedChatScreen(
 
                         item(key = "friends_section_title") {
                             val titleText = when (messageTabFilter) {
-                                "DIRECT" -> "ACTIVE DIRECT CONVERSATIONS"
-                                "CREATED_GROUPS" -> "CREATED GROUPS"
-                                "ADDED_GROUPS" -> "ADDED & JOINED GROUPS"
-                                else -> "ALL CONVERSATIONS & GROUPS"
+                                "DIRECT" -> "Direct Conversations"
+                                "CREATED_GROUPS" -> "Created Groups"
+                                "ADDED_GROUPS" -> "Joined Groups"
+                                else -> "All Conversations"
                             }
                             Text(
                                 text = titleText,
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.8.sp,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
                                 modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 2.dp)
                             )
@@ -5088,7 +5275,7 @@ fun CustomizedChatScreen(
                                 chatName = friend.name,
                                 isPinned = isPinned,
                                 isPendingDelete = isPendingDelete,
-                                triggerInitialPeekHint = index == 0 && !hasSeenSwipePeekHint && filteredFriends.isNotEmpty(),
+                                triggerInitialPeekHint = false,
                                 onTogglePin = {
                                     if (isPinned) {
                                         pinnedChatIds = pinnedChatIds - friend.id

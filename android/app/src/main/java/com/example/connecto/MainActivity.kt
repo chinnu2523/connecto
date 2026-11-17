@@ -443,11 +443,13 @@ fun ConnectoApp(
     // Global session revocation & 401 expiration listener
     androidx.compose.runtime.DisposableEffect(authenticatedUsername) {
         com.example.connecto.network.ConnectoApiClient.onSessionExpired = { reason ->
-            (context as? android.app.Activity)?.runOnUiThread {
-                if (flowState != AppFlowState.AUTH_HOME) {
-                    android.widget.Toast.makeText(context, reason, android.widget.Toast.LENGTH_LONG).show()
-                    performCompleteSignOut(context, authenticatedUsername)
-                    flowState = AppFlowState.AUTH_HOME
+            if (authenticatedUsername != "guest" && com.example.connecto.network.ConnectoApiClient.currentUsername != "guest") {
+                (context as? android.app.Activity)?.runOnUiThread {
+                    if (flowState != AppFlowState.AUTH_HOME) {
+                        android.widget.Toast.makeText(context, reason, android.widget.Toast.LENGTH_LONG).show()
+                        performCompleteSignOut(context, authenticatedUsername)
+                        flowState = AppFlowState.AUTH_HOME
+                    }
                 }
             }
         }
@@ -702,9 +704,9 @@ fun ConnectoApp(
                             val savedToken = prefs.getString("token", null)
 
                             if (isLoggedIn && !savedUsername.isNullOrEmpty()) {
-                                val savedUserId = prefs.getString("user_id", null)
-                                val savedEmail = prefs.getString("email", null)
-                                val savedDisplayName = prefs.getString("display_name", null)
+                                val savedUserId = prefs.getString("user_id", null) ?: if (savedUsername == "guest") "guest_sandbox_user" else savedUsername
+                                val savedEmail = prefs.getString("email", null) ?: if (savedUsername == "guest") "guest@connecto.fun" else null
+                                val savedDisplayName = prefs.getString("display_name", null) ?: if (savedUsername == "guest") "Guest Explorer" else savedUsername
                                 com.example.connecto.network.ConnectoApiClient.sessionToken = savedToken
                                 com.example.connecto.network.ConnectoApiClient.currentUserId = savedUserId
                                 com.example.connecto.network.ConnectoApiClient.currentUsername = savedUsername
@@ -754,9 +756,13 @@ fun ConnectoApp(
                         onAuthSuccess = { username ->
                             // Persist user session across both SharedPreferences and SecureStorageManager
                             val tokenVal = com.example.connecto.network.ConnectoApiClient.sessionToken
+                                ?: if (username == "guest") "guest_token_sandbox" else null
                             val userIdVal = com.example.connecto.network.ConnectoApiClient.currentUserId
+                                ?: if (username == "guest") "guest_sandbox_user" else username
                             val emailVal = com.example.connecto.network.ConnectoApiClient.currentUserEmail
+                                ?: if (username == "guest") "guest@connecto.fun" else null
                             val dispNameVal = com.example.connecto.network.ConnectoApiClient.currentUserDisplayName
+                                ?: if (username == "guest") "Guest Explorer" else username
                             val isAdminVal = com.example.connecto.network.ConnectoApiClient.currentUserIsAdmin
 
                             prefs.edit()
