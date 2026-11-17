@@ -529,7 +529,7 @@ Sitemap: https://connecto.fun/sitemap.xml
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
           downloadHeaders.set("X-Connecto-App", "PDF Studio");
-          downloadHeaders.set("X-Connecto-Version", "v1.5.3");
+          downloadHeaders.set("X-Connecto-Version", "v1.5.4");
           return new Response(pdfResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -2047,14 +2047,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Full PDF editor & creative image editor with typography matching",
         description: "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         category: "Productivity",
-        version_name: "1.5.3",
-        version_code: 19,
-        size_bytes: 67475636,
+        version_name: "1.5.4",
+        version_code: 20,
+        size_bytes: 67492020,
         size_formatted: "64.4 MB",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
         accent_color: "#EF4444",
         changelog: [
+          "Connecto Elastic Drag-to-Refresh: Tactile OLED floating pill refresh animation with spring overshoot, smooth 180-degree arrow rotation, and haptic snap identical to Connecto and Our Store",
+          "Advanced Image Typography & Font Matching: Core ink extraction, statistical font family detection (Roboto Sans, Noto Serif, Monospace), and numeric weight classification (Regular 400, Medium 500, Bold 700, Black 900) replacing generic system text",
+          "Vertical Gradient In-Image Text Shading: Multi-stop core ink gradient detection and native LinearGradient shader rendering for true-to-life text replacement",
+          "Interactive Replacement Typography Studio & Live Preview: Dedicated detected specs card, selectable font family & weight chips, gradient toggle, and real-time live preview rendering against local image background before insertion",
+          "Soft Perimeter Inpainting: Dual-stop gradient erasure with soft border blending to seamlessly remove original text without harsh whiteout boundaries",
           "Clean 2x2 Quick Action Grid & Zero Gradients: Replaced oversized hero cards and marketing noise with a clean 2x2 action tile layout; tactile spring press scale micro-interactions; 100% solid gradient-free Material 3 color system",
           "Scan & Edit Text in Images: Exact pixel-matched font size, stroke weight, style, and color preservation",
           "Eliminated Auto-Refresh & Accidental Preview Trigger: Intentional drag threshold and pointer shield prevent accidental document openings",
