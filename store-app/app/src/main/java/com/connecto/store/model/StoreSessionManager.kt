@@ -92,7 +92,8 @@ class StoreSessionManager(context: Context) {
         val roleStr = prefs.getString(KEY_ROLE, StoreRole.MEMBER.name) ?: StoreRole.MEMBER.name
         val role = if (username.equals("chinnu14754x", ignoreCase = true) ||
                        username.equals("chinnu", ignoreCase = true) ||
-                       username.equals("admin", ignoreCase = true)) {
+                       username.equals("admin", ignoreCase = true) ||
+                       username.equals("connecto_admin", ignoreCase = true)) {
             StoreRole.ADMIN
         } else {
             try { StoreRole.valueOf(roleStr) } catch (_: Exception) { StoreRole.MEMBER }

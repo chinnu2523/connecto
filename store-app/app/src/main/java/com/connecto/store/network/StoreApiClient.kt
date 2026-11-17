@@ -120,7 +120,8 @@ object StoreApiClient {
             val isAdmin = userObj.optBoolean("is_admin", false) ||
                           username.equals("chinnu14754x", ignoreCase = true) ||
                           username.equals("chinnu", ignoreCase = true) ||
-                          username.equals("admin", ignoreCase = true)
+                          username.equals("admin", ignoreCase = true) ||
+                          username.equals("connecto_admin", ignoreCase = true)
             val token = json.optString("token", "")
 
             val role = if (isAdmin) StoreRole.ADMIN else StoreRole.MEMBER

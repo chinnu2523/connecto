@@ -158,7 +158,8 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
                         val isAdmin = cursor.getInt(cursor.getColumnIndexOrThrow("is_admin")) == 1 ||
                                       username.equals("chinnu14754x", ignoreCase = true) ||
                                       username.equals("chinnu", ignoreCase = true) ||
-                                      username.equals("admin", ignoreCase = true)
+                                      username.equals("admin", ignoreCase = true) ||
+                                      username.equals("connecto_admin", ignoreCase = true)
                         val token = cursor.getString(cursor.getColumnIndexOrThrow("token"))
                         val role = if (isAdmin) StoreRole.ADMIN else StoreRole.MEMBER
 
@@ -388,7 +389,8 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
                         val isAdmin = cursor.getInt(cursor.getColumnIndexOrThrow("is_admin")) == 1 ||
                                       username.equals("chinnu14754x", ignoreCase = true) ||
                                       username.equals("chinnu", ignoreCase = true) ||
-                                      username.equals("admin", ignoreCase = true)
+                                      username.equals("admin", ignoreCase = true) ||
+                                      username.equals("connecto_admin", ignoreCase = true)
                         val token = cursor.getString(cursor.getColumnIndexOrThrow("token"))
                         val role = if (isAdmin) StoreRole.ADMIN else StoreRole.MEMBER
 

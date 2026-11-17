@@ -4,7 +4,14 @@ import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import kotlin.math.PI
+import kotlin.math.absoluteValue
+import kotlin.math.sin
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -228,9 +235,14 @@ fun StoreApp(
     var showSecurityDialog by remember { mutableStateOf(false) }
 
     // Respond to deep-link parameters from Android system notifications
-    LaunchedEffect(initialPackageName, initialSectionName) {
+    LaunchedEffect(initialPackageName, initialSectionName, currentUser) {
         if (initialPackageName != null) {
-            selectedPackageName = initialPackageName
+            val role = currentUser?.role ?: StoreRole.GUEST
+            if ((initialPackageName == "com.omni.assistant" || initialPackageName == "jarvis") && role != StoreRole.ADMIN) {
+                selectedPackageName = null
+            } else {
+                selectedPackageName = initialPackageName
+            }
             onTargetHandled()
         } else if (initialSectionName != null) {
             when (initialSectionName.uppercase()) {
@@ -239,6 +251,14 @@ fun StoreApp(
                 else -> selectedSection = StoreNavSection.OVERVIEW
             }
             onTargetHandled()
+        }
+    }
+
+    // RBAC Security Guard: Ensure non-admin users cannot remain inside JARVIS AI app details
+    LaunchedEffect(currentUser, selectedPackageName) {
+        val role = currentUser?.role ?: StoreRole.GUEST
+        if ((selectedPackageName == "com.omni.assistant" || selectedPackageName == "jarvis") && role != StoreRole.ADMIN) {
+            selectedPackageName = null
         }
     }
 
@@ -622,7 +642,7 @@ private fun ClassicTopHeader(
     }
 }
 
-// ─── Footer Bottom Navigation Bar with Optimized UI & High Performance ────────
+// ─── Footer Bottom Navigation Bar with Liquid Bulge Animation & High Performance ────────
 @Composable
 private fun ClassicBottomNavBar(
     selected: StoreNavSection,
@@ -632,36 +652,168 @@ private fun ClassicBottomNavBar(
 ) {
     val theme = LocalStoreTheme.current
     val sections = remember { StoreNavSection.values() }
+    val selectedIndex = sections.indexOf(selected).coerceAtLeast(0)
 
-    Surface(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding(),
-        color = theme.navBarBackground
+            .navigationBarsPadding()
+            .height(68.dp)
     ) {
-        Column {
-            HorizontalDivider(color = theme.dividerColor, thickness = 1.dp)
+        val totalWidth = maxWidth
+        val tabCount = sections.size
+        val tabWidth = totalWidth / tabCount
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val baseTopY = with(density) { 12.dp.toPx() }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                sections.forEach { section ->
-                    val isSelected = selected == section
-                    val badgeCount = if (section == StoreNavSection.UPDATES) updateCount else 0
+        // Dynamic tracking center of the active tab with fluid spring physics
+        val targetCenterX = tabWidth * selectedIndex + tabWidth / 2
+        val animatedCenterX by animateDpAsState(
+            targetValue = targetCenterX,
+            animationSpec = spring(
+                stiffness = 340f,
+                dampingRatio = 0.72f // Fluid organic liquid glide
+            ),
+            label = "storeBulgeCenterX"
+        )
 
-                    ClassicBottomNavTabItem(
-                        section = section,
-                        isSelected = isSelected,
-                        badgeCount = badgeCount,
-                        currentUser = currentUser,
-                        onClick = { onSelect(section) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+        // Fluid squish & stretch during movement
+        val distance = (targetCenterX - animatedCenterX).value.dp
+        val stretchFactor = 1f + (distance.value.absoluteValue / 60f).coerceAtMost(0.35f)
+        val squishY = 1f - (distance.value.absoluteValue / 140f).coerceAtMost(0.20f)
+
+        // Liquid Jelly Spring Rebound on Arrival
+        val liquidJiggle = remember { Animatable(0f) }
+        LaunchedEffect(selected) {
+            liquidJiggle.snapTo(1f)
+            liquidJiggle.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(
+                    dampingRatio = 0.48f,
+                    stiffness = 260f
+                )
+            )
+        }
+        val jiggleBounce = 1f + (liquidJiggle.value * 0.25f * sin(liquidJiggle.value * 3f * PI.toFloat()))
+        val bulgeHeightPx = with(density) { 11.dp.toPx() } * squishY * jiggleBounce
+        val bulgeHalfWidthPx = with(density) { (52.dp * stretchFactor).toPx() }
+
+        // LAYER 1: Canvas Liquid Bulge Background & Specular Top Contour
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val curX = animatedCenterX.toPx()
+            val peakY = (baseTopY - bulgeHeightPx).coerceAtLeast(1.dp.toPx())
+            val leftBulgeX = curX - bulgeHalfWidthPx
+            val rightBulgeX = curX + bulgeHalfWidthPx
+
+            // Liquid Bulge Silhouette Path
+            val bulgePath = Path().apply {
+                moveTo(0f, baseTopY)
+                lineTo(leftBulgeX.coerceAtLeast(0f), baseTopY)
+                // Left smooth curve into peak
+                cubicTo(
+                    leftBulgeX + 18.dp.toPx(), baseTopY,
+                    curX - 26.dp.toPx() * stretchFactor, peakY,
+                    curX, peakY
+                )
+                // Right smooth curve down from peak
+                cubicTo(
+                    curX + 26.dp.toPx() * stretchFactor, peakY,
+                    rightBulgeX - 18.dp.toPx(), baseTopY,
+                    rightBulgeX.coerceAtMost(size.width), baseTopY
+                )
+                lineTo(size.width, baseTopY)
+                lineTo(size.width, size.height)
+                lineTo(0f, size.height)
+                close()
+            }
+
+            // Fill with theme navBarBackground
+            drawPath(
+                path = bulgePath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        theme.cardElevated.copy(alpha = 0.95f),
+                        theme.navBarBackground
+                    ),
+                    startY = peakY,
+                    endY = size.height
+                )
+            )
+
+            // Specular Liquid Rim Stroke along top contour & bulge
+            val rimPath = Path().apply {
+                moveTo(0f, baseTopY)
+                lineTo(leftBulgeX.coerceAtLeast(0f), baseTopY)
+                cubicTo(
+                    leftBulgeX + 18.dp.toPx(), baseTopY,
+                    curX - 26.dp.toPx() * stretchFactor, peakY,
+                    curX, peakY
+                )
+                cubicTo(
+                    curX + 26.dp.toPx() * stretchFactor, peakY,
+                    rightBulgeX - 18.dp.toPx(), baseTopY,
+                    rightBulgeX.coerceAtMost(size.width), baseTopY
+                )
+                lineTo(size.width, baseTopY)
+            }
+
+            val rimBrush = Brush.horizontalGradient(
+                colors = listOf(
+                    theme.dividerColor.copy(alpha = 0.4f),
+                    theme.accentColor.copy(alpha = 0.35f),
+                    Color.White.copy(alpha = 0.85f), // High specular brilliance at the liquid bulge peak
+                    theme.accentColor.copy(alpha = 0.45f),
+                    theme.dividerColor.copy(alpha = 0.4f)
+                ),
+                startX = (curX - 70.dp.toPx()).coerceAtLeast(0f),
+                endX = (curX + 70.dp.toPx()).coerceAtMost(size.width)
+            )
+
+            drawPath(
+                path = rimPath,
+                brush = rimBrush,
+                style = Stroke(
+                    width = 1.35.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+            )
+
+            // Ambient Glow under the Liquid Bulge
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        theme.accentColor.copy(alpha = 0.28f),
+                        theme.accentColor.copy(alpha = 0.06f),
+                        Color.Transparent
+                    ),
+                    radius = 34.dp.toPx() * stretchFactor,
+                    center = Offset(curX, peakY + 12.dp.toPx())
+                ),
+                radius = 34.dp.toPx() * stretchFactor,
+                center = Offset(curX, peakY + 12.dp.toPx())
+            )
+        }
+
+        // LAYER 2: Tab items row
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            sections.forEach { section ->
+                val isSelected = selected == section
+                val badgeCount = if (section == StoreNavSection.UPDATES) updateCount else 0
+
+                ClassicBottomNavTabItem(
+                    section = section,
+                    isSelected = isSelected,
+                    badgeCount = badgeCount,
+                    currentUser = currentUser,
+                    onClick = { onSelect(section) },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
@@ -681,7 +833,7 @@ private fun ClassicBottomNavTabItem(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val targetScale = if (isPressed) 0.94f else if (isSelected) 1.02f else 1.0f
+    val targetScale = if (isPressed) 0.94f else if (isSelected) 1.05f else 1.0f
     val animatedScale by animateFloatAsState(
         targetValue = targetScale,
         animationSpec = spring(
@@ -691,14 +843,23 @@ private fun ClassicBottomNavTabItem(
         label = "navTabScale"
     )
 
+    val iconOffsetY by animateDpAsState(
+        targetValue = if (isSelected) (-5.dp) else 0.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "navIconOffsetY"
+    )
+
     val animatedContainerColor by animateColorAsState(
-        targetValue = if (isSelected) (if (theme.isDark) theme.cardElevated else Color(0xFFF1F5F9)) else Color.Transparent,
+        targetValue = if (isSelected) (if (theme.isDark) theme.cardElevated.copy(alpha = 0.5f) else Color(0xFFF1F5F9).copy(alpha = 0.6f)) else Color.Transparent,
         animationSpec = tween(durationMillis = 200),
         label = "navTabBg"
     )
 
     val animatedBorderColor by animateColorAsState(
-        targetValue = if (isSelected) theme.borderHighlight else Color.Transparent,
+        targetValue = if (isSelected) theme.borderHighlight.copy(alpha = 0.6f) else Color.Transparent,
         animationSpec = tween(durationMillis = 200),
         label = "navTabBorder"
     )
@@ -728,14 +889,17 @@ private fun ClassicBottomNavTabItem(
                 haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
                 onClick()
             }
-            .padding(vertical = 8.dp),
+            .padding(vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            Box(contentAlignment = Alignment.TopEnd) {
+            Box(
+                modifier = Modifier.offset(y = iconOffsetY),
+                contentAlignment = Alignment.TopEnd
+            ) {
                 if (section == StoreNavSection.LOGIN && currentUser != null && !currentUser.username.equals("guest", ignoreCase = true)) {
                     UserAvatarImage(
                         avatarUrl = currentUser.avatarUrl,

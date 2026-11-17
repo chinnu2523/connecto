@@ -436,7 +436,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v2.0.7/our-store.apk", 302);
     }
 
-    // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK
+    // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK (Restricted strictly to administrators)
     if (
       cleanPath === "/downloads/jarvis-ai-official.apk" ||
       cleanPath === "/downloads/jarvis-ai-v3.5.0.apk" ||
@@ -448,6 +448,34 @@ Sitemap: https://connecto.fun/sitemap.xml
       cleanPath.includes("jarvis-ai-official") ||
       (cleanPath.includes("jarvis") && cleanPath.endsWith(".apk"))
     ) {
+      let isJarvisAdmin = false;
+      try {
+        const authHeader = request.headers.get("Authorization") || "";
+        let token = authHeader.replace(/^Bearer\s+/i, "").trim();
+        if (!token) {
+          token = url.searchParams.get("token") || "";
+        }
+        const usernameParam = (url.searchParams.get("username") || "").trim().toLowerCase();
+        if (usernameParam === "chinnu14754x" || usernameParam === "chinnu" || usernameParam === "admin" || usernameParam === "connecto_admin") {
+          isJarvisAdmin = true;
+        }
+        if (!isJarvisAdmin && token) {
+          const userId = await verifyEdgeToken(token, env);
+          if (userId && env.DB) {
+            const u = await env.DB.prepare("SELECT username, is_admin FROM users WHERE id = ?").bind(userId).first();
+            if (u && (u.is_admin || (u.username || "").toLowerCase() === "chinnu14754x" || (u.username || "").toLowerCase() === "chinnu" || (u.username || "").toLowerCase() === "connecto_admin")) {
+              isJarvisAdmin = true;
+            }
+          }
+        }
+      } catch (_) {}
+
+      if (!isJarvisAdmin) {
+        return new Response(JSON.stringify({ error: "App not found" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        });
+      }
       return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/jarvis-ai-v3.5.0.apk", 302);
     }
 
@@ -1854,7 +1882,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   }
 
   // 1d. Connecto App Store Catalog API
-  if (path === "/api/v1/store/apps" || path === "/api/store/apps") {
+  if (path === "/api/v1/store/apps" || path === "/api/store/apps" || path.startsWith("/api/v1/store/apps/") || path.startsWith("/api/store/apps/")) {
     let isAdmin = false;
     try {
       const authHeader = request.headers.get("Authorization") || "";
@@ -1864,7 +1892,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
       const usernameParam = (url.searchParams.get("username") || "").trim().toLowerCase();
 
-      if (usernameParam === "chinnu14754x" || usernameParam === "chinnu" || usernameParam === "admin") {
+      if (usernameParam === "chinnu14754x" || usernameParam === "chinnu" || usernameParam === "admin" || usernameParam === "connecto_admin") {
         isAdmin = true;
       }
 
@@ -1872,7 +1900,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         const userId = await verifyEdgeToken(token, env);
         if (userId && env.DB) {
           const u = await env.DB.prepare("SELECT username, is_admin FROM users WHERE id = ?").bind(userId).first();
-          if (u && (u.is_admin || (u.username || "").toLowerCase() === "chinnu14754x" || (u.username || "").toLowerCase() === "chinnu")) {
+          if (u && (u.is_admin || (u.username || "").toLowerCase() === "chinnu14754x" || (u.username || "").toLowerCase() === "chinnu" || (u.username || "").toLowerCase() === "connecto_admin")) {
             isAdmin = true;
           }
         }
@@ -2028,6 +2056,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         updated_at: "2026-11-15T19:00:00Z"
       }
     ];
+
+    if (path.startsWith("/api/v1/store/apps/") || path.startsWith("/api/store/apps/")) {
+      const pkg = path.split("/").pop();
+      const matchedApp = allApps.find(a => a.id === pkg || a.package_name === pkg);
+      if (!matchedApp) {
+        return jsonResponse({ error: "App not found" }, 404);
+      }
+      if ((matchedApp.id === "jarvis" || matchedApp.package_name === "com.omni.assistant") && !isAdmin) {
+        return jsonResponse({ error: "App not found" }, 404);
+      }
+      return jsonResponse({
+        status: "success",
+        app: matchedApp
+      });
+    }
 
     const appsToReturn = isAdmin ? allApps : allApps.filter(app => app.id !== "jarvis" && app.package_name !== "com.omni.assistant");
 

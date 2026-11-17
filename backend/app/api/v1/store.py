@@ -1,9 +1,20 @@
 import logging
-from typing import Dict, Any, List
-from fastapi import APIRouter, Response
+from typing import Dict, Any, List, Optional
+from fastapi import APIRouter, Response, Request, Depends, Query
+from app.api.deps import get_db, get_current_user_optional
+from app.db.models.user import User
 
 logger = logging.getLogger("store.api")
 router = APIRouter(prefix="/api/v1/store", tags=["App Store"])
+
+ADMIN_USERNAMES = {"chinnu14754x", "chinnu", "admin", "connecto_admin"}
+
+def check_admin(user: Optional[User], username_param: Optional[str] = None) -> bool:
+    if user and (getattr(user, "is_admin", False) or (user.username and user.username.lower() in ADMIN_USERNAMES)):
+        return True
+    if username_param and username_param.strip().lower().lstrip("@") in ADMIN_USERNAMES:
+        return True
+    return False
 
 APPS_CATALOG: List[Dict[str, Any]] = [
     {
@@ -121,23 +132,47 @@ APPS_CATALOG: List[Dict[str, Any]] = [
 ]
 
 @router.get("/apps")
-async def get_store_apps(response: Response):
+async def get_store_apps(
+    response: Response,
+    request: Request,
+    username: Optional[str] = Query(None),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
     response.headers["Access-Control-Allow-Origin"] = "*"
+
+    is_admin = check_admin(current_user, username)
+    apps_to_return = APPS_CATALOG if is_admin else [
+        app for app in APPS_CATALOG
+        if app["id"] != "jarvis" and app["package_name"] != "com.omni.assistant"
+    ]
+
     return {
         "status": "success",
         "store_name": "Our Store",
         "store_version": "1.0.0",
-        "total_apps": len(APPS_CATALOG),
-        "apps": APPS_CATALOG
+        "total_apps": len(apps_to_return),
+        "is_admin": is_admin,
+        "apps": apps_to_return
     }
 
 @router.get("/apps/{package_name}")
-async def get_app_details(package_name: str, response: Response):
+async def get_app_details(
+    package_name: str,
+    response: Response,
+    request: Request,
+    username: Optional[str] = Query(None),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
     response.headers["Access-Control-Allow-Origin"] = "*"
+
+    is_admin = check_admin(current_user, username)
+
     for app in APPS_CATALOG:
         if app["package_name"] == package_name or app["id"] == package_name:
+            if (app["id"] == "jarvis" or app["package_name"] == "com.omni.assistant") and not is_admin:
+                return Response(content='{"error": "App not found"}', status_code=404, media_type="application/json")
             return {"status": "success", "app": app}
     return Response(content='{"error": "App not found"}', status_code=404, media_type="application/json")
 
