@@ -644,7 +644,7 @@ private fun ClassicTopHeader(
     }
 }
 
-// ─── Modern Architectural Bottom Navigation Bar ──────────────────────────────
+// ─── 03 FLOATING NOTCH Bottom Navigation Bar (Blueprint 03: Ball hops on notch path, R 28) ───
 @Composable
 private fun ClassicBottomNavBar(
     selected: StoreNavSection,
@@ -653,6 +653,7 @@ private fun ClassicBottomNavBar(
     currentUser: StoreUser? = null
 ) {
     val theme = LocalStoreTheme.current
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val sections = remember { StoreNavSection.values() }
     val selectedIndex = sections.indexOf(selected).coerceAtLeast(0)
 
@@ -660,14 +661,14 @@ private fun ClassicBottomNavBar(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .height(68.dp)
-            .background(theme.navBarBackground)
+            .height(72.dp)
     ) {
         val totalWidth = maxWidth
         val tabCount = sections.size
         val tabWidth = totalWidth / tabCount
+        val density = androidx.compose.ui.platform.LocalDensity.current
 
-        // Center X for active tab sliding indicator with ease-in/ease-out curve
+        // Center X for active tab notch & floating ball with ease-in/ease-out curve
         val targetCenterX = tabWidth * selectedIndex + tabWidth / 2
         val animatedCenterX by animateDpAsState(
             targetValue = targetCenterX,
@@ -678,46 +679,178 @@ private fun ClassicBottomNavBar(
             label = "storeActiveTabCenterX"
         )
 
-        // Top hairline divider
-        Canvas(modifier = Modifier.fillMaxWidth().height(1.dp).align(Alignment.TopCenter)) {
-            drawLine(
-                color = theme.dividerColor,
-                start = Offset(0f, 0f),
-                end = Offset(size.width, 0f),
-                strokeWidth = 1.dp.toPx()
+        // 03 FLOATING NOTCH Path Geometry (Radius R 28 concave scoop)
+        val baseTopY = with(density) { 16.dp.toPx() }
+        val notchDepth = with(density) { 18.dp.toPx() }
+        val notchHalfWidth = with(density) { 34.dp.toPx() }
+
+        // Ball hopping physics: arc trajectory + subtle landing squash
+        val hopProgress = remember { Animatable(1f) }
+        LaunchedEffect(selected) {
+            hopProgress.snapTo(0f)
+            hopProgress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 280,
+                    easing = EaseInOutCubic
+                )
+            )
+        }
+        val hopArc = sin(hopProgress.value * PI.toFloat()).coerceAtLeast(0f)
+        val hopOffsetY = -14.dp * hopArc
+        val ballSquashScaleY = if (hopProgress.value >= 0.88f) {
+            1f - (1f - hopProgress.value) * 0.35f
+        } else {
+            1f + hopArc * 0.08f
+        }
+        val ballSquashScaleX = if (hopProgress.value >= 0.88f) {
+            1f + (1f - hopProgress.value) * 0.35f
+        } else {
+            1f - hopArc * 0.05f
+        }
+
+        // LAYER 1: Notched Bar Silhouette & Specular Rim Stroke
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val curX = animatedCenterX.toPx()
+            val dipY = baseTopY + notchDepth
+            val leftNotchX = curX - notchHalfWidth
+            val rightNotchX = curX + notchHalfWidth
+
+            // Notched Bar Body Path
+            val notchBodyPath = Path().apply {
+                moveTo(0f, baseTopY)
+                lineTo(leftNotchX.coerceAtLeast(0f), baseTopY)
+                // Smooth cubic Bézier dip down into notch
+                cubicTo(
+                    leftNotchX + 16.dp.toPx(), baseTopY,
+                    curX - 18.dp.toPx(), dipY,
+                    curX, dipY
+                )
+                // Smooth cubic Bézier climb up to baseline
+                cubicTo(
+                    curX + 18.dp.toPx(), dipY,
+                    rightNotchX - 16.dp.toPx(), baseTopY,
+                    rightNotchX.coerceAtMost(size.width), baseTopY
+                )
+                lineTo(size.width, baseTopY)
+                lineTo(size.width, size.height)
+                lineTo(0f, size.height)
+                close()
+            }
+            drawPath(
+                path = notchBodyPath,
+                color = theme.navBarBackground
+            )
+
+            // Specular Rim Stroke along entire top edge tracing the notch cutout
+            val notchRimPath = Path().apply {
+                moveTo(0f, baseTopY)
+                lineTo(leftNotchX.coerceAtLeast(0f), baseTopY)
+                cubicTo(
+                    leftNotchX + 16.dp.toPx(), baseTopY,
+                    curX - 18.dp.toPx(), dipY,
+                    curX, dipY
+                )
+                cubicTo(
+                    curX + 18.dp.toPx(), dipY,
+                    rightNotchX - 16.dp.toPx(), baseTopY,
+                    rightNotchX.coerceAtMost(size.width), baseTopY
+                )
+                lineTo(size.width, baseTopY)
+            }
+            drawPath(
+                path = notchRimPath,
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        theme.dividerColor.copy(alpha = 0.5f),
+                        theme.accentColorLight.copy(alpha = 0.85f),
+                        theme.dividerColor.copy(alpha = 0.5f)
+                    ),
+                    startX = (curX - 55.dp.toPx()).coerceAtLeast(0f),
+                    endX = (curX + 55.dp.toPx()).coerceAtMost(size.width)
+                ),
+                style = Stroke(width = 1.2.dp.toPx())
             )
         }
 
-        // Active Tab Sliding Dock Pill
-        val pillWidth = (tabWidth - 16.dp).coerceAtMost(96.dp)
+        // LAYER 2: 03 FLOATING NOTCH Ball ("ball hops on a notch path")
+        val ballSize = 48.dp
         Box(
             modifier = Modifier
-                .offset(x = animatedCenterX - pillWidth / 2, y = 10.dp)
-                .width(pillWidth)
-                .height(48.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .offset(x = animatedCenterX - ballSize / 2, y = (-6.dp) + hopOffsetY)
+                .size(ballSize)
+                .graphicsLayer {
+                    scaleX = ballSquashScaleX
+                    scaleY = ballSquashScaleY
+                    shadowElevation = 8.dp.toPx()
+                    shape = CircleShape
+                    clip = false
+                }
+                .clip(CircleShape)
                 .background(
-                    if (theme.isDark) Color(0xFF16161A) else Color(0xFFF1F5F9)
+                    Brush.verticalGradient(
+                        listOf(
+                            theme.accentColorLight,
+                            theme.accentColor
+                        )
+                    )
                 )
                 .border(
-                    width = 0.8.dp,
-                    color = if (theme.isDark) theme.cardBorder.copy(alpha = 0.9f) else Color(0xFFE2E8F0),
-                    shape = RoundedCornerShape(16.dp)
+                    width = 1.5.dp,
+                    color = Color.White.copy(alpha = 0.65f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            // Selected section active icon inside the hopping ball
+            if (selected == StoreNavSection.LOGIN && currentUser != null && !currentUser.username.equals("guest", ignoreCase = true)) {
+                UserAvatarImage(
+                    avatarUrl = currentUser.avatarUrl,
+                    displayName = currentUser.displayName,
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(CircleShape),
+                    fallback = {
+                        Text(
+                            text = currentUser.displayName.take(1).uppercase(),
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
                 )
-        )
+            } else {
+                Icon(
+                    imageVector = selected.activeIcon,
+                    contentDescription = selected.label,
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
-        // Active Tab Top Illuminated Micro-Pip
-        val pipWidth = 26.dp
-        Box(
-            modifier = Modifier
-                .offset(x = animatedCenterX - pipWidth / 2, y = 0.dp)
-                .width(pipWidth)
-                .height(2.5.dp)
-                .clip(RoundedCornerShape(bottomStart = 1.5.dp, bottomEnd = 1.5.dp))
-                .background(theme.accentColorLight)
-        )
+            // Update badge on floating ball
+            if (selected == StoreNavSection.UPDATES && updateCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 2.dp, y = (-2).dp)
+                        .clip(CircleShape)
+                        .background(DangerRed)
+                        .border(1.5.dp, Color.White, CircleShape)
+                        .padding(horizontal = 4.5.dp, vertical = 0.5.dp)
+                ) {
+                    Text(
+                        text = "$updateCount",
+                        color = Color.White,
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Black,
+                        style = TextStyle(fontFeatureSettings = "tnum")
+                    )
+                }
+            }
+        }
 
-        // Tab items row
+        // LAYER 3: Tab items interactive touch targets & labels below notch
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -758,7 +891,7 @@ private fun ClassicBottomNavTabItem(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val targetScale = if (isPressed) 0.92f else if (isSelected) 1.04f else 1.0f
+    val targetScale = if (isPressed) 0.92f else 1.0f
     val animatedScale by animateFloatAsState(
         targetValue = targetScale,
         animationSpec = tween(
@@ -766,21 +899,6 @@ private fun ClassicBottomNavTabItem(
             easing = if (isPressed) EaseInCubic else EaseOutCubic
         ),
         label = "navTabScale"
-    )
-
-    val iconOffsetY by animateDpAsState(
-        targetValue = if (isSelected) (-2.dp) else 0.dp,
-        animationSpec = tween(
-            durationMillis = 220,
-            easing = EaseInOutCubic
-        ),
-        label = "navIconOffsetY"
-    )
-
-    val animatedContentColor by animateColorAsState(
-        targetValue = if (isSelected) (if (theme.isDark) Color.White else theme.accentColor) else theme.textDarkMuted,
-        animationSpec = tween(durationMillis = 200, easing = EaseInOutCubic),
-        label = "navTabFg"
     )
 
     Box(
@@ -800,81 +918,95 @@ private fun ClassicBottomNavTabItem(
             },
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-            modifier = Modifier.offset(y = iconOffsetY)
-        ) {
-            Box(
-                contentAlignment = Alignment.TopEnd
-            ) {
-                if (section == StoreNavSection.LOGIN && currentUser != null && !currentUser.username.equals("guest", ignoreCase = true)) {
-                    UserAvatarImage(
-                        avatarUrl = currentUser.avatarUrl,
-                        displayName = currentUser.displayName,
-                        modifier = Modifier
-                            .size(23.dp)
-                            .clip(CircleShape)
-                            .border(
-                                width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) theme.accentColorLight else theme.textDarkMuted.copy(alpha = 0.45f),
-                                shape = CircleShape
-                            ),
-                        fallback = {
-                            Box(
-                                modifier = Modifier
-                                    .size(23.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isSelected) theme.accentColorLight.copy(alpha = 0.25f) else theme.cardBorder),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = currentUser.displayName.take(1).uppercase(),
-                                    color = if (isSelected) theme.accentColorLight else theme.textSecondary,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    )
-                } else {
-                    val iconVector = if (isSelected) section.activeIcon else section.inactiveIcon
-                    Icon(
-                        imageVector = iconVector,
-                        contentDescription = section.label,
-                        tint = animatedContentColor,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                if (badgeCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .offset(x = 8.dp, y = (-4).dp)
-                            .clip(CircleShape)
-                            .background(ElectricBlueUpdateLight)
-                            .border(1.5.dp, if (theme.isDark) Color(0xFF000000) else Color(0xFFFFFFFF), CircleShape)
-                            .padding(horizontal = 4.5.dp, vertical = 0.5.dp)
-                    ) {
-                        Text(
-                            text = "$badgeCount",
-                            color = Color.White,
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.Black,
-                            style = TextStyle(fontFeatureSettings = "tnum")
-                        )
-                    }
-                }
-            }
-
+        if (isSelected) {
+            // Blueprint 03: Selected label positioned cleanly under the floating notch
             Text(
                 text = section.label,
-                color = animatedContentColor,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                fontSize = if (isSelected) 11.5.sp else 11.sp,
-                letterSpacing = 0.2.sp,
-                maxLines = 1
+                color = if (theme.isDark) Color.White else theme.accentColor,
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.5.sp,
+                letterSpacing = 0.3.sp,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 8.dp)
             )
+        } else {
+            // Inactive Tab: Icon & label seated at standard baseline
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(top = 16.dp)
+            ) {
+                Box(contentAlignment = Alignment.TopEnd) {
+                    if (section == StoreNavSection.LOGIN && currentUser != null && !currentUser.username.equals("guest", ignoreCase = true)) {
+                        UserAvatarImage(
+                            avatarUrl = currentUser.avatarUrl,
+                            displayName = currentUser.displayName,
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .border(
+                                    width = 1.dp,
+                                    color = theme.textDarkMuted.copy(alpha = 0.45f),
+                                    shape = CircleShape
+                                ),
+                            fallback = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .clip(CircleShape)
+                                        .background(theme.cardBorder),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = currentUser.displayName.take(1).uppercase(),
+                                        color = theme.textSecondary,
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        )
+                    } else {
+                        Icon(
+                            imageVector = section.inactiveIcon,
+                            contentDescription = section.label,
+                            tint = theme.textDarkMuted,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    if (badgeCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .offset(x = 8.dp, y = (-4).dp)
+                                .clip(CircleShape)
+                                .background(ElectricBlueUpdateLight)
+                                .border(1.5.dp, if (theme.isDark) Color(0xFF000000) else Color(0xFFFFFFFF), CircleShape)
+                                .padding(horizontal = 4.5.dp, vertical = 0.5.dp)
+                        ) {
+                            Text(
+                                text = "$badgeCount",
+                                color = Color.White,
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Black,
+                                style = TextStyle(fontFeatureSettings = "tnum")
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = section.label,
+                    color = theme.textDarkMuted,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 10.5.sp,
+                    letterSpacing = 0.2.sp,
+                    maxLines = 1
+                )
+            }
         }
     }
 }

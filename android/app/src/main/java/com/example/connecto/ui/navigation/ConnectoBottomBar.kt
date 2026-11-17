@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -144,7 +145,7 @@ fun ConnectoBottomBar(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .height(68.dp)
+            .height(72.dp)
     ) {
         val totalWidth = maxWidth
         val tabCount = ConnectoTab.entries.size
@@ -152,8 +153,8 @@ fun ConnectoBottomBar(
         val selectedIndex = ConnectoTab.entries.indexOf(currentTab).coerceAtLeast(0)
 
         val density = androidx.compose.ui.platform.LocalDensity.current
-        // Baseline top of the bottom bar (leaving room above for the liquid bulge curve)
-        val baseTopY = with(density) { 12.dp.toPx() }
+        // Baseline top of the bottom bar (leaving room above for the prominent liquid bulge curve)
+        val baseTopY = with(density) { 24.dp.toPx() }
 
         // Dynamic tracking center of the active tab with fluid ease-in-out curve
         val targetCenterX = tabWidth * selectedIndex + tabWidth / 2
@@ -184,8 +185,9 @@ fun ConnectoBottomBar(
             )
         }
         val jiggleBounce = 1f + (liquidJiggle.value * 0.18f * sin(liquidJiggle.value * 3f * PI.toFloat()))
-        val bulgeHeightPx = with(density) { 11.dp.toPx() } * squishY * jiggleBounce
-        val bulgeHalfWidthPx = with(density) { (46.dp * stretchFactor).toPx() }
+        // 02 LIQUID BULGE: Prominent organic dome matching blueprint (h 30, R 30)
+        val bulgeHeightPx = with(density) { 22.dp.toPx() } * squishY * jiggleBounce
+        val bulgeHalfWidthPx = with(density) { (44.dp * stretchFactor).toPx() }
 
         // Particle Gather Animation & Ambient Physics State
         var previousTabIndex by remember { mutableStateOf(selectedIndex) }
@@ -237,10 +239,10 @@ fun ConnectoBottomBar(
             previousTabIndex = selectedIndex
         }
 
-        // LAYER 1: Liquid Bulge Background & Specular Top Contour
+        // LAYER 1: 02 LIQUID BULGE (Gooey contour + threshold blueprint h 30, R 30)
         Canvas(modifier = Modifier.fillMaxSize()) {
             val curX = animatedCenterX.toPx()
-            val peakY = (baseTopY - bulgeHeightPx).coerceAtLeast(1.dp.toPx())
+            val peakY = (baseTopY - bulgeHeightPx).coerceAtLeast(1.5.dp.toPx())
             val leftBulgeX = curX - bulgeHalfWidthPx
             val rightBulgeX = curX + bulgeHalfWidthPx
 
@@ -248,16 +250,16 @@ fun ConnectoBottomBar(
             val bulgePath = Path().apply {
                 moveTo(0f, baseTopY)
                 lineTo(leftBulgeX.coerceAtLeast(0f), baseTopY)
-                // Left smooth curve into peak
+                // Left smooth cubic curve into peak (R 30 organic transition)
                 cubicTo(
-                    leftBulgeX + 16.dp.toPx(), baseTopY,
-                    curX - 22.dp.toPx() * stretchFactor, peakY,
+                    leftBulgeX + 18.dp.toPx() * stretchFactor, baseTopY,
+                    curX - 20.dp.toPx() * stretchFactor, peakY,
                     curX, peakY
                 )
-                // Right smooth curve down from peak
+                // Right smooth cubic curve down from peak
                 cubicTo(
-                    curX + 22.dp.toPx() * stretchFactor, peakY,
-                    rightBulgeX - 16.dp.toPx(), baseTopY,
+                    curX + 20.dp.toPx() * stretchFactor, peakY,
+                    rightBulgeX - 18.dp.toPx() * stretchFactor, baseTopY,
                     rightBulgeX.coerceAtMost(size.width), baseTopY
                 )
                 lineTo(size.width, baseTopY)
@@ -294,13 +296,13 @@ fun ConnectoBottomBar(
                 moveTo(0f, baseTopY)
                 lineTo(leftBulgeX.coerceAtLeast(0f), baseTopY)
                 cubicTo(
-                    leftBulgeX + 16.dp.toPx(), baseTopY,
-                    curX - 22.dp.toPx() * stretchFactor, peakY,
+                    leftBulgeX + 18.dp.toPx() * stretchFactor, baseTopY,
+                    curX - 20.dp.toPx() * stretchFactor, peakY,
                     curX, peakY
                 )
                 cubicTo(
-                    curX + 22.dp.toPx() * stretchFactor, peakY,
-                    rightBulgeX - 16.dp.toPx(), baseTopY,
+                    curX + 20.dp.toPx() * stretchFactor, peakY,
+                    rightBulgeX - 18.dp.toPx() * stretchFactor, baseTopY,
                     rightBulgeX.coerceAtMost(size.width), baseTopY
                 )
                 lineTo(size.width, baseTopY)
@@ -428,182 +430,97 @@ fun ConnectoBottomBar(
             }
         }
 
-            // LAYER 2: Professional Liquid Glass Pill (Bubble) Capsule
-            val pillWidth = 54.dp * stretchFactor
-            val pillHeight = 34.dp * squishY
+        // LAYER 2: Interactive Ergonomic Nav Buttons Row with Elevated Bulge Icons
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ConnectoTab.entries.forEach { tab ->
+                val isSelected = currentTab == tab
+                val interactionSource = remember { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
 
-            Box(
-                modifier = Modifier
-                    .offset(x = animatedCenterX - pillWidth / 2, y = 3.dp)
-                    .width(pillWidth)
-                    .height(pillHeight)
-                    .clip(RoundedCornerShape(17.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                (if (isPureBlack) Color.White else colors.primary).copy(alpha = 0.18f),
-                                (if (isPureBlack) Color.White else colors.primary).copy(alpha = 0.08f)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.dp,
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.45f),
-                                (if (isPureBlack) Color.White else colors.primary).copy(alpha = 0.35f),
-                                Color.Transparent
-                            )
-                        ),
-                        shape = RoundedCornerShape(17.dp)
-                    )
-            ) {
-                // Subtle top specular highlight glint
+                // Tactile micro-compression on tap with ease-in / ease-out curves
+                val buttonPressScale by animateFloatAsState(
+                    targetValue = if (isPressed) 0.92f else 1.0f,
+                    animationSpec = tween(
+                        durationMillis = 180,
+                        easing = if (isPressed) EaseInCubic else EaseOutCubic
+                    ),
+                    label = "buttonPressScale"
+                )
+
+                // Smooth icon elevation & ease-in-out curve on selection into Liquid Bulge
+                val iconScale by animateFloatAsState(
+                    targetValue = if (isSelected) 1.20f else 1.0f,
+                    animationSpec = tween(
+                        durationMillis = 240,
+                        easing = if (isSelected) EaseOutCubic else EaseInCubic
+                    ),
+                    label = "tabIconScale"
+                )
+
+                // Elevates directly into the apex of the Liquid Bulge dome (Blueprint 02)
+                val iconOffsetY by animateDpAsState(
+                    targetValue = if (isSelected) (-12.dp) else 0.dp,
+                    animationSpec = tween(
+                        durationMillis = 240,
+                        easing = if (isSelected) EaseOutCubic else EaseInCubic
+                    ),
+                    label = "tabIconOffsetY"
+                )
+
+                val iconPrimary = if (isPureBlack) Color.White else colors.primary
+                val iconInactive = colors.textSecondary.copy(alpha = 0.70f)
+
+                val textColor by animateColorAsState(
+                    targetValue = if (isSelected) iconPrimary else colors.textSecondary,
+                    animationSpec = tween(durationMillis = 200, easing = EaseInOutCubic),
+                    label = "tabTextColor"
+                )
+
+                // Custom Ergonomic Button Container
                 Box(
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 1.5.dp)
-                        .width((pillWidth * 0.55f).coerceAtMost(32.dp))
-                        .height(2.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(
-                                    Color.Transparent,
-                                    Color.White.copy(alpha = 0.65f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                )
-            }
-
-            // LAYER 3: Ergonomic Interactive Custom Nav Buttons Row
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ConnectoTab.entries.forEach { tab ->
-                    val isSelected = currentTab == tab
-                    val interactionSource = remember { MutableInteractionSource() }
-                    val isPressed by interactionSource.collectIsPressedAsState()
-
-                    // Tactile micro-compression on tap with ease-in / ease-out curves
-                    val buttonPressScale by animateFloatAsState(
-                        targetValue = if (isPressed) 0.92f else 1.0f,
-                        animationSpec = tween(
-                            durationMillis = 180,
-                            easing = if (isPressed) EaseInCubic else EaseOutCubic
-                        ),
-                        label = "buttonPressScale"
-                    )
-
-                    // Smooth icon elevation & ease-in-out curve on selection into Liquid Bulge
-                    val iconScale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.16f else 1.0f,
-                        animationSpec = tween(
-                            durationMillis = 240,
-                            easing = if (isSelected) EaseOutCubic else EaseInCubic
-                        ),
-                        label = "tabIconScale"
-                    )
-
-                    val iconOffsetY by animateDpAsState(
-                        targetValue = if (isSelected) (-4.dp) else 0.dp,
-                        animationSpec = tween(
-                            durationMillis = 240,
-                            easing = if (isSelected) EaseOutCubic else EaseInCubic
-                        ),
-                        label = "tabIconOffsetY"
-                    )
-
-                    val pipWidth by animateDpAsState(
-                        targetValue = if (isSelected) 18.dp else 0.dp,
-                        animationSpec = tween(
-                            durationMillis = 220,
-                            easing = EaseInOutCubic
-                        ),
-                        label = "tabPipWidth"
-                    )
-
-                    val iconPrimary = if (isPureBlack) Color.White else colors.primary
-                    val iconInactive = colors.textSecondary.copy(alpha = 0.70f)
-
-                    val textColor by animateColorAsState(
-                        targetValue = if (isSelected) iconPrimary else colors.textSecondary,
-                        animationSpec = tween(durationMillis = 200, easing = EaseInOutCubic),
-                        label = "tabTextColor"
-                    )
-
-                    // Custom Ergonomic Button Container
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(58.dp)
-                            .graphicsLayer {
-                                scaleX = buttonPressScale
-                                scaleY = buttonPressScale
-                            }
-                            .clip(RoundedCornerShape(16.dp))
-                            .clickable(
-                                interactionSource = interactionSource,
-                                indication = null
-                            ) {
-                                try {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                } catch (_: Exception) {}
-                                onTabSelected(tab)
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .graphicsLayer {
+                            scaleX = buttonPressScale
+                            scaleY = buttonPressScale
+                        }
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null
                         ) {
-                            // Top illuminated micro-pip for active tab
+                            try {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            } catch (_: Exception) {}
+                            onTabSelected(tab)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(52.dp)
+                                .height(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Box(
                                 modifier = Modifier
-                                    .width(22.dp)
-                                    .height(3.dp),
-                                contentAlignment = Alignment.Center
+                                    .offset(y = iconOffsetY)
+                                    .graphicsLayer {
+                                        scaleX = iconScale
+                                        scaleY = iconScale
+                                    },
+                                contentAlignment = Alignment.TopEnd
                             ) {
-                                if (pipWidth > 0.dp) {
-                                    Box(
-                                        modifier = Modifier
-                                            .width(pipWidth)
-                                            .height(2.5.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                Brush.horizontalGradient(
-                                                    listOf(
-                                                        iconPrimary.copy(alpha = 0.35f),
-                                                        Color.White,
-                                                        iconPrimary.copy(alpha = 0.35f)
-                                                    )
-                                                )
-                                            )
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(1.dp))
-
-                            Box(
-                                modifier = Modifier
-                                    .width(52.dp)
-                                    .height(32.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .offset(y = iconOffsetY)
-                                        .graphicsLayer {
-                                            scaleX = iconScale
-                                            scaleY = iconScale
-                                        },
-                                    contentAlignment = Alignment.TopEnd
-                                ) {
                                     // Bespoke Classic & Aesthetic Vector Icon
                                     ClassicAestheticTabIcon(
                                         tab = tab,
