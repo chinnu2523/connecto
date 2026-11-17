@@ -431,6 +431,8 @@ fun ConnectoApp(
         }
     }
     var hasUnreadChats by remember { mutableStateOf(false) }
+    var totalUnreadMessagesCount by remember { mutableStateOf(0) }
+    var isDirectChatOpen by remember { mutableStateOf(false) }
     var isNotificationCenterOpen by remember { mutableStateOf(false) }
     var isChannelDrawerOpen by remember { mutableStateOf(false) }
     var homeScrollToTopTrigger by remember { mutableStateOf(0) }
@@ -604,12 +606,13 @@ fun ConnectoApp(
             // Check local SQLite cache on startup for any unread chats
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 try {
-                    val friends = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context).getCachedFriends()
-                    val hasUnread = friends.any { it.unreadCount > 0 }
-                    if (hasUnread) {
-                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                            hasUnreadChats = true
-                        }
+                    val db = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context)
+                    val friends = db.getCachedFriends()
+                    val groups = db.getCachedGroups()
+                    val totalUnread = friends.sumOf { it.unreadCount } + groups.sumOf { it.unreadCount }
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        totalUnreadMessagesCount = totalUnread
+                        hasUnreadChats = totalUnread > 0
                     }
                 } catch (_: Exception) {}
             }
@@ -620,7 +623,27 @@ fun ConnectoApp(
                 if (myU == "guest") return@collect
                 val authorU = incoming.authorId.trim().removePrefix("@").lowercase()
                 if (authorU.isNotBlank() && authorU != myU) {
-                    hasUnreadChats = true
+                    // If user is actively inside direct chat in MESSAGES tab, CustomizedChatScreen handles real-time read state
+                    if (currentTab == ConnectoTab.MESSAGES && isDirectChatOpen) {
+                        return@collect
+                    }
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        try {
+                            val db = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context)
+                            val friends = db.getCachedFriends()
+                            val groups = db.getCachedGroups()
+                            val totalUnread = friends.sumOf { it.unreadCount } + groups.sumOf { it.unreadCount }
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                totalUnreadMessagesCount = maxOf(totalUnreadMessagesCount + 1, totalUnread)
+                                hasUnreadChats = totalUnreadMessagesCount > 0
+                            }
+                        } catch (_: Exception) {
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                totalUnreadMessagesCount++
+                                hasUnreadChats = true
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -815,7 +838,6 @@ fun ConnectoApp(
 
                 AppFlowState.CHAT_APP -> {
                     // GAMERS COMMUNITY CHAT UI EXPERIENCE WITH PERSISTENT NON-OVERLAPPING TABS
-                    var isDirectChatOpen by remember { mutableStateOf(false) }
                     val savedChannel = remember { prefs.getString("last_active_channel", "general") ?: "general" }
                     var selectedChannelForWorkspace by rememberSaveable { mutableStateOf(savedChannel) }
                     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -887,7 +909,7 @@ fun ConnectoApp(
                                         hasUnreadChats = hasUnreadChats,
                                         hasUnreadCalls = false,
                                         isCallActive = isCallOngoing,
-                                        unreadMessagesCount = unreadNotifCount,
+                                        unreadMessagesCount = totalUnreadMessagesCount,
                                         userInitial = authenticatedUsername.trim().firstOrNull()?.uppercase() ?: "U"
                                     )
                                 }
@@ -935,6 +957,10 @@ fun ConnectoApp(
                                             onOpenProfile = { updateCurrentTab(ConnectoTab.PROFILE) },
                                             onUnreadStatusChanged = { hasRemainingUnread ->
                                                 hasUnreadChats = hasRemainingUnread
+                                            },
+                                            onUnreadCountChanged = { count ->
+                                                totalUnreadMessagesCount = count
+                                                hasUnreadChats = count > 0
                                             },
                                             onDirectChatStateChanged = { isOpen ->
                                                 isDirectChatOpen = isOpen

@@ -625,6 +625,7 @@ fun CustomizedChatScreen(
     currentUsername: String,
     onOpenProfile: () -> Unit,
     onUnreadStatusChanged: (Boolean) -> Unit = {},
+    onUnreadCountChanged: (Int) -> Unit = {},
     onDirectChatStateChanged: (Boolean) -> Unit = {},
     onOpenNotifications: (() -> Unit)? = null,
     unreadNotificationsCount: Int = 0,
@@ -1048,8 +1049,14 @@ fun CustomizedChatScreen(
     val userGroupsList = remember { mutableStateListOf<FriendItem>() }
     var messageTabFilter by rememberSaveable { mutableStateOf("ALL") } // "ALL", "DIRECT", "CREATED_GROUPS", "ADDED_GROUPS"
 
+    val notifyUnreadChanged: () -> Unit = {
+        val total = friendsList.sumOf { it.unreadCount } + userGroupsList.sumOf { it.unreadCount }
+        onUnreadStatusChanged(total > 0)
+        onUnreadCountChanged(total)
+    }
+
     val markFriendChatAsReadLocallyAndRemotely: (FriendItem) -> Unit = { targetFriend ->
-        val cleanTarget = targetFriend.handle.removePrefix("@").trim()
+        val cleanTarget = targetFriend.handle.removePrefix("@").removePrefix("#").trim()
         val friendId = targetFriend.id
 
         // 1. Update in-memory friends list
@@ -1060,6 +1067,14 @@ fun CustomizedChatScreen(
             friendsList[idx] = friendsList[idx].copy(unreadCount = 0)
         }
 
+        // 1b. Update in-memory userGroupsList if target is a group
+        val gIdx = userGroupsList.indexOfFirst {
+            it.id == friendId || it.handle.removePrefix("#").equals(cleanTarget, ignoreCase = true) || it.name.equals(cleanTarget, ignoreCase = true)
+        }
+        if (gIdx != -1) {
+            userGroupsList[gIdx] = userGroupsList[gIdx].copy(unreadCount = 0)
+        }
+
         // 2. Persist to SharedPreferences for both ID and clean username keys
         readPrefs.edit()
             .putInt("unread_$friendId", 0)
@@ -1068,12 +1083,15 @@ fun CustomizedChatScreen(
             .putBoolean("read_${cleanTarget.lowercase()}", true)
             .apply()
 
-        // 3. Persist to local SQLite database (TABLE_FRIENDS) so cold starts don't resurrect unread badge
+        // 3. Persist to local SQLite database (TABLE_FRIENDS & TABLE_GROUPS) so cold starts don't resurrect unread badge
         coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 dbHelper.updateFriendUnreadCount(friendId, 0)
                 if (cleanTarget.isNotBlank() && cleanTarget != friendId) {
                     dbHelper.updateFriendUnreadCount(cleanTarget, 0)
+                }
+                if (targetFriend.isGroup) {
+                    dbHelper.updateGroupUnreadCount(friendId, 0)
                 }
             } catch (_: Exception) {}
         }
@@ -1087,9 +1105,8 @@ fun CustomizedChatScreen(
             }
         }
 
-        // 5. Update global unread indicator
-        val hasRemainingUnread = friendsList.any { it.unreadCount > 0 }
-        onUnreadStatusChanged(hasRemainingUnread)
+        // 5. Update global unread indicator and unseen message count
+        notifyUnreadChanged()
     }
 
     // Auto-select chat or group when opened from navigation or push notification intent
@@ -1268,6 +1285,7 @@ fun CustomizedChatScreen(
         if (cachedGroups.isNotEmpty() && userGroupsList.isEmpty()) {
             userGroupsList.addAll(cachedGroups.filter { it.id != "grp-design-team-joined" })
         }
+        notifyUnreadChanged()
     }
 
     var pending1on1Friend by remember { mutableStateOf<FriendItem?>(null) }
@@ -1512,6 +1530,7 @@ fun CustomizedChatScreen(
                     }
                 }
                 isFriendsLoadedOnce = true
+                notifyUnreadChanged()
 
                 // Sync real unread counts from server (authoritative — excludes own sent messages)
                 try {
@@ -1553,8 +1572,7 @@ fun CustomizedChatScreen(
                                 }
                             }
                         }
-                        val hasUnread = friendsList.any { it.unreadCount > 0 }
-                        onUnreadStatusChanged(hasUnread)
+                        notifyUnreadChanged()
                     }
                 } catch (e: Exception) {
                     // Non-fatal — local SharedPrefs count is fallback
@@ -1640,6 +1658,7 @@ fun CustomizedChatScreen(
                         chatWallpaperId = "default"
                         customWallpaperUri = null
                     }
+                    notifyUnreadChanged()
                 }
             } catch (_: Exception) {}
             } else {
@@ -2129,13 +2148,15 @@ fun CustomizedChatScreen(
                         readPrefs.edit()
                             .putString("last_msg_${updated.id}", safeInChatPreview)
                             .putString("last_time_${updated.id}", formatIsoTime(dto.createdAt))
+                            .putInt("unread_${updated.id}", 0)
                             .putLong("last_timestamp_${updated.id}", currentTs)
                             .apply()
                         coroutineScope.launch(Dispatchers.IO) {
                             try {
-                                dbHelper.updateGroupLastMessage(updated.id, safeInChatPreview, formatIsoTime(dto.createdAt), currentTs)
+                                dbHelper.updateGroupLastMessageAndUnread(updated.id, safeInChatPreview, formatIsoTime(dto.createdAt), 0, currentTs)
                             } catch (_: Exception) {}
                         }
+                        markFriendChatAsReadLocallyAndRemotely(updated)
                     }
                 }
             } else if (!isMe) {
@@ -2190,7 +2211,7 @@ fun CustomizedChatScreen(
                             dbHelper.updateFriendLastMessageAndUnread(targetFriend.id, safeBgPreview, formatIsoTime(dto.createdAt), newUnread, currentTs)
                         } catch (_: Exception) {}
                     }
-                    onUnreadStatusChanged(true)
+                    notifyUnreadChanged()
                 } else {
                     val gIdx = userGroupsList.indexOfFirst {
                         it.id.equals(dtoChannelClean, ignoreCase = true) || it.name.trim().lowercase() == dtoChannelClean
@@ -2214,10 +2235,10 @@ fun CustomizedChatScreen(
                             .apply()
                         coroutineScope.launch(Dispatchers.IO) {
                             try {
-                                dbHelper.updateGroupLastMessage(targetGroup.id, safeBgPreview, formatIsoTime(dto.createdAt), currentTs)
+                                dbHelper.updateGroupLastMessageAndUnread(targetGroup.id, safeBgPreview, formatIsoTime(dto.createdAt), newUnread, currentTs)
                             } catch (_: Exception) {}
                         }
-                        onUnreadStatusChanged(true)
+                        notifyUnreadChanged()
                     } else {
                         // Friend not yet in memory list — check local SQLite database
                         coroutineScope.launch(Dispatchers.IO) {
@@ -2250,7 +2271,7 @@ fun CustomizedChatScreen(
                                         friendsList.removeAt(existingIdx)
                                     }
                                     friendsList.add(0, updated)
-                                    onUnreadStatusChanged(true)
+                                    notifyUnreadChanged()
                                 }
                             }
                         }
@@ -5538,7 +5559,7 @@ fun CustomizedChatScreen(
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Text(
-                                                        text = "${friend.unreadCount}",
+                                                        text = if (friend.unreadCount > 99) "99+" else "${friend.unreadCount}",
                                                         fontSize = 10.sp,
                                                         fontWeight = FontWeight.Bold,
                                                         color = MaterialTheme.colorScheme.onPrimary
@@ -6811,6 +6832,7 @@ fun CustomizedChatScreen(
                                                     dbHelper.updateFriendLastMessageAndUnread(updated.id, userMsg, "Just now", 0, nowMillis)
                                                 } catch (_: Exception) {}
                                             }
+                                            notifyUnreadChanged()
                                         } else {
                                             val gIdx = userGroupsList.indexOfFirst { it.id == friend.id }
                                             if (gIdx != -1) {
@@ -6825,13 +6847,15 @@ fun CustomizedChatScreen(
                                                 readPrefs.edit()
                                                     .putString("last_msg_${updated.id}", userMsg)
                                                     .putString("last_time_${updated.id}", "Just now")
+                                                    .putInt("unread_${updated.id}", 0)
                                                     .putLong("last_timestamp_${updated.id}", nowMillis)
                                                     .apply()
                                                 coroutineScope.launch(Dispatchers.IO) {
                                                     try {
-                                                        dbHelper.updateGroupLastMessage(updated.id, userMsg, "Just now", nowMillis)
+                                                        dbHelper.updateGroupLastMessageAndUnread(updated.id, userMsg, "Just now", 0, nowMillis)
                                                     } catch (_: Exception) {}
                                                 }
+                                                notifyUnreadChanged()
                                             }
                                         }
                                     }

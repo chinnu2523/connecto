@@ -166,7 +166,12 @@ Sitemap: https://connecto.fun/sitemap.xml
 
       if (dbRelease && dbRelease.version_code >= 83) {
         let features = [];
-        try { features = JSON.parse(dbRelease.features_json); } catch (_) {}
+        try { 
+          if (dbRelease.features_json) {
+            const parsed = JSON.parse(dbRelease.features_json);
+            if (Array.isArray(parsed)) features = parsed;
+          }
+        } catch (_) {}
         return jsonResponse({
           status: "success",
           app_name: "Connecto",
@@ -185,7 +190,7 @@ Sitemap: https://connecto.fun/sitemap.xml
           url: "https://connecto.fun/download/apk",
           download_url: "/download/apk",
           direct_download_url: "https://connecto.fun/downloads/" + dbRelease.filename,
-          features: features.length ? features : [
+          features: (features && features.length) ? features : [
             "VoIP Background Call Delivery: High-priority data-only push notifications wake up backgrounded and killed devices immediately, displaying full-screen incoming call UI and heads-up banners.",
             "Continuous Looping Ringtone & Rhythmic Vibration: Incoming calls play a continuous system ringtone and vibration pattern until accepted, declined, or cancelled by caller.",
             "Instant Call Cancellation Sync: Immediate remote call_ended push notification dismisses the incoming call notification and stops ringing if the caller hangs up before answer.",
@@ -199,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.3.0",
-        version_name: "v5.3.0",
-        version_code: 146,
-        build: 146,
-        sha256: "3c0fcf23371907884e6b2d9681560a90e448ab0bb3e6328732d00419a0e8f6a6",
+        version: "5.3.3",
+        version_name: "v5.3.3",
+        version_code: 147,
+        build: 147,
+        sha256: "f48775debda67fb832c97a527351c3c19be7cf4789639867f45add4886bece71",
         filename: "connecto-fun.apk",
-        size_bytes: 38068926,
+        size_bytes: 38071808,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -604,6 +609,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.3.3/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.2/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.1/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.0/connecto-fun.apk",
@@ -617,14 +623,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.0/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.3.0-b146-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.3.3-b147-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.3.0");
-          res.headers.set("X-Connecto-Build", "146");
+          res.headers.set("X-Connecto-Version", "v5.3.3");
+          res.headers.set("X-Connecto-Build", "147");
           return res;
         }
 
@@ -676,7 +682,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.3.0/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.3.3/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2038,14 +2044,17 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.3.0",
-        version_code: 146,
-        size_bytes: 38068926,
+        version_name: "5.3.3",
+        version_code: 147,
+        size_bytes: 38071808,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Real-Time Unread Message Count Badges: Real-time side number badge on conversation list items dynamically displaying unseen messages count, synchronizing instantly as chats are viewed or new messages arrive",
+          "Bottom Navigation Unseen Messages Counter: Bottom Messages tab button accurately reflects the total sum of unseen messages across all chats with real-time sync, immediately decrementing and clearing when conversations are opened",
+          "E2E Message Seen State Persistence: Unread status synchronizes across local SQLite and SharedPreferences for instantaneous, offline-ready UI loading without flicker",
           "Removed Friend Request Button: Removed the redundant Add Friend / Friend Request button from the Message tab top header for a cleaner, decluttered conversation interface",
           "Simple Small Search Button: Replaced the static full-length search bar with an elegant compact 36dp circular search button in the top action header that expands on demand with smooth animations",
           "Default Sign In & Dedicated 'Create an Account' Bottom CTA: App launches directly into Sign In; smooth transition to Sign Up only when tapping 'Don't have an account? Create an account'",
@@ -7274,13 +7283,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.3.0",
-      version_name: "v5.3.0",
-      version_code: 146,
-      build: 146,
-      sha256: "3c0fcf23371907884e6b2d9681560a90e448ab0bb3e6328732d00419a0e8f6a6",
+      version: "5.3.3",
+      version_name: "v5.3.3",
+      version_code: 147,
+      build: 147,
+      sha256: "f48775debda67fb832c97a527351c3c19be7cf4789639867f45add4886bece71",
       filename: "connecto-fun.apk",
-      size_bytes: 38068926,
+      size_bytes: 38071808,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",

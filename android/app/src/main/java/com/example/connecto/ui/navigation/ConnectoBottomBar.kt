@@ -615,32 +615,22 @@ fun ConnectoBottomBar(
                                                 .background(colors.success)
                                                 .border(1.5.dp, colors.surface, CircleShape)
                                         )
-                                    } else if (tab == ConnectoTab.MESSAGES && (hasUnreadChats || unreadMessagesCount > 0)) {
-                                        if (unreadMessagesCount > 0) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .offset(x = 8.dp, y = (-4).dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(iconPrimary)
-                                                    .border(1.2.dp, colors.surface, RoundedCornerShape(8.dp))
-                                                    .padding(horizontal = 4.dp, vertical = 0.5.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = if (unreadMessagesCount > 99) "99+" else unreadMessagesCount.toString(),
-                                                    color = if (isPureBlack) Color.Black else Color.White,
-                                                    fontSize = 8.5.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    lineHeight = 10.sp
-                                                )
-                                            }
-                                        } else {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(7.dp)
-                                                    .clip(CircleShape)
-                                                    .background(iconPrimary)
-                                                    .border(1.5.dp, colors.surface, CircleShape)
+                                    } else if (tab == ConnectoTab.MESSAGES && unreadMessagesCount > 0) {
+                                        Box(
+                                            modifier = Modifier
+                                                .offset(x = 8.dp, y = (-4).dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(iconPrimary)
+                                                .border(1.2.dp, colors.surface, RoundedCornerShape(8.dp))
+                                                .padding(horizontal = 4.dp, vertical = 0.5.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = if (unreadMessagesCount > 99) "99+" else unreadMessagesCount.toString(),
+                                                color = if (isPureBlack) Color.Black else Color.White,
+                                                fontSize = 8.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                lineHeight = 10.sp
                                             )
                                         }
                                     } else if (tab == ConnectoTab.CALLS && hasUnreadCalls) {

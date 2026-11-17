@@ -1188,6 +1188,31 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         } catch (_: Exception) {}
     }
 
+    fun updateGroupLastMessageAndUnread(groupId: String, lastMessage: String, timeAgo: String, unreadCount: Int, timestampMillis: Long) {
+        try {
+            val db = writableDatabase
+            val cv = ContentValues().apply {
+                put(COL_GROUP_LAST_MSG, lastMessage)
+                put(COL_GROUP_TIME, timeAgo)
+                put(COL_GROUP_UNREAD, unreadCount)
+                if (timestampMillis > 0L) {
+                    put(COL_GROUP_LAST_TIMESTAMP, timestampMillis)
+                }
+            }
+            db.update(TABLE_GROUPS, cv, "$COL_GROUP_ID = ?", arrayOf(groupId))
+        } catch (_: Exception) {}
+    }
+
+    fun updateGroupUnreadCount(groupId: String, unreadCount: Int = 0) {
+        try {
+            val db = writableDatabase
+            val cv = ContentValues().apply {
+                put(COL_GROUP_UNREAD, unreadCount)
+            }
+            db.update(TABLE_GROUPS, cv, "$COL_GROUP_ID = ?", arrayOf(groupId))
+        } catch (_: Exception) {}
+    }
+
     /**
      * Permanently purges a group, its channel entry, and all its cached messages from local SQLite.
      * Guarantees 0ms local deletion and prevents any resurrection on app restarts.
