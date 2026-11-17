@@ -59,17 +59,18 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Private encrypted messaging, calls & workspaces",
         "description": "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         "category": "Communication",
-        "version_name": "5.2.9",
-        "version_code": 145,
-        "size_bytes": 38069475,
+        "version_name": "5.3.0",
+        "version_code": 146,
+        "size_bytes": 38068926,
         "size_formatted": "36.3 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
+            "Removed Friend Request Button: Removed the redundant Add Friend / Friend Request button from the Message tab top header for a cleaner, decluttered conversation interface",
+            "Simple Small Search Button: Replaced the static full-length search bar with an elegant compact 36dp circular search button in the top action header that expands on demand with smooth animations",
             "Default Sign In & Dedicated 'Create an Account' Bottom CTA: App launches directly into Sign In; smooth transition to Sign Up only when tapping 'Don't have an account? Create an account'",
             "Guest Channels Isolation & Simulated Mock Feeds: Complete privacy shield preventing real-time production messages from leaking into Guest mode; curated, lively community mock messages for all channels with interactive auto-replies",
-            "Integrated Message Tab Top Search Bar: Prominently placed, real-time searchable header input with match count badge and 1-tap instant clear",
             "Enhanced Navigation Bottom Bar: Illuminated active micro-pip indicators, dynamic unread message count badges, and zero-jank 120fps optimized rendering",
             "High-Performance Tab Engine: Instant 0ms direct tab switching for non-adjacent navigation, completely skipping intermediate screen layout passes",
             "Responsive Navigation Bottom Bar: Tuned spring physics (750f stiffness) and eliminated continuous 60/120fps idle GPU loop redraws",
@@ -81,7 +82,7 @@ APPS_CATALOG: List[Dict[str, Any]] = [
             "Unslop UI & Typography Polish: Stripped clutter, tuned typography, and unified high-contrast OLED styling"
         ],
         "is_essential": True,
-        "updated_at": "2026-11-17T16:35:00Z"
+        "updated_at": "2026-11-17T16:45:00Z"
     },
     {
         "id": "jarvis",

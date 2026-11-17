@@ -4798,48 +4798,54 @@ fun CustomizedChatScreen(
                         showProfileButton = false,
                         onAvatarClick = {},
                         customAction = {
+                            val haptic = LocalHapticFeedback.current
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                // Add Friend Action Button
-                                val addFriendInteraction = remember { MutableInteractionSource() }
-                                val isAddPressed by addFriendInteraction.collectIsPressedAsState()
-                                val addScale by animateFloatAsState(
-                                    targetValue = if (isAddPressed) 0.90f else 1.0f,
+                                // Simple Small Search Button
+                                val searchInteraction = remember { MutableInteractionSource() }
+                                val isSearchPressed by searchInteraction.collectIsPressedAsState()
+                                val searchScale by animateFloatAsState(
+                                    targetValue = if (isSearchPressed) 0.90f else 1.0f,
                                     animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
-                                    label = "addFriendBtnScale"
+                                    label = "searchBtnScale"
                                 )
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
+                                Box(
                                     modifier = Modifier
                                         .graphicsLayer {
-                                            scaleX = addScale
-                                            scaleY = addScale
+                                            scaleX = searchScale
+                                            scaleY = searchScale
                                         }
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (isSearchOpen || friendSearchQuery.isNotEmpty()) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                            else MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                        .border(
+                                            1.dp,
+                                            if (isSearchOpen || friendSearchQuery.isNotEmpty()) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.40f),
+                                            CircleShape
+                                        )
                                         .clickable(
-                                            interactionSource = addFriendInteraction,
+                                            interactionSource = searchInteraction,
                                             indication = null
                                         ) {
-                                            showAddFriendDialog = true
-                                        }
-                                        .padding(horizontal = 10.dp, vertical = 7.dp)
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            isSearchOpen = !isSearchOpen
+                                            if (!isSearchOpen) {
+                                                friendSearchQuery = ""
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.PersonAdd,
-                                        contentDescription = "Add Friend",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "Add Friend",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        imageVector = if (isSearchOpen) Icons.Default.Close else Icons.Default.Search,
+                                        contentDescription = if (isSearchOpen) "Close search" else "Search conversations",
+                                        tint = if (isSearchOpen || friendSearchQuery.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
 
@@ -4871,112 +4877,118 @@ fun CustomizedChatScreen(
                     )
                 }
 
-                // Dedicated High-Performance Top Search Bar UI
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 8.dp)
+                // Expandable Search Bar UI (Only visible when small search button is activated)
+                AnimatedVisibility(
+                    visible = isSearchOpen,
+                    enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
+                    exit = shrinkVertically(animationSpec = tween(150)) + fadeOut()
                 ) {
-                    val isQueryActive = friendSearchQuery.isNotEmpty()
-                    val searchBorderBrush = if (isQueryActive) {
-                        Brush.horizontalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primary,
-                                Color.White.copy(alpha = 0.6f),
-                                MaterialTheme.colorScheme.primary
-                            )
-                        )
-                    } else {
-                        Brush.horizontalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                                MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
-                            )
-                        )
-                    }
-
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.70f))
-                            .border(
-                                width = if (isQueryActive) 1.5.dp else 1.dp,
-                                brush = searchBorderBrush,
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                            .padding(horizontal = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search Conversations",
-                            tint = if (isQueryActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                            modifier = Modifier.size(19.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        BasicTextField(
-                            value = friendSearchQuery,
-                            onValueChange = { friendSearchQuery = it },
+                        val isQueryActive = friendSearchQuery.isNotEmpty()
+                        val searchBorderBrush = if (isQueryActive) {
+                            Brush.horizontalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    Color.White.copy(alpha = 0.6f),
+                                    MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        } else {
+                            Brush.horizontalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                                )
+                            )
+                        }
+
+                        Row(
                             modifier = Modifier
-                                .weight(1f)
-                                .focusRequester(searchFocusRequester),
-                            textStyle = TextStyle(
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            singleLine = true,
-                            decorationBox = { innerTextField ->
-                                if (friendSearchQuery.isEmpty()) {
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.70f))
+                                .border(
+                                    width = if (isQueryActive) 1.5.dp else 1.dp,
+                                    brush = searchBorderBrush,
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .padding(horizontal = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search Conversations",
+                                tint = if (isQueryActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                modifier = Modifier.size(19.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            BasicTextField(
+                                value = friendSearchQuery,
+                                onValueChange = { friendSearchQuery = it },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(searchFocusRequester),
+                                textStyle = TextStyle(
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                singleLine = true,
+                                decorationBox = { innerTextField ->
+                                    if (friendSearchQuery.isEmpty()) {
+                                        Text(
+                                            text = "Search messages, friends or @username...",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f),
+                                            fontSize = 13.5.sp
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            )
+
+                            if (isQueryActive) {
+                                // Match Count Capsule
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 7.dp, vertical = 2.5.dp)
+                                ) {
                                     Text(
-                                        text = "Search messages, friends or @username...",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f),
-                                        fontSize = 13.5.sp
+                                        text = "${filteredFriends.size}",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
-                                innerTextField()
-                            }
-                        )
-
-                        if (isQueryActive) {
-                            // Match Count Capsule
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 7.dp, vertical = 2.5.dp)
-                            ) {
-                                Text(
-                                    text = "${filteredFriends.size}",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            // Clear Button
-                            Box(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
-                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
-                                    .clickable {
-                                        friendSearchQuery = ""
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear search",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(13.dp)
-                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                // Clear Button
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+                                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
+                                        .clickable {
+                                            friendSearchQuery = ""
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear search",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                }
                             }
                         }
                     }
