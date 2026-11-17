@@ -13,6 +13,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -4899,8 +4902,8 @@ fun CustomizedChatScreen(
                 // Expandable Search Bar UI (Only visible when small search button is activated)
                 AnimatedVisibility(
                     visible = isSearchOpen,
-                    enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
-                    exit = shrinkVertically(animationSpec = tween(150)) + fadeOut()
+                    enter = expandVertically(animationSpec = tween(240, easing = EaseOutCubic)) + fadeIn(animationSpec = tween(220, easing = EaseOutCubic)),
+                    exit = shrinkVertically(animationSpec = tween(180, easing = EaseInCubic)) + fadeOut(animationSpec = tween(160, easing = EaseInCubic))
                 ) {
                     Box(
                         modifier = Modifier
@@ -5042,18 +5045,18 @@ fun CustomizedChatScreen(
                 targetState = currentScreenState,
                 transitionSpec = {
                     if (targetState == "FRIEND_PROFILE" || (initialState == "FRIENDS_LIST" && targetState == "DIRECT_CHAT")) {
-                        (fadeIn(animationSpec = tween(220, easing = LinearOutSlowInEasing)) +
-                         scaleIn(initialScale = 0.96f, animationSpec = tween(220, easing = LinearOutSlowInEasing)))
+                        (fadeIn(animationSpec = tween(240, easing = EaseOutCubic)) +
+                         scaleIn(initialScale = 0.96f, animationSpec = tween(240, easing = EaseOutCubic)))
                             .togetherWith(
-                                fadeOut(animationSpec = tween(160, easing = FastOutLinearInEasing)) +
-                                scaleOut(targetScale = 0.98f, animationSpec = tween(160, easing = FastOutLinearInEasing))
+                                fadeOut(animationSpec = tween(180, easing = EaseInCubic)) +
+                                scaleOut(targetScale = 0.98f, animationSpec = tween(180, easing = EaseInCubic))
                             )
                     } else {
-                        (fadeIn(animationSpec = tween(200, easing = LinearOutSlowInEasing)) +
-                         scaleIn(initialScale = 1.02f, animationSpec = tween(200, easing = LinearOutSlowInEasing)))
+                        (fadeIn(animationSpec = tween(240, easing = EaseOutCubic)) +
+                         scaleIn(initialScale = 1.02f, animationSpec = tween(240, easing = EaseOutCubic)))
                             .togetherWith(
-                                fadeOut(animationSpec = tween(160, easing = FastOutLinearInEasing)) +
-                                scaleOut(targetScale = 0.96f, animationSpec = tween(160, easing = FastOutLinearInEasing))
+                                fadeOut(animationSpec = tween(180, easing = EaseInCubic)) +
+                                scaleOut(targetScale = 0.96f, animationSpec = tween(180, easing = EaseInCubic))
                             )
                     }
                 },

@@ -3,6 +3,9 @@ package com.example.connecto.ui.navigation
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -152,13 +155,13 @@ fun ConnectoBottomBar(
         // Baseline top of the bottom bar (leaving room above for the liquid bulge curve)
         val baseTopY = with(density) { 12.dp.toPx() }
 
-        // Dynamic tracking center of the active tab with fluid spring physics
+        // Dynamic tracking center of the active tab with fluid ease-in-out curve
         val targetCenterX = tabWidth * selectedIndex + tabWidth / 2
         val animatedCenterX by animateDpAsState(
             targetValue = targetCenterX,
-            animationSpec = spring(
-                stiffness = 750f,
-                dampingRatio = 0.80f // Ultra-snappy, buttery fluid slide
+            animationSpec = tween(
+                durationMillis = 280,
+                easing = EaseInOutCubic
             ),
             label = "navBulgeCenterX"
         )
@@ -228,7 +231,7 @@ fun ConnectoBottomBar(
                 targetValue = 1f,
                 animationSpec = tween(
                     durationMillis = 240,
-                    easing = FastOutSlowInEasing
+                    easing = EaseInOutCubic
                 )
             )
             previousTabIndex = selectedIndex
@@ -486,35 +489,41 @@ fun ConnectoBottomBar(
                     val interactionSource = remember { MutableInteractionSource() }
                     val isPressed by interactionSource.collectIsPressedAsState()
 
-                    // Tactile micro-compression on tap (0.92x spring)
+                    // Tactile micro-compression on tap with ease-in / ease-out curves
                     val buttonPressScale by animateFloatAsState(
                         targetValue = if (isPressed) 0.92f else 1.0f,
-                        animationSpec = spring(stiffness = 850f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                        animationSpec = tween(
+                            durationMillis = 180,
+                            easing = if (isPressed) EaseInCubic else EaseOutCubic
+                        ),
                         label = "buttonPressScale"
                     )
 
-                    // Smooth icon elevation & bounce on selection into Liquid Bulge
+                    // Smooth icon elevation & ease-in-out curve on selection into Liquid Bulge
                     val iconScale by animateFloatAsState(
                         targetValue = if (isSelected) 1.16f else 1.0f,
-                        animationSpec = spring(
-                            stiffness = 700f,
-                            dampingRatio = Spring.DampingRatioMediumBouncy
+                        animationSpec = tween(
+                            durationMillis = 240,
+                            easing = if (isSelected) EaseOutCubic else EaseInCubic
                         ),
                         label = "tabIconScale"
                     )
 
                     val iconOffsetY by animateDpAsState(
                         targetValue = if (isSelected) (-4.dp) else 0.dp,
-                        animationSpec = spring(
-                            stiffness = 700f,
-                            dampingRatio = Spring.DampingRatioMediumBouncy
+                        animationSpec = tween(
+                            durationMillis = 240,
+                            easing = if (isSelected) EaseOutCubic else EaseInCubic
                         ),
                         label = "tabIconOffsetY"
                     )
 
                     val pipWidth by animateDpAsState(
                         targetValue = if (isSelected) 18.dp else 0.dp,
-                        animationSpec = spring(stiffness = 850f, dampingRatio = 0.82f),
+                        animationSpec = tween(
+                            durationMillis = 220,
+                            easing = EaseInOutCubic
+                        ),
                         label = "tabPipWidth"
                     )
 
@@ -523,7 +532,7 @@ fun ConnectoBottomBar(
 
                     val textColor by animateColorAsState(
                         targetValue = if (isSelected) iconPrimary else colors.textSecondary,
-                        animationSpec = spring(stiffness = 700f, dampingRatio = 0.85f),
+                        animationSpec = tween(durationMillis = 200, easing = EaseInOutCubic),
                         label = "tabTextColor"
                     )
 

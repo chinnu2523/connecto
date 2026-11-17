@@ -145,9 +145,9 @@ fun Modifier.tactilePress(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) pressedScale else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
+        animationSpec = tween(
+            durationMillis = 160,
+            easing = if (isPressed) EaseInCubic else EaseOutCubic
         ),
         label = "tactilePressScale"
     )
@@ -325,42 +325,42 @@ fun StoreApp(
                         targetState = selectedPackageName,
                         transitionSpec = {
                             if (targetState != null) {
-                                // Opening App Detail: fluid spring slide up + scale in + fade in
+                                // Opening App Detail: fluid ease-in/ease-out curves slide up + scale in + fade in
                                 (slideInVertically(
                                     initialOffsetY = { it / 5 },
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioLowBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
+                                    animationSpec = tween(
+                                        durationMillis = 300,
+                                        easing = EaseOutCubic
                                     )
-                                ) + fadeIn(animationSpec = tween(220)) +
+                                ) + fadeIn(animationSpec = tween(260, easing = EaseOutCubic)) +
                                 scaleIn(
                                     initialScale = 0.94f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioLowBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
+                                    animationSpec = tween(
+                                        durationMillis = 300,
+                                        easing = EaseOutCubic
                                     )
                                 )) togetherWith (
-                                    fadeOut(animationSpec = tween(180)) +
-                                    scaleOut(targetScale = 0.96f, animationSpec = tween(180))
+                                    fadeOut(animationSpec = tween(180, easing = EaseInCubic)) +
+                                    scaleOut(targetScale = 0.96f, animationSpec = tween(180, easing = EaseInCubic))
                                 )
                             } else {
-                                // Returning to Catalog: fluid spring slide down + scale in + fade in
-                                (fadeIn(animationSpec = tween(220)) +
+                                // Returning to Catalog: fluid ease-in/ease-out curves slide down + scale in + fade in
+                                (fadeIn(animationSpec = tween(260, easing = EaseOutCubic)) +
                                 scaleIn(
                                     initialScale = 0.96f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
+                                    animationSpec = tween(
+                                        durationMillis = 280,
+                                        easing = EaseOutCubic
                                     )
                                 )) togetherWith (
                                     slideOutVertically(
                                         targetOffsetY = { it / 5 },
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                            stiffness = Spring.StiffnessMediumLow
+                                        animationSpec = tween(
+                                            durationMillis = 240,
+                                            easing = EaseInCubic
                                         )
-                                    ) + fadeOut(animationSpec = tween(180)) +
-                                    scaleOut(targetScale = 0.94f, animationSpec = tween(180))
+                                    ) + fadeOut(animationSpec = tween(200, easing = EaseInCubic)) +
+                                    scaleOut(targetScale = 0.94f, animationSpec = tween(200, easing = EaseInCubic))
                                 )
                             }
                         },
@@ -421,8 +421,15 @@ fun StoreApp(
                                     AnimatedContent(
                                         targetState = selectedSection,
                                         transitionSpec = {
-                                            fadeIn(animationSpec = tween(120)) togetherWith
-                                                fadeOut(animationSpec = tween(90))
+                                            (fadeIn(animationSpec = tween(220, easing = EaseOutCubic)) + slideInHorizontally(
+                                                initialOffsetX = { if (targetState.ordinal > initialState.ordinal) it / 6 else -it / 6 },
+                                                animationSpec = tween(240, easing = EaseOutCubic)
+                                            )) togetherWith (
+                                                fadeOut(animationSpec = tween(180, easing = EaseInCubic)) + slideOutHorizontally(
+                                                    targetOffsetX = { if (targetState.ordinal > initialState.ordinal) -it / 6 else it / 6 },
+                                                    animationSpec = tween(200, easing = EaseInCubic)
+                                                )
+                                            )
                                         },
                                         label = "navSectionTransition"
                                     ) { currentSection ->
@@ -660,13 +667,13 @@ private fun ClassicBottomNavBar(
         val tabCount = sections.size
         val tabWidth = totalWidth / tabCount
 
-        // Center X for active tab sliding indicator
+        // Center X for active tab sliding indicator with ease-in/ease-out curve
         val targetCenterX = tabWidth * selectedIndex + tabWidth / 2
         val animatedCenterX by animateDpAsState(
             targetValue = targetCenterX,
-            animationSpec = spring(
-                stiffness = 380f,
-                dampingRatio = 0.76f
+            animationSpec = tween(
+                durationMillis = 280,
+                easing = EaseInOutCubic
             ),
             label = "storeActiveTabCenterX"
         )
@@ -754,25 +761,25 @@ private fun ClassicBottomNavTabItem(
     val targetScale = if (isPressed) 0.92f else if (isSelected) 1.04f else 1.0f
     val animatedScale by animateFloatAsState(
         targetValue = targetScale,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
+        animationSpec = tween(
+            durationMillis = 180,
+            easing = if (isPressed) EaseInCubic else EaseOutCubic
         ),
         label = "navTabScale"
     )
 
     val iconOffsetY by animateDpAsState(
         targetValue = if (isSelected) (-2.dp) else 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
+        animationSpec = tween(
+            durationMillis = 220,
+            easing = EaseInOutCubic
         ),
         label = "navIconOffsetY"
     )
 
     val animatedContentColor by animateColorAsState(
         targetValue = if (isSelected) (if (theme.isDark) Color.White else theme.accentColor) else theme.textDarkMuted,
-        animationSpec = tween(durationMillis = 180),
+        animationSpec = tween(durationMillis = 200, easing = EaseInOutCubic),
         label = "navTabFg"
     )
 

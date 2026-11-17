@@ -4,6 +4,9 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -338,7 +341,7 @@ fun ChannelsWorkspaceScreen(
 
     val chevronRotation by animateFloatAsState(
         targetValue = if (drawerState.isOpen || drawerState.targetValue == DrawerValue.Open) 180f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        animationSpec = tween(durationMillis = 280, easing = EaseInOutCubic),
         label = "drawerChevron"
     )
 
@@ -1403,8 +1406,8 @@ fun ChannelsWorkspaceScreen(
                             // Row 2: In-Channel Expandable Search Bar
                             AnimatedVisibility(
                                 visible = isChannelSearchOpen,
-                                enter = expandVertically() + fadeIn(),
-                                exit = shrinkVertically() + fadeOut()
+                                enter = expandVertically(tween(240, easing = EaseOutCubic)) + fadeIn(tween(220, easing = EaseOutCubic)),
+                                exit = shrinkVertically(tween(180, easing = EaseInCubic)) + fadeOut(tween(160, easing = EaseInCubic))
                             ) {
                                 Box(
                                     modifier = Modifier
@@ -1717,8 +1720,8 @@ fun ChannelsWorkspaceScreen(
                 // ================= PINNED MESSAGE BANNER =================
                 AnimatedVisibility(
                     visible = pinnedMessageForChannel != null,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
+                    enter = expandVertically(tween(240, easing = EaseOutCubic)) + fadeIn(tween(220, easing = EaseOutCubic)),
+                    exit = shrinkVertically(tween(180, easing = EaseInCubic)) + fadeOut(tween(160, easing = EaseInCubic))
                 ) {
                     val pinned = pinnedMessageForChannel
                     if (pinned != null) {

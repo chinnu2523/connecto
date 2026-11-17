@@ -7,6 +7,9 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
@@ -448,9 +451,9 @@ fun AuthHomeScreen(
                         val pillWidth = maxWidth / 2
                         val indicatorOffset by animateDpAsState(
                             targetValue = if (!isSignUp) 0.dp else pillWidth,
-                            animationSpec = spring(
-                                dampingRatio = 0.82f,
-                                stiffness = Spring.StiffnessMediumLow
+                            animationSpec = tween(
+                                durationMillis = 280,
+                                easing = EaseInOutCubic
                             ),
                             label = "authTabPillOffset"
                         )
@@ -618,11 +621,11 @@ fun AuthHomeScreen(
                 targetState = isSignUp,
                 transitionSpec = {
                     if (targetState) {
-                        (slideInHorizontally(initialOffsetX = { it / 3 }, animationSpec = tween(260)) + fadeIn(tween(260)))
-                            .togetherWith(slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = tween(220)) + fadeOut(tween(220)))
+                        (slideInHorizontally(initialOffsetX = { it / 3 }, animationSpec = tween(280, easing = EaseOutCubic)) + fadeIn(tween(260, easing = EaseOutCubic)))
+                            .togetherWith(slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = tween(240, easing = EaseInCubic)) + fadeOut(tween(220, easing = EaseInCubic)))
                     } else {
-                        (slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = tween(260)) + fadeIn(tween(260)))
-                            .togetherWith(slideOutHorizontally(targetOffsetX = { it / 3 }, animationSpec = tween(220)) + fadeOut(tween(220)))
+                        (slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = tween(280, easing = EaseOutCubic)) + fadeIn(tween(260, easing = EaseOutCubic)))
+                            .togetherWith(slideOutHorizontally(targetOffsetX = { it / 3 }, animationSpec = tween(240, easing = EaseInCubic)) + fadeOut(tween(220, easing = EaseInCubic)))
                     }
                 },
                 label = "authFormAnimatedContent"

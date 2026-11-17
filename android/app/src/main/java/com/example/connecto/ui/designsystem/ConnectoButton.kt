@@ -3,11 +3,15 @@ package com.example.connecto.ui.designsystem
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
@@ -117,7 +121,7 @@ fun ConnectoButton(
         }
     }
 
-    // Interactive scale following Default, Hover, Pressed, and Disabled states
+    // Interactive scale following Default, Hover, Pressed, and Disabled states with ease-in / ease-out curves
     val scale by animateFloatAsState(
         targetValue = when {
             !enabled -> 1.0f
@@ -125,7 +129,10 @@ fun ConnectoButton(
             isHovered && !isLoading && !isError -> 1.02f
             else -> 1.0f
         },
-        animationSpec = spring(stiffness = 500f, dampingRatio = 0.8f),
+        animationSpec = tween(
+            durationMillis = 180,
+            easing = if (isPressed) EaseInCubic else EaseOutCubic
+        ),
         label = "buttonScale"
     )
 
@@ -137,7 +144,10 @@ fun ConnectoButton(
             isHovered && !isLoading && !isError -> (-1.5).dp
             else -> 0.dp
         },
-        animationSpec = spring(stiffness = 500f, dampingRatio = 0.8f),
+        animationSpec = tween(
+            durationMillis = 180,
+            easing = if (isPressed) EaseInCubic else EaseOutCubic
+        ),
         label = "buttonTranslateY"
     )
 
@@ -237,7 +247,10 @@ fun ConnectoButton(
             variant == ConnectoButtonVariant.SECONDARY -> 4.dp
             else -> 0.dp
         },
-        animationSpec = spring(stiffness = 450f, dampingRatio = Spring.DampingRatioMediumBouncy),
+        animationSpec = tween(
+            durationMillis = 180,
+            easing = if (isPressed) EaseInCubic else EaseOutCubic
+        ),
         label = "buttonShadowElevation"
     )
 

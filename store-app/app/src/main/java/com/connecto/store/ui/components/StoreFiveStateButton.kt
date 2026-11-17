@@ -75,12 +75,12 @@ fun StoreFiveStateButton(
         else -> state
     }
 
-    // Spring animation for tactile press / hover
+    // Ease-in and ease-out curves animation for tactile press / hover
     val scale by animateFloatAsState(
         targetValue = if (effectiveState == StoreButtonState.HOVER) pressedScale else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
+        animationSpec = tween(
+            durationMillis = 180,
+            easing = if (effectiveState == StoreButtonState.HOVER) EaseInCubic else EaseOutCubic
         ),
         label = "btnTactileScale"
     )
@@ -120,6 +120,12 @@ fun StoreFiveStateButton(
         else -> contentColor
     }
 
+    val animatedBg by androidx.compose.animation.animateColorAsState(
+        targetValue = bg,
+        animationSpec = tween(durationMillis = 200, easing = EaseInOutCubic),
+        label = "btnBgColor"
+    )
+
     val strokeBorder = when (effectiveState) {
         StoreButtonState.ERROR -> BorderStroke(1.5.dp, Color(0xFFEF4444))
         StoreButtonState.DISABLED -> BorderStroke(1.dp, Color(0xFF3F3F46).copy(alpha = 0.35f))
@@ -135,7 +141,7 @@ fun StoreFiveStateButton(
             }
             .clip(shape)
             .then(if (strokeBorder != null) Modifier.border(strokeBorder, shape) else Modifier)
-            .background(bg)
+            .background(animatedBg)
             .then(
                 if (isClickable) {
                     Modifier.clickable(

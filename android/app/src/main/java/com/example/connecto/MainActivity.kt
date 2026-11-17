@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -418,10 +419,10 @@ fun ConnectoApp(
                     // Completely skips composing, measuring, and laying out intermediate screens
                     tabPagerState.scrollToPage(targetIndex)
                 } else {
-                    // Adjacent tab switch: crisp, high-performance snappy transition
+                    // Adjacent tab switch: crisp, high-performance snappy transition with ease-in-out curve
                     tabPagerState.animateScrollToPage(
                         page = targetIndex,
-                        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)
+                        animationSpec = tween(durationMillis = 220, easing = EaseInOutCubic)
                     )
                 }
             }
