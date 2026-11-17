@@ -373,6 +373,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.4.1/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.4.0/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.9/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.8/our-store.apk",
@@ -615,6 +616,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.4.1/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.4.0/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.9/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.8/connecto-fun.apk",
@@ -695,7 +697,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.4.0/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.4.1/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2064,14 +2066,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.4.0",
-        version_code: 154,
-        size_bytes: 38069246,
+        version_name: "5.4.1",
+        version_code: 155,
+        size_bytes: 38069827,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "HD WebRTC Voice Clarity & Low Latency: Upgraded Opus codec bitrate to 64kbps full-band studio audio, enforced standard 20ms packetization (ptime=20), and enabled In-band Forward Error Correction (useinbandfec=1) for continuous, non-cutting vocal transmission",
+          "Instantaneous P2P Audio Connection: Implemented asynchronous remote ICE candidate queuing during SDP handshakes to eliminate candidate dropouts, allowing instant 0ms audio connection upon answering",
+          "Microphone Contention Elimination: Delegated exclusive mic ownership to WebRTC JavaAudioDeviceModule to eliminate AudioRecord hardware resource contention and buffer underruns",
+          "Anti-Clipping Transparent Voice Gate: Softened dynamic range expander threshold and expanded speech hangover window to 800ms, completely eliminating choppy syllable cutting during soft speech and pauses",
+          "AudioTrack Buffer Underrun Shield: Expanded fallback jitter buffer with blocking DAC streaming and 120ms buffer to guarantee smooth playback across mobile networks",
           "Centered Scroll-to-Latest Button: Centered the floating jump-to-latest button horizontally (Alignment.BottomCenter) in both Direct Chat and Channel workspaces with realistic spring entrance, cubic bezier motion, and tactile tap scaling",
           "Channel Header Streamlining: Removed redundant pin button and stripped clutter from 3-dot overflow menu (removed Search Messages, Scroll to Bottom, and Channel Info & Topic) for a focused channel header",
           "Channel Tab Clean Architecture: Removed redundant top #general and #announcements horizontal pill row for a streamlined, clutter-free messaging canvas",
@@ -6883,7 +6890,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       { urls: "stun:stun.cloudflare.com:3478" },
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:stun1.l.google.com:19302" },
-      { urls: "stun:stun2.l.google.com:19302" }
+      { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun3.l.google.com:19302" },
+      { urls: "stun:stun4.l.google.com:19302" }
     ];
     return jsonResponse({
       status: "ok",

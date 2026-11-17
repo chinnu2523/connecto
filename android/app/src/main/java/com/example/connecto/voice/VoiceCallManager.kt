@@ -402,6 +402,44 @@ object VoiceCallManager {
     private val audioPlayExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val pendingAudioChunksCount = java.util.concurrent.atomic.AtomicInteger(0)
 
+    // Thread-safe queue for remote ICE candidates that arrive before setRemoteDescription completes
+    private val queuedIceCandidates = ConcurrentHashMap<String, MutableList<IceCandidate>>()
+
+    private fun drainQueuedCandidates(peerId: String, pc: PeerConnection, username: String? = null) {
+        val candidatesToDrain = mutableListOf<IceCandidate>()
+        val cleanId = peerId.trim().lowercase().removePrefix("@")
+
+        queuedIceCandidates.remove(peerId)?.let { candidatesToDrain.addAll(it) }
+        if (cleanId.isNotBlank() && cleanId != peerId) {
+            queuedIceCandidates.remove(cleanId)?.let { candidatesToDrain.addAll(it) }
+        }
+        if (!username.isNullOrBlank()) {
+            val cleanU = username.trim().lowercase().removePrefix("@")
+            queuedIceCandidates.remove(username)?.let { candidatesToDrain.addAll(it) }
+            if (cleanU != username) {
+                queuedIceCandidates.remove(cleanU)?.let { candidatesToDrain.addAll(it) }
+            }
+        }
+        _activeCallPartner.value?.trim()?.lowercase()?.removePrefix("@")?.let { partner ->
+            if (partner.isNotBlank()) queuedIceCandidates.remove(partner)?.let { candidatesToDrain.addAll(it) }
+        }
+        _activeCallPartnerUsername.value?.trim()?.lowercase()?.removePrefix("@")?.let { partnerU ->
+            if (partnerU.isNotBlank()) queuedIceCandidates.remove(partnerU)?.let { candidatesToDrain.addAll(it) }
+        }
+
+        if (candidatesToDrain.isNotEmpty()) {
+            Log.d(TAG, "Draining ${candidatesToDrain.size} queued ICE candidates for peer: $peerId ($username)")
+            for (cand in candidatesToDrain) {
+                try {
+                    pc.addIceCandidate(cand)
+                    Log.d(TAG, "WebRTC successfully added drained ICE candidate: ${cand.sdpMid}")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error adding drained ICE candidate for peer $peerId: ${e.message}")
+                }
+            }
+        }
+    }
+
     // ICE servers: Resilient public STUN servers for NAT traversal.
     // Removed unreachable connecto.fun:3478 which caused candidate gathering timeouts.
     private val iceServers by lazy {
@@ -409,7 +447,9 @@ object VoiceCallManager {
             PeerConnection.IceServer.builder("stun:stun.cloudflare.com:3478").createIceServer(),
             PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
             PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
-            PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer()
+            PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun3.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun4.l.google.com:19302").createIceServer()
         )
     }
 
@@ -424,7 +464,7 @@ object VoiceCallManager {
         }
     }
 
-    /** Mangle SDP to enforce low-latency Opus parameters. */
+    /** Mangle SDP to enforce low-latency, crystal-clear Opus parameters with Forward Error Correction. */
     private fun mangleSdpForLowLatency(sdp: String): String {
         val lines = sdp.lines().toMutableList()
         var opusPayload: String? = null
@@ -434,7 +474,7 @@ object VoiceCallManager {
         }
         if (opusPayload == null) return sdp
         val fmtpPrefix = "a=fmtp:$opusPayload"
-        val opusParams = "minptime=10;ptime=10;maxaveragebitrate=32000;stereo=0;sprop-stereo=0;usedtx=0;cbr=1"
+        val opusParams = "minptime=10;ptime=20;maxaveragebitrate=64000;stereo=0;sprop-stereo=0;useinbandfec=1;usedtx=0"
         val hasFmtp = lines.any { it.startsWith(fmtpPrefix) }
         val result = mutableListOf<String>()
         for (line in lines) {
@@ -493,9 +533,6 @@ object VoiceCallManager {
             try {
                 admBuilder.setSamplesReadyCallback { samples ->
                     try {
-                        if (isRecordingActive && audioRecord != null) {
-                            return@setSamplesReadyCallback
-                        }
                         val data = samples.data
                         if (data.isNotEmpty() && !_isMuted.value) {
                             if (_isVoiceIsolationEnabled.value) {
@@ -516,7 +553,7 @@ object VoiceCallManager {
 
                             // Play back locally if echo test
                             if (_activeCallTitle.value.contains("Echo", ignoreCase = true)) {
-                                audioTrack?.write(data, 0, data.size, AudioTrack.WRITE_NON_BLOCKING)
+                                audioTrack?.write(data, 0, data.size, AudioTrack.WRITE_BLOCKING)
                             }
 
                             // Relay voice_data over WebSocket if P2P peer connections are not in CONNECTED/COMPLETED state
@@ -532,7 +569,7 @@ object VoiceCallManager {
                                     audioRelayBuffer.write(data, 0, data.size)
                                     val now = System.currentTimeMillis()
                                     val minBatchBytes = (samples.sampleRate * 2 * 40) / 1000 // 40ms buffer
-                                    if (audioRelayBuffer.size() >= minBatchBytes || (now - lastRelaySendTimeMs >= 50L && audioRelayBuffer.size() > 0)) {
+                                    if (audioRelayBuffer.size() >= minBatchBytes || (now - lastRelaySendTimeMs >= 40L && audioRelayBuffer.size() > 0)) {
                                         val chunk = audioRelayBuffer.toByteArray()
                                         audioRelayBuffer.reset()
                                         lastRelaySendTimeMs = now
@@ -783,6 +820,7 @@ object VoiceCallManager {
             val remoteDesc = SessionDescription(SessionDescription.Type.OFFER, sdpDescription)
             pc.setRemoteDescription(object : SdpObserver {
                 override fun onSetSuccess() {
+                    drainQueuedCandidates(senderPeerId, pc)
                     val constraints = MediaConstraints().apply {
                         mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
                         mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"))
@@ -894,6 +932,7 @@ object VoiceCallManager {
             pc.setRemoteDescription(object : SdpObserver {
                 override fun onSetSuccess() {
                     Log.d(TAG, "WebRTC setRemoteDescription for answer succeeded from: $senderPeerId ($senderUsername)")
+                    drainQueuedCandidates(senderPeerId, pc, senderUsername)
                 }
 
                 override fun onSetFailure(s: String?) {
@@ -908,21 +947,26 @@ object VoiceCallManager {
 
     fun handleWebRtcIceCandidate(senderPeerId: String, candObj: JSONObject, senderUsername: String? = null) {
         scope.launch(Dispatchers.IO) {
-            val pc = getPeerConnectionForPeer(senderPeerId, senderUsername) ?: run {
-                Log.w(TAG, "handleWebRtcIceCandidate: No PeerConnection found for $senderPeerId / $senderUsername")
-                return@launch
-            }
             try {
                 val sdpMid = candObj.optString("sdpMid", "0")
                 val sdpMLineIndex = candObj.optInt("sdpMLineIndex", 0)
                 val candidateSdp = candObj.optString("candidate")
-                if (candidateSdp.isNotEmpty()) {
-                    val iceCandidate = IceCandidate(sdpMid, sdpMLineIndex, candidateSdp)
+                if (candidateSdp.isBlank()) return@launch
+                val iceCandidate = IceCandidate(sdpMid, sdpMLineIndex, candidateSdp)
+
+                val pc = getPeerConnectionForPeer(senderPeerId, senderUsername)
+                if (pc != null && pc.remoteDescription != null) {
+                    drainQueuedCandidates(senderPeerId, pc, senderUsername)
                     pc.addIceCandidate(iceCandidate)
-                    Log.d(TAG, "WebRTC added ICE candidate from: $senderPeerId ($senderUsername)")
+                    Log.d(TAG, "WebRTC added live ICE candidate from: $senderPeerId ($senderUsername)")
+                } else {
+                    val key = (senderUsername?.ifBlank { null } ?: senderPeerId).trim().lowercase().removePrefix("@")
+                    val list = queuedIceCandidates.getOrPut(key) { java.util.Collections.synchronizedList(mutableListOf()) }
+                    list.add(iceCandidate)
+                    Log.d(TAG, "WebRTC queued ICE candidate for $key (remoteDesc pending, total queued=${list.size})")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "WebRTC error adding ICE candidate: ${e.message}")
+                Log.e(TAG, "WebRTC error processing ICE candidate: ${e.message}")
             }
         }
     }
@@ -1016,6 +1060,7 @@ object VoiceCallManager {
 
     private fun stopWebRtc() {
         stopStatsPolling()
+        queuedIceCandidates.clear()
         try {
             // 1. Immediately disable local audio track to prevent audio processing threads
             // from pushing frames into closing peer connections.
@@ -2839,6 +2884,7 @@ object VoiceCallManager {
         ProximityScreenLockManager.stopMonitoring()
         _currentAudioRoute.value = AudioRoute.EARPIECE
         _isSpeakerOn.value = false
+        queuedIceCandidates.clear()
 
         // 2. Dismiss notifications and cancel foreground service immediately
         try {
@@ -3086,25 +3132,25 @@ object VoiceCallManager {
             dspNoiseFloor = dspNoiseFloor * 0.998 + frameRms * 0.002
         }
 
-        val safeNoiseFloor = dspNoiseFloor.coerceIn(50.0, 300.0)
-        val speechThreshold = safeNoiseFloor * 1.35
-        val silenceFloor = safeNoiseFloor * 0.75
+        val safeNoiseFloor = dspNoiseFloor.coerceIn(30.0, 200.0)
+        val speechThreshold = safeNoiseFloor * 1.20
+        val silenceFloor = safeNoiseFloor * 0.70
 
         val targetGain = when {
             frameRms > speechThreshold -> {
-                voiceHangoverFrames = 15 // ~300ms hold time
-                1.00f // Clean, transparent vocal clarity (no artificial noise boost)
+                voiceHangoverFrames = 40 // ~800ms hold time to preserve soft syllables and word endings
+                1.00f // Clean, transparent vocal clarity
             }
             voiceHangoverFrames > 0 -> {
                 voiceHangoverFrames--
-                0.90f
+                0.95f
             }
             frameRms < silenceFloor -> {
-                0.12f // -18.4 dB deep background noise suppression during silence
+                0.70f // Gentle background reduction; never aggressively gate or cut off voice
             }
             else -> {
                 val ratio = ((frameRms - silenceFloor) / (speechThreshold - silenceFloor)).coerceIn(0.0, 1.0).toFloat()
-                0.12f + ratio * 0.88f // Smooth exponential transition
+                0.70f + ratio * 0.30f // Smooth transparent transition
             }
         }
 
@@ -3416,18 +3462,11 @@ object VoiceCallManager {
                 initAudioTrack(SAMPLE_RATE)
             }
 
-            // Check if WebRTC P2P ICE is already CONNECTED or COMPLETED
-            val hasConnectedP2PPeer = peerConnections.values.any { pc ->
-                try {
-                    val s = pc.iceConnectionState()
-                    s == PeerConnection.IceConnectionState.CONNECTED || s == PeerConnection.IceConnectionState.COMPLETED
-                } catch (_: Throwable) { false }
-            }
-
-            // If WebRTC P2P is already connected and not an Echo call,
-            // WebRTC's JavaAudioDeviceModule has exclusive mic ownership.
-            if (hasConnectedP2PPeer && !isEchoCall) {
-                Log.d(TAG, "WebRTC P2P ICE is already active; exclusive mic ownership delegated to WebRTC P2P.")
+            // If WebRTC is initialized, JavaAudioDeviceModule has mic ownership and streams
+            // audio directly via WebRTC RTP and samplesReadyCallback.
+            // Do NOT start competing AudioRecord loop when WebRTC factory is active (unless Echo test).
+            if (peerConnectionFactory != null && !isEchoCall) {
+                Log.d(TAG, "WebRTC JavaAudioDeviceModule active; microphone managed exclusively by WebRTC engine.")
                 return
             }
 
@@ -3587,8 +3626,8 @@ object VoiceCallManager {
                 AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT
             )
-            // Lean buffer to guarantee sub-30ms hardware rendering latency without queue bloat
-            val bufSize = maxOf(minBuf, CHUNK_SIZE_BYTES * 2)
+            // 120ms hardware buffer prevents underruns while maintaining instantaneous playback
+            val bufSize = maxOf(minBuf * 2, (effectiveRate * 2 * 120) / 1000)
 
             audioTrack = AudioTrack.Builder()
                 .setAudioAttributes(
@@ -3619,8 +3658,8 @@ object VoiceCallManager {
     }
 
     private fun playAudioChunk(base64Audio: String, sampleRate: Int = SAMPLE_RATE) {
-        // Jitter buffer drop: if playback queue exceeds 3 chunks (~60ms), drop older frames to maintain real-time sync
-        if (pendingAudioChunksCount.get() > 3) {
+        // Jitter buffer queue tolerance up to 15 chunks (~300ms) to absorb mobile packet jitter without dropping voice
+        if (pendingAudioChunksCount.get() > 15) {
             return
         }
         pendingAudioChunksCount.incrementAndGet()
@@ -3636,11 +3675,10 @@ object VoiceCallManager {
                     }
                     var offset = 0
                     while (offset < bytes.size && audioTrack?.playState == AudioTrack.PLAYSTATE_PLAYING) {
-                        val written = audioTrack?.write(bytes, offset, bytes.size - offset, AudioTrack.WRITE_NON_BLOCKING) ?: -1
+                        val written = audioTrack?.write(bytes, offset, bytes.size - offset, AudioTrack.WRITE_BLOCKING) ?: -1
                         if (written > 0) {
                             offset += written
                         } else {
-                            // Non-blocking buffer full: drop late frames to preserve sub-30ms real-time audio sync
                             break
                         }
                     }
