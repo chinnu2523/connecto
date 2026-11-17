@@ -373,6 +373,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.4.2/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.4.1/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.4.0/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.9/our-store.apk",
@@ -616,6 +617,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.4.2/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.4.1/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.4.0/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.9/connecto-fun.apk",
@@ -697,7 +699,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.4.1/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.4.2/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2066,14 +2068,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.4.1",
-        version_code: 155,
-        size_bytes: 38069827,
+        version_name: "5.4.2",
+        version_code: 156,
+        size_bytes: 38069422,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Unified Groups Filter: Streamlined Messages tab conversation filtering by consolidating Created Groups and Added Groups into a single clean 'Groups' filter with widened segmented controls",
           "HD WebRTC Voice Clarity & Low Latency: Upgraded Opus codec bitrate to 64kbps full-band studio audio, enforced standard 20ms packetization (ptime=20), and enabled In-band Forward Error Correction (useinbandfec=1) for continuous, non-cutting vocal transmission",
           "Instantaneous P2P Audio Connection: Implemented asynchronous remote ICE candidate queuing during SDP handshakes to eliminate candidate dropouts, allowing instant 0ms audio connection upon answering",
           "Microphone Contention Elimination: Delegated exclusive mic ownership to WebRTC JavaAudioDeviceModule to eliminate AudioRecord hardware resource contention and buffer underruns",

@@ -1093,9 +1093,9 @@ fun CustomizedChatScreen(
     val friendsList = remember { mutableStateListOf<FriendItem>() }
     var isFriendsLoadedOnce by remember { mutableStateOf(false) }
 
-    // User Groups State (Created & Added / Joined Groups)
+    // User Groups State (Groups)
     val userGroupsList = remember { mutableStateListOf<FriendItem>() }
-    var messageTabFilter by rememberSaveable { mutableStateOf("ALL") } // "ALL", "DIRECT", "CREATED_GROUPS", "ADDED_GROUPS"
+    var messageTabFilter by rememberSaveable { mutableStateOf("ALL") } // "ALL", "DIRECT", "GROUPS"
 
     val notifyUnreadChanged: () -> Unit = {
         val total = friendsList.sumOf { it.unreadCount } + userGroupsList.sumOf { it.unreadCount }
@@ -1855,8 +1855,7 @@ fun CustomizedChatScreen(
         derivedStateOf {
             val baseList: List<FriendItem> = when (messageTabFilter) {
                 "DIRECT" -> friendsList.toList()
-                "CREATED_GROUPS" -> userGroupsList.filter { it.isCreatedByMe }
-                "ADDED_GROUPS" -> userGroupsList.filter { !it.isCreatedByMe }
+                "GROUPS" -> userGroupsList.toList()
                 else -> friendsList.toList() + userGroupsList.toList()
             }
             // Filter out deleted chats unless currently in undo strip state
@@ -5208,8 +5207,7 @@ fun CustomizedChatScreen(
                             val filterOptions = listOf(
                                 "ALL" to "All",
                                 "DIRECT" to "Direct",
-                                "CREATED_GROUPS" to "Created Groups",
-                                "ADDED_GROUPS" to "Added Groups"
+                                "GROUPS" to "Groups"
                             )
                             Row(
                                 modifier = Modifier
@@ -5237,7 +5235,7 @@ fun CustomizedChatScreen(
                                     ) {
                                         Text(
                                             text = label,
-                                            fontSize = 11.sp,
+                                            fontSize = 12.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                             color = if (isSelected) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,
@@ -5251,8 +5249,7 @@ fun CustomizedChatScreen(
                         item(key = "friends_section_title") {
                             val titleText = when (messageTabFilter) {
                                 "DIRECT" -> "Direct Conversations"
-                                "CREATED_GROUPS" -> "Created Groups"
-                                "ADDED_GROUPS" -> "Joined Groups"
+                                "GROUPS" -> "Group Conversations"
                                 else -> "All Conversations"
                             }
                             Text(
@@ -5282,21 +5279,19 @@ fun CustomizedChatScreen(
                                             verticalArrangement = Arrangement.spacedBy(14.dp)
                                         ) {
                                             val emptyIcon = when (messageTabFilter) {
-                                                "CREATED_GROUPS", "ADDED_GROUPS" -> Icons.Default.Groups
+                                                "GROUPS" -> Icons.Default.Groups
                                                 else -> Icons.Default.PersonAdd
                                             }
                                             val emptyTitle = if (friendSearchQuery.isNotBlank()) "No Matching Conversations"
                                             else when (messageTabFilter) {
-                                                "CREATED_GROUPS" -> "No Created Groups"
-                                                "ADDED_GROUPS" -> "No Joined Groups"
+                                                "GROUPS" -> "No Groups Yet"
                                                 "DIRECT" -> "No Direct Messages Yet"
                                                 else -> "No Active Conversations"
                                             }
                                             val emptySubtitle = if (friendSearchQuery.isNotBlank())
                                                 "No conversations or groups matching '$friendSearchQuery' found."
                                             else when (messageTabFilter) {
-                                                "CREATED_GROUPS" -> "You haven't created any group channels yet. Create your first group to start group chats!"
-                                                "ADDED_GROUPS" -> "You haven't joined any groups yet. When you join or get added to groups, they will appear here."
+                                                "GROUPS" -> "You haven't joined or created any groups yet. Create a group to talk with multiple friends together!"
                                                 "DIRECT" -> "Direct chat is private between accepted friends. Send a friend request to start messaging!"
                                                 else -> "Start chatting with friends or create a group to talk with multiple members together!"
                                             }
@@ -5335,7 +5330,7 @@ fun CustomizedChatScreen(
 
                                             Spacer(modifier = Modifier.height(2.dp))
 
-                                            val isGroupFilter = messageTabFilter == "CREATED_GROUPS" || messageTabFilter == "ADDED_GROUPS"
+                                            val isGroupFilter = messageTabFilter == "GROUPS"
                                             Box(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(14.dp))
