@@ -373,6 +373,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.3.9/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.8/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.7/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.6/our-store.apk",
@@ -613,6 +614,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.3.9/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.8/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.7/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.6/connecto-fun.apk",
@@ -691,7 +693,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.3.8/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.3.9/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2060,14 +2062,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.3.8",
-        version_code: 152,
-        size_bytes: 38070048,
+        version_name: "5.3.9",
+        version_code: 153,
+        size_bytes: 38067629,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Channel Header Streamlining: Removed redundant pin button and stripped clutter from 3-dot overflow menu (removed Search Messages, Scroll to Bottom, and Channel Info & Topic) for a focused channel header",
           "Channel Tab Clean Architecture: Removed redundant top #general and #announcements horizontal pill row for a streamlined, clutter-free messaging canvas",
           "Fluid EaseInOutCubic Navigation Drawer: Re-engineered channel drawer with cubic bezier transitions, backdrop scaling depth, and instant 0ms tap-outside dismiss on empty space",
           "Minimalist Workspace Navigation: Removed Workspace Hub preview card and bottom profile/settings bar from drawer in favor of clean channel typography and instant switching",

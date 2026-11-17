@@ -14,8 +14,8 @@ android {
         applicationId = "com.connecto.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 152
-        versionName = "5.3.8"
+        versionCode = 153
+        versionName = "5.3.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

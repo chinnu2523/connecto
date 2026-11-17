@@ -1262,49 +1262,6 @@ fun ChannelsWorkspaceScreen(
                                         )
                                     }
 
-                                    // Pinned Message Quick-Jump Button
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (pinnedMessageForChannel != null) colors.primary.copy(alpha = 0.10f)
-                                                else if (colors.isDark) Color.White.copy(alpha = 0.05f)
-                                                else Color.Black.copy(alpha = 0.04f)
-                                            )
-                                            .clickable {
-                                                val pinned = pinnedMessageForChannel
-                                                if (pinned != null) {
-                                                    val targetIdx = displayMessages.indexOfFirst { it.id == pinned.messageId }
-                                                    if (targetIdx != -1) {
-                                                        coroutineScope.launch {
-                                                            try { listState.animateScrollToItem(targetIdx) } catch (_: Exception) {}
-                                                        }
-                                                    }
-                                                } else {
-                                                    Toast.makeText(context, "No pinned message in #${activeChip.name}", Toast.LENGTH_SHORT).show()
-                                                }
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PushPin,
-                                            contentDescription = "Pinned Messages",
-                                            tint = if (pinnedMessageForChannel != null) colors.primary else colors.textSecondary,
-                                            modifier = Modifier.size(17.dp)
-                                        )
-                                        if (pinnedMessageForChannel != null) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(6.dp)
-                                                    .align(Alignment.TopEnd)
-                                                    .offset(x = (-6).dp, y = 6.dp)
-                                                    .clip(CircleShape)
-                                                    .background(colors.primary)
-                                            )
-                                        }
-                                    }
-
                                     // 3-Dots Channel Options Menu
                                     Box {
                                         Box(
@@ -1332,16 +1289,6 @@ fun ChannelsWorkspaceScreen(
                                             modifier = Modifier.background(if (colors.isDark) Color(0xFF1E2029) else Color.White)
                                         ) {
                                             DropdownMenuItem(
-                                                text = { Text("Channel Info & Topic", color = colors.textPrimary) },
-                                                leadingIcon = {
-                                                    Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = colors.primary)
-                                                },
-                                                onClick = {
-                                                    showChannelOptionsMenu = false
-                                                    showChannelInfoDialog = true
-                                                }
-                                            )
-                                            DropdownMenuItem(
                                                 text = { Text(if (isChannelMuted) "Unmute Channel" else "Mute Channel", color = colors.textPrimary) },
                                                 leadingIcon = {
                                                     Icon(
@@ -1355,30 +1302,6 @@ fun ChannelsWorkspaceScreen(
                                                     isChannelMuted = !isChannelMuted
                                                     sharedPrefs.edit().putBoolean("muted_ch_$cleanSelectedChannel", isChannelMuted).apply()
                                                     Toast.makeText(context, if (isChannelMuted) "Muted #${activeChip.name}" else "Unmuted #${activeChip.name}", Toast.LENGTH_SHORT).show()
-                                                }
-                                            )
-                                            DropdownMenuItem(
-                                                text = { Text("Search Messages", color = colors.textPrimary) },
-                                                leadingIcon = {
-                                                    Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = colors.primary)
-                                                },
-                                                onClick = {
-                                                    showChannelOptionsMenu = false
-                                                    isChannelSearchOpen = true
-                                                }
-                                            )
-                                            DropdownMenuItem(
-                                                text = { Text("Scroll to Bottom", color = colors.textPrimary) },
-                                                leadingIcon = {
-                                                    Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = null, tint = colors.primary)
-                                                },
-                                                onClick = {
-                                                    showChannelOptionsMenu = false
-                                                    coroutineScope.launch {
-                                                        if (displayMessages.isNotEmpty()) {
-                                                            try { listState.animateScrollToItem(displayMessages.size) } catch (_: Exception) {}
-                                                        }
-                                                    }
                                                 }
                                             )
                                         }
