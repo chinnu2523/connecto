@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,6 +42,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -86,6 +88,7 @@ fun StoreDragToRefresh(
     var isTouchActive by remember { mutableStateOf(false) }
     var gestureQualifiedForPull by remember { mutableStateOf(false) }
     var accumulatedPullDistance by remember { mutableFloatStateOf(0f) }
+    var userInitiatedPull by remember { mutableStateOf(false) }
 
     // Guard against multiple rapid re-entrant refresh triggers
     var isRefreshDispatched by remember { mutableStateOf(false) }
@@ -97,6 +100,7 @@ fun StoreDragToRefresh(
             gestureQualifiedForPull = false
             isTouchActive = false
             accumulatedPullDistance = 0f
+            userInitiatedPull = false
 
             // Bouncy elastic spring return when refresh finishes
             pullOffset.animateTo(
@@ -107,14 +111,17 @@ fun StoreDragToRefresh(
                 )
             )
         } else {
-            // Smoothly hold at resting indicator position while refreshing
-            pullOffset.animateTo(
-                targetValue = refreshThresholdPx,
-                animationSpec = spring(
-                    dampingRatio = 0.72f,
-                    stiffness = Spring.StiffnessMedium
+            // ONLY hold at resting indicator position if the user actually pulled down!
+            // When silent background sync or automatic revalidation occurs, pullOffset remains 0f
+            if (userInitiatedPull || pullOffset.value > 10f) {
+                pullOffset.animateTo(
+                    targetValue = refreshThresholdPx,
+                    animationSpec = spring(
+                        dampingRatio = 0.72f,
+                        stiffness = Spring.StiffnessMedium
+                    )
                 )
-            )
+            }
         }
     }
 
@@ -148,6 +155,7 @@ fun StoreDragToRefresh(
                         // which PERMANENTLY disqualifies this entire gesture from accidentally triggering refresh!
                         gestureQualifiedForPull = !canScrollBackward()
                         accumulatedPullDistance = 0f
+                        userInitiatedPull = false
                     }
                 } else if (source == NestedScrollSource.SideEffect) {
                     // Flings and momentum animations are strictly disqualified
@@ -182,6 +190,7 @@ fun StoreDragToRefresh(
 
                     // Hysteresis deadband: first 12dp of drag is consumed as gesture intent confirmation
                     if (accumulatedPullDistance > hysteresisPx) {
+                        userInitiatedPull = true
                         val activeDelta = available.y
 
                         // Dynamic asymptotic rubber-band elasticity equation:
@@ -214,7 +223,7 @@ fun StoreDragToRefresh(
                 if (isRefreshing) return Velocity.Zero
 
                 val reachedThreshold = pullOffset.value >= refreshThresholdPx
-                val isEligible = gestureQualifiedForPull && !isRefreshDispatched
+                val isEligible = gestureQualifiedForPull && userInitiatedPull && !isRefreshDispatched
 
                 gestureQualifiedForPull = false
 
@@ -224,6 +233,7 @@ fun StoreDragToRefresh(
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onRefresh()
                 } else {
+                    userInitiatedPull = false
                     // Elastic rebound bounce back to 0
                     pullOffset.animateTo(
                         targetValue = 0f,
@@ -271,10 +281,22 @@ fun StoreDragToRefresh(
                 }
         ) {
             content()
+
+            // CRITICAL TOUCH SHIELD: When actively pulling (pullOffset > 8dp) or refreshing,
+            // intercept pointer input to completely prevent accidental clicks on the cards underneath
+            if (pullOffset.value > 8f || (isRefreshing && userInitiatedPull)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectTapGestures { /* absorb touch events during pull gesture */ }
+                        }
+                )
+            }
         }
 
-        // Tactile Elastic Indicator Pill
-        if (pullOffset.value > 4f || isRefreshing) {
+        // Tactile Elastic Indicator Pill (Strictly only shown if user pulled or during user-initiated refresh)
+        if (pullOffset.value > 8f || (isRefreshing && userInitiatedPull)) {
             val progress = (pullOffset.value / refreshThresholdPx).coerceIn(0f, 1f)
             val isThresholdReached = pullOffset.value >= refreshThresholdPx
 

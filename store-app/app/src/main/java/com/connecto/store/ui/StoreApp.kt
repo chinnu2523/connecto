@@ -414,16 +414,16 @@ fun StoreApp(
                                     AnimatedContent(
                                         targetState = selectedSection,
                                         transitionSpec = {
-                                            (fadeIn(animationSpec = tween(220)) +
-                                                slideInHorizontally(
-                                                    initialOffsetX = { fullWidth -> if (targetState.ordinal > initialState.ordinal) fullWidth / 4 else -fullWidth / 4 },
-                                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                                            (fadeIn(animationSpec = tween(190)) +
+                                                scaleIn(
+                                                    initialScale = 0.98f,
+                                                    animationSpec = spring(
+                                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                                        stiffness = Spring.StiffnessMediumLow
+                                                    )
                                                 )) togetherWith
-                                            (fadeOut(animationSpec = tween(180)) +
-                                                slideOutHorizontally(
-                                                    targetOffsetX = { fullWidth -> if (targetState.ordinal > initialState.ordinal) -fullWidth / 4 else fullWidth / 4 },
-                                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-                                                ))
+                                            (fadeOut(animationSpec = tween(140)) +
+                                                scaleOut(targetScale = 0.98f, animationSpec = tween(140)))
                                         },
                                         label = "navSectionTransition"
                                     ) { currentSection ->
@@ -1324,9 +1324,9 @@ private fun ClassicEcosystemSpotlightCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     listOf(
-                        "⚡ Sub-5ms IPC",
-                        "🛡️ AES-256 E2EE",
-                        "✨ Pure OLED #000"
+                        "Sub-5ms IPC",
+                        "End-to-End Encrypted",
+                        "Pure OLED #000"
                     ).forEach { pill ->
                         Box(
                             modifier = Modifier
@@ -1425,11 +1425,11 @@ private fun ClassicAppCard(
                     )
                     if (appState.userRating > 0) {
                         Text(
-                            text = "• ★ ${appState.userRating}",
+                            text = "• ${appState.userRating}.0 ★",
                             color = Color(0xFFF59E0B),
                             fontSize = 11.sp,
                             style = TextStyle(fontFeatureSettings = "tnum"),
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
@@ -1869,9 +1869,10 @@ private fun ClassicAppDetailView(
                     )
                     if (appState.userRating > 0) {
                         Text(
-                            text = "Your Rating: ★ ${appState.userRating}/5",
+                            text = "Rated: ${appState.userRating}/5",
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
+                            style = TextStyle(fontFeatureSettings = "tnum"),
                             color = Color(0xFFF59E0B)
                         )
                     } else {
@@ -2481,7 +2482,7 @@ private fun ClassicVersionSpecRow(appState: AppUiState) {
         appState.isInstalling -> Triple(theme.cardElevated, theme.textPrimary, "INSTALLING")
         appState.installState == StoreApp.InstallState.NOT_INSTALLED -> Triple(theme.cardElevated, theme.textMuted, "NOT INSTALLED")
         appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Triple(ElectricBlueUpdateBg, ElectricBlueUpdateLight, "UPDATE AVAILABLE")
-        else -> Triple(EmeraldStatusBg, EmeraldStatus, "UP TO DATE ✓")
+        else -> Triple(EmeraldStatusBg, EmeraldStatus, "UP TO DATE")
     }
 
     Box(

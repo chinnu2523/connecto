@@ -107,7 +107,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         // 1. Optimistic 0ms Cold Start Hydration (Stale-While-Revalidate pattern)
         val cached = loadCatalogFromDisk()
         allRawApps = if (cached.isNotEmpty()) cached else buildFallbackCatalog()
-        publishFilteredCatalog(isRefreshing = true)
+        publishFilteredCatalog(isRefreshing = false)
 
         // 2. Non-blocking background revalidation
         loadCatalog(silently = true)
@@ -201,10 +201,12 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadCatalog(silently: Boolean = false) {
         viewModelScope.launch {
-            if (!silently && allRawApps.isEmpty()) {
-                _uiState.value = StoreUiState.Loading
-            } else {
-                publishFilteredCatalog(isRefreshing = true)
+            if (!silently) {
+                if (allRawApps.isEmpty()) {
+                    _uiState.value = StoreUiState.Loading
+                } else {
+                    publishFilteredCatalog(isRefreshing = true)
+                }
             }
             try {
                 val user = _currentUser.value

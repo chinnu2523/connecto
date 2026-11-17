@@ -25,22 +25,22 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Autonomous package installer, background updater & security vault",
         "description": "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         "category": "Services",
-        "version_name": "2.0.7",
-        "version_code": 56,
-        "size_bytes": 18961479,
+        "version_name": "2.0.8",
+        "version_code": 57,
+        "size_bytes": 18961463,
         "size_formatted": "18.1 MB",
         "download_url": "https://connecto.fun/downloads/our-store.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
-        "accent_color": "#FFFFFF",
+        "accent_color": "#2563EB",
         "changelog": [
-            "Authentic Application Icons: Real branded icons for Connecto, PDF Studio, JARVIS AI, and Our Store across catalog and detail views",
-            "Minimalist Clean Sections: Removed noisy headlines and category label badges for distraction-free browsing",
-            "Linear Precision Design System: High-tactile micro-interactions, refined hair-line borders, and zero-slop layout",
-            "Instant Guest Installs: Frictionless 1-tap package installation with zero credential roadblocks",
-            "Dual Luxury Themes: Pitch-Black OLED Noir & Ivory Clean White dynamic UI"
+            "Eliminated Auto-Refresh & Accidental Preview Trigger: Silent background revalidations no longer auto-pull down the screen; pull-to-refresh strictly requires intentional manual user drag",
+            "Touch Shield on Elastic Pull-To-Refresh: Intercepts pointer events during pull and spring-return gestures so cards underneath are never accidentally tapped or opened",
+            "Unslop Visual Design Polish: Stripped AI emoji slop, unified 4px spatial grid, and streamlined badge typography across catalog and detail views",
+            "Fluid Elevation Cross-Fade Transitions: Replaced jarring horizontal viewport slides with smooth elevation scale cross-fades and liquid bulge indicators",
+            "Elastic Pull-to-Refresh on Account & Updates Tabs: Integrated StoreDragToRefresh into ClassicLoginAccountView and UpdatesView with Cyan/Sky indicator and spring return physics"
         ],
         "is_essential": True,
-        "updated_at": "2026-11-10T17:10:00Z"
+        "updated_at": "2026-11-17T10:30:00Z"
     },
     {
         "id": "connecto",
