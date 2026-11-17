@@ -363,6 +363,8 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v2.0.9/our-store.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v2.0.9/app-release.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.8/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.8/app-release.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.7/our-store.apk",
@@ -374,14 +376,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.3/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.0.8-b57-v2-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.0.9-b58-v2-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.0.8");
-          res.headers.set("X-Connecto-Store-Build", "57");
+          res.headers.set("X-Connecto-Store-Version", "v2.0.9");
+          res.headers.set("X-Connecto-Store-Build", "58");
           return res;
         }
 
@@ -419,8 +421,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.0.8");
-              downloadHeaders.set("X-Connecto-Store-Build", "57");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.0.9");
+              downloadHeaders.set("X-Connecto-Store-Build", "58");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1918,14 +1920,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.0.8",
-        version_code: 57,
-        size_bytes: 18961463,
+        version_name: "2.0.9",
+        version_code: 58,
+        size_bytes: 18961457,
         size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Account Tab Clean UI & UX Redesign: User identity hero card with concentric status ring, verification pip, and 3-column telemetry metrics (Account Tier, SHA-256 Integrity, IPC Session engine)",
+          "Modern Architectural Bottom Navigation Dock: Precision sliding spring pill dock with illuminated top micro-pip, paired filled/active and outlined/inactive vector icons, tactile spring press, and haptic feedback",
+          "Seamless Appearance & Display: Eliminated nested box redundancy, smooth rotating sun/moon squircle icon, and tactile sliding theme switcher pill",
+          "Hardware Keystore Vault & Enhanced Security: Added hardware keystore row, refined typography, and spring press feedback",
+          "Optimized Authentication & Access: Sliding indicator pill on Sign In / Create Account tabs with modern 12dp rounded input fields",
           "Eliminated Auto-Refresh & Accidental Preview Trigger: Silent background revalidations no longer auto-pull down the screen; pull-to-refresh strictly requires intentional manual user drag",
           "Touch Shield on Elastic Pull-To-Refresh: Intercepts pointer events during pull and spring-return gestures so cards underneath are never accidentally tapped or opened",
           "Unslop Visual Design Polish: Stripped AI emoji slop, unified 4px spatial grid, and streamlined badge typography across catalog and detail views",
@@ -8410,12 +8417,12 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v[12]\.[0-9]+\.[0-9]+<\/span>/g, "v2.0.8</span>")
-            .replace(/v[12]\.[0-9]+\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v2.0.8 (Build 57) • Standalone Client")
-            .replace(/Download Our Store APK \(v[12]\.[0-9]+\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v2.0.8 • 18.1 MB)")
+            .replace(/v[12]\.[0-9]+\.[0-9]+<\/span>/g, "v2.0.9</span>")
+            .replace(/v[12]\.[0-9]+\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v2.0.9 (Build 58) • Standalone Client")
+            .replace(/Download Our Store APK \(v[12]\.[0-9]+\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v2.0.9 • 18.1 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v[12]\.[0-9]+\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v2.0.8)")
-            .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.8")
+                     "Official Verified Store Release • Package: com.connecto.store (v2.0.9)")
+            .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.9")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">18.1 MB</span>')
             .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.2.4")

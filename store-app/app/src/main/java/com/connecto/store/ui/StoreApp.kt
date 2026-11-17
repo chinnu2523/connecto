@@ -36,6 +36,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.*
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -204,10 +205,16 @@ private val DangerRedBg = Color(0xFF2E1010)
 private val DangerRedBorder = Color(0xFF7F1D1D)
 
 // ─── Navigation Tabs ───────────────────────────────────────────────────────────
-enum class StoreNavSection(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    OVERVIEW("Store", Icons.Rounded.Storefront),
-    UPDATES("Updates", Icons.Rounded.SystemUpdate),
-    LOGIN("Account", Icons.Rounded.AccountCircle)
+enum class StoreNavSection(
+    val label: String,
+    val activeIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    val inactiveIcon: androidx.compose.ui.graphics.vector.ImageVector
+) {
+    OVERVIEW("Store", Icons.Rounded.Storefront, Icons.Outlined.Storefront),
+    UPDATES("Updates", Icons.Rounded.ArrowCircleUp, Icons.Outlined.ArrowCircleUp),
+    LOGIN("Account", Icons.Rounded.Person, Icons.Outlined.Person);
+
+    val icon: androidx.compose.ui.graphics.vector.ImageVector get() = activeIcon
 }
 
 // ─── Main Application Composable ──────────────────────────────────────────────
@@ -642,7 +649,7 @@ private fun ClassicTopHeader(
     }
 }
 
-// ─── Footer Bottom Navigation Bar with Liquid Bulge Animation & High Performance ────────
+// ─── Modern Architectural Bottom Navigation Bar ──────────────────────────────
 @Composable
 private fun ClassicBottomNavBar(
     selected: StoreNavSection,
@@ -659,146 +666,74 @@ private fun ClassicBottomNavBar(
             .fillMaxWidth()
             .navigationBarsPadding()
             .height(68.dp)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        theme.surface.copy(alpha = 0.98f),
+                        theme.navBarBackground
+                    )
+                )
+            )
     ) {
         val totalWidth = maxWidth
         val tabCount = sections.size
         val tabWidth = totalWidth / tabCount
-        val density = androidx.compose.ui.platform.LocalDensity.current
-        val baseTopY = with(density) { 12.dp.toPx() }
 
-        // Dynamic tracking center of the active tab with fluid spring physics
+        // Center X for active tab sliding indicator
         val targetCenterX = tabWidth * selectedIndex + tabWidth / 2
         val animatedCenterX by animateDpAsState(
             targetValue = targetCenterX,
             animationSpec = spring(
-                stiffness = 340f,
-                dampingRatio = 0.72f // Fluid organic liquid glide
+                stiffness = 380f,
+                dampingRatio = 0.76f
             ),
-            label = "storeBulgeCenterX"
+            label = "storeActiveTabCenterX"
         )
 
-        // Fluid squish & stretch during movement
-        val distance = (targetCenterX - animatedCenterX).value.dp
-        val stretchFactor = 1f + (distance.value.absoluteValue / 60f).coerceAtMost(0.35f)
-        val squishY = 1f - (distance.value.absoluteValue / 140f).coerceAtMost(0.20f)
-
-        // Liquid Jelly Spring Rebound on Arrival
-        val liquidJiggle = remember { Animatable(0f) }
-        LaunchedEffect(selected) {
-            liquidJiggle.snapTo(1f)
-            liquidJiggle.animateTo(
-                targetValue = 0f,
-                animationSpec = spring(
-                    dampingRatio = 0.48f,
-                    stiffness = 260f
-                )
-            )
-        }
-        val jiggleBounce = 1f + (liquidJiggle.value * 0.25f * sin(liquidJiggle.value * 3f * PI.toFloat()))
-        val bulgeHeightPx = with(density) { 11.dp.toPx() } * squishY * jiggleBounce
-        val bulgeHalfWidthPx = with(density) { (52.dp * stretchFactor).toPx() }
-
-        // LAYER 1: Canvas Liquid Bulge Background & Specular Top Contour
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val curX = animatedCenterX.toPx()
-            val peakY = (baseTopY - bulgeHeightPx).coerceAtLeast(1.dp.toPx())
-            val leftBulgeX = curX - bulgeHalfWidthPx
-            val rightBulgeX = curX + bulgeHalfWidthPx
-
-            // Liquid Bulge Silhouette Path
-            val bulgePath = Path().apply {
-                moveTo(0f, baseTopY)
-                lineTo(leftBulgeX.coerceAtLeast(0f), baseTopY)
-                // Left smooth curve into peak
-                cubicTo(
-                    leftBulgeX + 18.dp.toPx(), baseTopY,
-                    curX - 26.dp.toPx() * stretchFactor, peakY,
-                    curX, peakY
-                )
-                // Right smooth curve down from peak
-                cubicTo(
-                    curX + 26.dp.toPx() * stretchFactor, peakY,
-                    rightBulgeX - 18.dp.toPx(), baseTopY,
-                    rightBulgeX.coerceAtMost(size.width), baseTopY
-                )
-                lineTo(size.width, baseTopY)
-                lineTo(size.width, size.height)
-                lineTo(0f, size.height)
-                close()
-            }
-
-            // Fill with theme navBarBackground
-            drawPath(
-                path = bulgePath,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        theme.cardElevated.copy(alpha = 0.95f),
-                        theme.navBarBackground
-                    ),
-                    startY = peakY,
-                    endY = size.height
-                )
-            )
-
-            // Specular Liquid Rim Stroke along top contour & bulge
-            val rimPath = Path().apply {
-                moveTo(0f, baseTopY)
-                lineTo(leftBulgeX.coerceAtLeast(0f), baseTopY)
-                cubicTo(
-                    leftBulgeX + 18.dp.toPx(), baseTopY,
-                    curX - 26.dp.toPx() * stretchFactor, peakY,
-                    curX, peakY
-                )
-                cubicTo(
-                    curX + 26.dp.toPx() * stretchFactor, peakY,
-                    rightBulgeX - 18.dp.toPx(), baseTopY,
-                    rightBulgeX.coerceAtMost(size.width), baseTopY
-                )
-                lineTo(size.width, baseTopY)
-            }
-
-            val rimBrush = Brush.horizontalGradient(
-                colors = listOf(
-                    theme.dividerColor.copy(alpha = 0.4f),
-                    theme.accentColor.copy(alpha = 0.35f),
-                    Color.White.copy(alpha = 0.85f), // High specular brilliance at the liquid bulge peak
-                    theme.accentColor.copy(alpha = 0.45f),
-                    theme.dividerColor.copy(alpha = 0.4f)
-                ),
-                startX = (curX - 70.dp.toPx()).coerceAtLeast(0f),
-                endX = (curX + 70.dp.toPx()).coerceAtMost(size.width)
-            )
-
-            drawPath(
-                path = rimPath,
-                brush = rimBrush,
-                style = Stroke(
-                    width = 1.35.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-            )
-
-            // Ambient Glow under the Liquid Bulge
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        theme.accentColor.copy(alpha = 0.28f),
-                        theme.accentColor.copy(alpha = 0.06f),
-                        Color.Transparent
-                    ),
-                    radius = 34.dp.toPx() * stretchFactor,
-                    center = Offset(curX, peakY + 12.dp.toPx())
-                ),
-                radius = 34.dp.toPx() * stretchFactor,
-                center = Offset(curX, peakY + 12.dp.toPx())
+        // Top hairline divider
+        Canvas(modifier = Modifier.fillMaxWidth().height(1.dp).align(Alignment.TopCenter)) {
+            drawLine(
+                color = theme.dividerColor,
+                start = Offset(0f, 0f),
+                end = Offset(size.width, 0f),
+                strokeWidth = 1.dp.toPx()
             )
         }
 
-        // LAYER 2: Tab items row
+        // Active Tab Sliding Dock Pill
+        val pillWidth = (tabWidth - 16.dp).coerceAtMost(96.dp)
+        Box(
+            modifier = Modifier
+                .offset(x = animatedCenterX - pillWidth / 2, y = 10.dp)
+                .width(pillWidth)
+                .height(48.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    if (theme.isDark) Color(0xFF16161A) else Color(0xFFF1F5F9)
+                )
+                .border(
+                    width = 0.8.dp,
+                    color = if (theme.isDark) theme.cardBorder.copy(alpha = 0.9f) else Color(0xFFE2E8F0),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        )
+
+        // Active Tab Top Illuminated Micro-Pip
+        val pipWidth = 26.dp
+        Box(
+            modifier = Modifier
+                .offset(x = animatedCenterX - pipWidth / 2, y = 0.dp)
+                .width(pipWidth)
+                .height(2.5.dp)
+                .clip(RoundedCornerShape(bottomStart = 1.5.dp, bottomEnd = 1.5.dp))
+                .background(theme.accentColorLight)
+        )
+
+        // Tab items row
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -812,7 +747,9 @@ private fun ClassicBottomNavBar(
                     badgeCount = badgeCount,
                     currentUser = currentUser,
                     onClick = { onSelect(section) },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
                 )
             }
         }
@@ -833,7 +770,7 @@ private fun ClassicBottomNavTabItem(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val targetScale = if (isPressed) 0.94f else if (isSelected) 1.05f else 1.0f
+    val targetScale = if (isPressed) 0.92f else if (isSelected) 1.04f else 1.0f
     val animatedScale by animateFloatAsState(
         targetValue = targetScale,
         animationSpec = spring(
@@ -844,7 +781,7 @@ private fun ClassicBottomNavTabItem(
     )
 
     val iconOffsetY by animateDpAsState(
-        targetValue = if (isSelected) (-5.dp) else 0.dp,
+        targetValue = if (isSelected) (-2.dp) else 0.dp,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMediumLow
@@ -852,52 +789,35 @@ private fun ClassicBottomNavTabItem(
         label = "navIconOffsetY"
     )
 
-    val animatedContainerColor by animateColorAsState(
-        targetValue = if (isSelected) (if (theme.isDark) theme.cardElevated.copy(alpha = 0.5f) else Color(0xFFF1F5F9).copy(alpha = 0.6f)) else Color.Transparent,
-        animationSpec = tween(durationMillis = 200),
-        label = "navTabBg"
-    )
-
-    val animatedBorderColor by animateColorAsState(
-        targetValue = if (isSelected) theme.borderHighlight.copy(alpha = 0.6f) else Color.Transparent,
-        animationSpec = tween(durationMillis = 200),
-        label = "navTabBorder"
-    )
-
     val animatedContentColor by animateColorAsState(
-        targetValue = if (isSelected) theme.accentColor else theme.textDarkMuted,
+        targetValue = if (isSelected) (if (theme.isDark) Color.White else theme.accentColor) else theme.textDarkMuted,
         animationSpec = tween(durationMillis = 180),
         label = "navTabFg"
     )
 
-    val tabShape = remember { RoundedCornerShape(14.dp) }
-
     Box(
         modifier = modifier
-            .padding(horizontal = 4.dp)
             .graphicsLayer {
                 scaleX = animatedScale
                 scaleY = animatedScale
             }
-            .clip(tabShape)
-            .background(animatedContainerColor)
-            .border(1.dp, animatedBorderColor, tabShape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
             ) {
-                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                try {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                } catch (_: Exception) {}
                 onClick()
-            }
-            .padding(vertical = 6.dp),
+            },
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+            modifier = Modifier.offset(y = iconOffsetY)
         ) {
             Box(
-                modifier = Modifier.offset(y = iconOffsetY),
                 contentAlignment = Alignment.TopEnd
             ) {
                 if (section == StoreNavSection.LOGIN && currentUser != null && !currentUser.username.equals("guest", ignoreCase = true)) {
@@ -905,24 +825,24 @@ private fun ClassicBottomNavTabItem(
                         avatarUrl = currentUser.avatarUrl,
                         displayName = currentUser.displayName,
                         modifier = Modifier
-                            .size(24.dp)
+                            .size(23.dp)
                             .clip(CircleShape)
                             .border(
                                 width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) theme.accentColor else theme.textDarkMuted.copy(alpha = 0.45f),
+                                color = if (isSelected) theme.accentColorLight else theme.textDarkMuted.copy(alpha = 0.45f),
                                 shape = CircleShape
                             ),
                         fallback = {
                             Box(
                                 modifier = Modifier
-                                    .size(24.dp)
+                                    .size(23.dp)
                                     .clip(CircleShape)
-                                    .background(if (isSelected) theme.accentColor.copy(alpha = 0.25f) else theme.cardBorder),
+                                    .background(if (isSelected) theme.accentColorLight.copy(alpha = 0.25f) else theme.cardBorder),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = currentUser.displayName.take(1).uppercase(),
-                                    color = if (isSelected) theme.accentColor else theme.textSecondary,
+                                    color = if (isSelected) theme.accentColorLight else theme.textSecondary,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -930,30 +850,30 @@ private fun ClassicBottomNavTabItem(
                         }
                     )
                 } else {
+                    val iconVector = if (isSelected) section.activeIcon else section.inactiveIcon
                     Icon(
-                        imageVector = section.icon,
+                        imageVector = iconVector,
                         contentDescription = section.label,
                         tint = animatedContentColor,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
                 if (badgeCount > 0) {
                     Box(
                         modifier = Modifier
-                            .offset(x = 6.dp, y = (-4).dp)
+                            .offset(x = 8.dp, y = (-4).dp)
                             .clip(CircleShape)
                             .background(ElectricBlueUpdateLight)
-                            .padding(horizontal = 4.5.dp, vertical = 1.dp)
+                            .border(1.5.dp, if (theme.isDark) Color(0xFF000000) else Color(0xFFFFFFFF), CircleShape)
+                            .padding(horizontal = 4.5.dp, vertical = 0.5.dp)
                     ) {
                         Text(
                             text = "$badgeCount",
                             color = Color.White,
                             fontSize = 8.5.sp,
                             fontWeight = FontWeight.Black,
-                            style = LocalTextStyle.current.copy(
-                                fontFeatureSettings = "tnum"
-                            )
+                            style = TextStyle(fontFeatureSettings = "tnum")
                         )
                     }
                 }
@@ -962,9 +882,9 @@ private fun ClassicBottomNavTabItem(
             Text(
                 text = section.label,
                 color = animatedContentColor,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                fontSize = 11.sp,
-                letterSpacing = 0.3.sp,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                fontSize = if (isSelected) 11.5.sp else 11.sp,
+                letterSpacing = 0.2.sp,
                 maxLines = 1
             )
         }
@@ -3318,233 +3238,166 @@ fun StoreThemeToggleRow(
     modifier: Modifier = Modifier
 ) {
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val rowScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.985f else 1.0f,
-        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "storeThemeRowScale"
-    )
-
     val iconRotation by animateFloatAsState(
         targetValue = if (isDarkTheme) 360f else 0f,
         animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "storeThemeRotation"
     )
 
-    Box(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = rowScale
-                scaleY = rowScale
-            }
-            .clip(RoundedCornerShape(18.dp))
-            .background(theme.surface)
-            .border(1.dp, theme.cardBorder, RoundedCornerShape(18.dp))
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null
-            ) {
-                try {
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
-                } catch (_: Exception) {}
-                onToggleTheme()
-            }
-            .padding(horizontal = 16.dp, vertical = 13.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.weight(1f)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(13.dp),
-                modifier = Modifier.weight(1f)
+            val iconTint = if (isDarkTheme) Color(0xFF38BDF8) else Color(0xFFF59E0B)
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .graphicsLayer { rotationZ = iconRotation }
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(iconTint.copy(alpha = if (theme.isDark) 0.14f else 0.10f)),
+                contentAlignment = Alignment.Center
             ) {
-                // Leading Squircle Icon Container (Matches Connecto Settings style)
-                val iconTint = if (isDarkTheme) Color(0xFF38BDF8) else Color(0xFFF59E0B)
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .graphicsLayer { rotationZ = iconRotation }
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color(0xFFF1F5F9)
-                        )
-                        .border(
-                            1.dp,
-                            if (isDarkTheme) Color(0xFF38BDF8).copy(alpha = 0.35f) else Color(0xFFF59E0B).copy(alpha = 0.35f),
-                            RoundedCornerShape(10.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (isDarkTheme) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(19.dp)
-                    )
-                }
+                Icon(
+                    imageVector = if (isDarkTheme) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(19.dp)
+                )
+            }
 
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Display Theme",
+                    color = theme.textPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.5.sp
+                )
+                Text(
+                    text = if (isDarkTheme) "Pure OLED Black (#000000)" else "Studio Crisp White",
+                    color = theme.textMuted,
+                    fontSize = 11.5.sp
+                )
+            }
+        }
+
+        // Dual Segmented Theme Button Pill [ 🌙 Black ] [ ☀️ White ]
+        Row(
+            modifier = Modifier
+                .height(34.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(theme.cardElevated)
+                .border(1.dp, theme.cardBorder, RoundedCornerShape(10.dp))
+                .padding(2.5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            // Black Theme Segment Button
+            val blackInteraction = remember { MutableInteractionSource() }
+            val isBlackPressed by blackInteraction.collectIsPressedAsState()
+            val blackScale by animateFloatAsState(
+                targetValue = if (isBlackPressed) 0.94f else 1.0f,
+                animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "storeBlackBtnScale"
+            )
+            Box(
+                modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = blackScale
+                        scaleY = blackScale
+                    }
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (isDarkTheme) (if (theme.isDark) Color(0xFF000000) else Color(0xFF1E293B)) else Color.Transparent)
+                    .then(
+                        if (isDarkTheme) Modifier.border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.50f), RoundedCornerShape(8.dp))
+                        else Modifier
+                    )
+                    .clickable(
+                        interactionSource = blackInteraction,
+                        indication = null
                     ) {
-                        Text(
-                            text = "Display Theme",
-                            color = theme.textPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.5.sp
-                        )
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(theme.accentColor.copy(alpha = if (isDarkTheme) 0.15f else 0.10f))
-                                .border(
-                                    0.6.dp,
-                                    theme.accentColor.copy(alpha = if (isDarkTheme) 0.35f else 0.25f),
-                                    RoundedCornerShape(6.dp)
-                                )
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = if (isDarkTheme) "BLACK" else "WHITE",
-                                color = theme.accentColor,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.sp,
-                                style = TextStyle(fontFeatureSettings = "tnum")
-                            )
+                        if (!isDarkTheme) {
+                            try { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+                            onToggleTheme()
                         }
                     }
+                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DarkMode,
+                        contentDescription = "Black Theme",
+                        tint = if (isDarkTheme) Color(0xFF38BDF8) else theme.textDarkMuted,
+                        modifier = Modifier.size(13.dp)
+                    )
                     Text(
-                        text = if (isDarkTheme) "Pure 0-nit OLED Black" else "Studio Crisp White",
-                        color = theme.textMuted,
-                        fontSize = 11.5.sp
+                        text = "Black",
+                        fontSize = 11.5.sp,
+                        fontWeight = if (isDarkTheme) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isDarkTheme) Color.White else theme.textDarkMuted
                     )
                 }
             }
 
-            // Dual Segmented Theme Button Pill [ 🌙 Black ] [ ☀️ White ]
-            Row(
+            // White Theme Segment Button
+            val whiteInteraction = remember { MutableInteractionSource() }
+            val isWhitePressed by whiteInteraction.collectIsPressedAsState()
+            val whiteScale by animateFloatAsState(
+                targetValue = if (isWhitePressed) 0.94f else 1.0f,
+                animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "storeWhiteBtnScale"
+            )
+            Box(
                 modifier = Modifier
-                    .height(34.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(
-                        if (isDarkTheme) Color(0xFF141416) else Color(0xFFF1F5F9)
+                    .graphicsLayer {
+                        scaleX = whiteScale
+                        scaleY = whiteScale
+                    }
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (!isDarkTheme) Color(0xFFFFFFFF) else Color.Transparent)
+                    .then(
+                        if (!isDarkTheme) Modifier.border(1.dp, Color(0xFFF59E0B).copy(alpha = 0.60f), RoundedCornerShape(8.dp))
+                        else Modifier
                     )
-                    .border(
-                        width = 1.dp,
-                        color = if (isDarkTheme) Color.White.copy(alpha = 0.10f) else Color(0xFFCBD5E1),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    .padding(3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    .clickable(
+                        interactionSource = whiteInteraction,
+                        indication = null
+                    ) {
+                        if (isDarkTheme) {
+                            try { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+                            onToggleTheme()
+                        }
+                    }
+                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                contentAlignment = Alignment.Center
             ) {
-                // Black Theme Segment Button
-                val blackInteraction = remember { MutableInteractionSource() }
-                val isBlackPressed by blackInteraction.collectIsPressedAsState()
-                val blackScale by animateFloatAsState(
-                    targetValue = if (isBlackPressed) 0.94f else 1.0f,
-                    animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
-                    label = "storeBlackBtnScale"
-                )
-                Box(
-                    modifier = Modifier
-                        .graphicsLayer {
-                            scaleX = blackScale
-                            scaleY = blackScale
-                        }
-                        .clip(RoundedCornerShape(7.dp))
-                        .background(if (isDarkTheme) Color(0xFF000000) else Color.Transparent)
-                        .then(
-                            if (isDarkTheme) Modifier.border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.60f), RoundedCornerShape(7.dp))
-                            else Modifier
-                        )
-                        .clickable(
-                            interactionSource = blackInteraction,
-                            indication = null
-                        ) {
-                            if (!isDarkTheme) {
-                                try { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
-                                onToggleTheme()
-                            }
-                        }
-                        .padding(horizontal = 9.dp, vertical = 5.dp),
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.DarkMode,
-                            contentDescription = "Black Theme",
-                            tint = if (isDarkTheme) Color(0xFF38BDF8) else theme.textDarkMuted,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Text(
-                            text = "Black",
-                            fontSize = 11.5.sp,
-                            fontWeight = if (isDarkTheme) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isDarkTheme) Color.White else theme.textDarkMuted
-                        )
-                    }
-                }
-
-                // White Theme Segment Button
-                val whiteInteraction = remember { MutableInteractionSource() }
-                val isWhitePressed by whiteInteraction.collectIsPressedAsState()
-                val whiteScale by animateFloatAsState(
-                    targetValue = if (isWhitePressed) 0.94f else 1.0f,
-                    animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
-                    label = "storeWhiteBtnScale"
-                )
-                Box(
-                    modifier = Modifier
-                        .graphicsLayer {
-                            scaleX = whiteScale
-                            scaleY = whiteScale
-                        }
-                        .clip(RoundedCornerShape(7.dp))
-                        .background(if (!isDarkTheme) Color(0xFFFFFFFF) else Color.Transparent)
-                        .then(
-                            if (!isDarkTheme) Modifier.border(1.dp, Color(0xFFF59E0B).copy(alpha = 0.60f), RoundedCornerShape(7.dp))
-                            else Modifier
-                        )
-                        .clickable(
-                            interactionSource = whiteInteraction,
-                            indication = null
-                        ) {
-                            if (isDarkTheme) {
-                                try { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
-                                onToggleTheme()
-                            }
-                        }
-                        .padding(horizontal = 9.dp, vertical = 5.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.LightMode,
-                            contentDescription = "White Theme",
-                            tint = if (!isDarkTheme) Color(0xFFF59E0B) else theme.textDarkMuted,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Text(
-                            text = "White",
-                            fontSize = 11.5.sp,
-                            fontWeight = if (!isDarkTheme) FontWeight.Bold else FontWeight.Medium,
-                            color = if (!isDarkTheme) Color.Black else theme.textDarkMuted
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Rounded.LightMode,
+                        contentDescription = "White Theme",
+                        tint = if (!isDarkTheme) Color(0xFFF59E0B) else theme.textDarkMuted,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = "White",
+                        fontSize = 11.5.sp,
+                        fontWeight = if (!isDarkTheme) FontWeight.Bold else FontWeight.Medium,
+                        color = if (!isDarkTheme) Color.Black else theme.textDarkMuted
+                    )
                 }
             }
         }
@@ -3563,11 +3416,37 @@ fun StoreSettingsNavRow(
     trailingBadgeColor: Color? = null,
     onClick: (() -> Unit)? = null
 ) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val rowScale by animateFloatAsState(
+        targetValue = if (isPressed && onClick != null) 0.98f else 1.0f,
+        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "settingsRowScale"
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 16.dp, vertical = 13.dp),
+            .graphicsLayer {
+                scaleX = rowScale
+                scaleY = rowScale
+            }
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        interactionSource = interactionSource,
+                        indication = null
+                    ) {
+                        try {
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                        } catch (_: Exception) {}
+                        onClick()
+                    }
+                } else Modifier
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -3580,14 +3459,14 @@ fun StoreSettingsNavRow(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(iconTint.copy(alpha = 0.12f)),
+                    .background(iconTint.copy(alpha = if (theme.isDark) 0.14f else 0.10f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = iconTint,
-                    modifier = Modifier.size(19.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
 
@@ -3595,7 +3474,7 @@ fun StoreSettingsNavRow(
                 Text(
                     text = title,
                     color = theme.textPrimary,
-                    fontSize = 14.sp,
+                    fontSize = 13.5.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
@@ -3609,22 +3488,23 @@ fun StoreSettingsNavRow(
         }
 
         if (trailingBadge != null) {
+            val badgeColor = trailingBadgeColor ?: theme.accentColor
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background((trailingBadgeColor ?: theme.accentColor).copy(alpha = 0.15f))
-                    .border(0.6.dp, (trailingBadgeColor ?: theme.accentColor).copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+                    .background(badgeColor.copy(alpha = if (theme.isDark) 0.15f else 0.10f))
+                    .border(0.6.dp, badgeColor.copy(alpha = if (theme.isDark) 0.35f else 0.25f), RoundedCornerShape(6.dp))
                     .padding(horizontal = 7.dp, vertical = 2.5.dp)
             ) {
                 Text(
                     text = trailingBadge,
-                    color = trailingBadgeColor ?: theme.accentColor,
+                    color = badgeColor,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     style = TextStyle(fontFeatureSettings = "tnum")
                 )
             }
-        } else {
+        } else if (onClick != null) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                 contentDescription = null,
@@ -3792,7 +3672,7 @@ fun ClassicLoginAccountView(
         }
 
         // ================= 1. USER IDENTITY HERO CARD (Connecto Profile Style) =================
-        val avatarCardShape = RoundedCornerShape(22.dp)
+        val avatarCardShape = RoundedCornerShape(20.dp)
         val role = currentUser?.role ?: StoreRole.MEMBER
         val isAdmin = role == StoreRole.ADMIN
         val isConnectoSso = currentUser?.isConnectoSso == true
@@ -3835,7 +3715,7 @@ fun ClassicLoginAccountView(
                     modifier = Modifier.size(76.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (!isGuest && currentUser != null) {
+                    if (!isGuest) {
                         UserAvatarImage(
                             avatarUrl = currentUser.avatarUrl,
                             displayName = currentUser.displayName,
@@ -3905,14 +3785,14 @@ fun ClassicLoginAccountView(
                     verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     Text(
-                        text = if (!isGuest && currentUser != null) currentUser.displayName else "Guest Explorer",
+                        text = if (!isGuest) currentUser.displayName else "Guest Explorer",
                         color = theme.textPrimary,
                         fontSize = 19.sp,
                         fontWeight = FontWeight.Black,
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = if (!isGuest && currentUser != null) "@${currentUser.username}" else "@guest.store",
+                        text = if (!isGuest) "@${currentUser.username}" else "@guest.store",
                         color = theme.textMuted,
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Medium,
@@ -3956,6 +3836,94 @@ fun ClassicLoginAccountView(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
+
+                // 3-Column Telemetry / Metric Strip
+                HorizontalDivider(
+                    color = theme.dividerColor,
+                    thickness = 0.8.dp,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "ACCOUNT",
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = theme.textDarkMuted,
+                            letterSpacing = 0.6.sp
+                        )
+                        Text(
+                            text = if (isAdmin) "Admin" else if (isConnectoSso) "SSO" else if (!isGuest) "Verified" else "Guest",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = theme.textPrimary
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(24.dp)
+                            .background(theme.dividerColor)
+                    )
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "INTEGRITY",
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = theme.textDarkMuted,
+                            letterSpacing = 0.6.sp
+                        )
+                        Text(
+                            text = "SHA-256",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF3B82F6)
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(24.dp)
+                            .background(theme.dividerColor)
+                    )
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "ENGINE",
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = theme.textDarkMuted,
+                            letterSpacing = 0.6.sp
+                        )
+                        Text(
+                            text = "IPC Session",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF10B981)
+                        )
+                    }
+                }
             }
         }
 
@@ -3998,6 +3966,16 @@ fun ClassicLoginAccountView(
                 theme = theme,
                 trailingBadge = "ENABLED",
                 trailingBadgeColor = Color(0xFF8B5CF6)
+            )
+            HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
+            StoreSettingsNavRow(
+                icon = Icons.Rounded.Shield,
+                iconTint = Color(0xFF06B6D4),
+                title = "Hardware Keystore Vault",
+                subtitle = "Tamper-proof local-only key storage & cryptographic trust",
+                theme = theme,
+                trailingBadge = "LOCAL",
+                trailingBadgeColor = Color(0xFF06B6D4)
             )
         }
 
@@ -4073,7 +4051,7 @@ fun ClassicLoginAccountView(
         }
 
         // ================= 6. ACCOUNT & SESSION SECTION =================
-        if (!isGuest && currentUser != null) {
+        if (!isGuest) {
             StoreSettingsSection(title = "Account & Session") {
                 Box(
                     modifier = Modifier
@@ -4167,58 +4145,72 @@ fun ClassicLoginAccountView(
                         HorizontalDivider(modifier = Modifier.weight(1f), color = theme.dividerColor, thickness = 0.8.dp)
                     }
 
-                    // Segmented Tabs
-                    Row(
+                    // Segmented Tabs with Sliding Indicator Pill
+                    BoxWithConstraints(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(12.dp))
                             .background(theme.cardElevated)
-                            .border(1.dp, theme.cardBorder, RoundedCornerShape(10.dp))
-                            .padding(3.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            .border(1.dp, theme.cardBorder, RoundedCornerShape(12.dp))
+                            .padding(3.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (authTab == 0) theme.surface else Color.Transparent)
-                                .then(if (authTab == 0) Modifier.border(1.dp, theme.cardBorder, RoundedCornerShape(8.dp)) else Modifier)
-                                .clickable {
-                                    authTab = 0
-                                    onClearLoginError()
-                                }
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "SIGN IN",
-                                color = if (authTab == 0) theme.textPrimary else theme.textDarkMuted,
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
+                        val segmentWidth = maxWidth / 2
+                        val animatedThumbOffset by animateDpAsState(
+                            targetValue = if (authTab == 0) 0.dp else segmentWidth,
+                            animationSpec = spring(stiffness = 450f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                            label = "authTabThumb"
+                        )
 
+                        // Animated sliding thumb
                         Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (authTab == 1) theme.surface else Color.Transparent)
-                                .then(if (authTab == 1) Modifier.border(1.dp, theme.cardBorder, RoundedCornerShape(8.dp)) else Modifier)
-                                .clickable {
-                                    authTab = 1
-                                    onClearLoginError()
-                                }
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "CREATE ACCOUNT",
-                                color = if (authTab == 1) theme.textPrimary else theme.textDarkMuted,
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp
-                            )
+                                .offset(x = animatedThumbOffset)
+                                .width(segmentWidth)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(theme.surface)
+                                .border(1.dp, theme.cardBorder, RoundedCornerShape(9.dp))
+                        )
+
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clickable {
+                                        authTab = 0
+                                        onClearLoginError()
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "SIGN IN",
+                                    color = if (authTab == 0) theme.textPrimary else theme.textDarkMuted,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = if (authTab == 0) FontWeight.Bold else FontWeight.Medium,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clickable {
+                                        authTab = 1
+                                        onClearLoginError()
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "CREATE ACCOUNT",
+                                    color = if (authTab == 1) theme.textPrimary else theme.textDarkMuted,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = if (authTab == 1) FontWeight.Bold else FontWeight.Medium,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
                         }
                     }
 
@@ -4288,7 +4280,7 @@ fun ClassicLoginAccountView(
                             focusedLabelColor = theme.accentColor,
                             unfocusedLabelColor = theme.textMuted
                         ),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(12.dp)
                     )
 
                     // Input 2: Display Name (Create Account only)
@@ -4317,7 +4309,7 @@ fun ClassicLoginAccountView(
                                 focusedLabelColor = theme.accentColor,
                                 unfocusedLabelColor = theme.textMuted
                             ),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(12.dp)
                         )
                     }
 
@@ -4360,7 +4352,7 @@ fun ClassicLoginAccountView(
                             focusedLabelColor = theme.accentColor,
                             unfocusedLabelColor = theme.textMuted
                         ),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(12.dp)
                     )
 
                     Spacer(modifier = Modifier.height(2.dp))
