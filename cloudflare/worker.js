@@ -479,7 +479,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       cleanPath.includes("pdf-studio") && cleanPath.endsWith(".apk")
     ) {
       try {
-        const pdfResp = await fetch("https://github.com/chinnu2523/connecto/releases/download/v5.2.4/pdf-studio.apk", {
+        const pdfResp = await fetch("https://github.com/chinnu2523/connecto/releases/download/v5.2.5/pdf-studio.apk", {
           redirect: "follow",
           headers: {
             "User-Agent": "Connecto-Cloud-Worker/1.1.0"
@@ -495,7 +495,7 @@ Sitemap: https://connecto.fun/sitemap.xml
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
           downloadHeaders.set("X-Connecto-App", "PDF Studio");
-          downloadHeaders.set("X-Connecto-Version", "v1.5.0");
+          downloadHeaders.set("X-Connecto-Version", "v1.5.1");
           return new Response(pdfResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -504,7 +504,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (err) {
         console.error("PDF Studio download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.4/pdf-studio.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.5/pdf-studio.apk", 302);
     }
 
     // 3b. Cloudflare Global Edge CDN: Direct APK Download Gateway
@@ -1996,14 +1996,18 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Full PDF editor & creative image editor with typography matching",
         description: "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         category: "Productivity",
-        version_name: "1.5.0",
-        version_code: 16,
-        size_bytes: 23363174,
-        size_formatted: "22.3 MB",
+        version_name: "1.5.1",
+        version_code: 17,
+        size_bytes: 75441237,
+        size_formatted: "72.0 MB",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
         accent_color: "#EF4444",
         changelog: [
+          "Scan & Edit Text in Images (On-Device OCR): Detect, select, and edit text embedded within images and scanned documents with ML Kit offline OCR — no internet required",
+          "In-Image Text Erasure & Replacement: Cleanly inpaint/erase original text with local background color sampling and insert custom replacement text with matched typography",
+          "Interactive Text Annotation Editing: Tap any placed or detected text annotation in the Image Editor to edit text, change color, adjust font size, toggle bold/italic, or delete",
+          "Scanned PDF Auto-Detection: Automatic OCR fallback and one-tap scan action for image-based PDF pages with zero digital text streams",
           "Creative Image Editor Studio: Added full-featured image editor with smooth brush and highlighter, rich typography text annotations, vector shapes (rect, circle, arrow, line), whiteout eraser, aspect ratio cropping, and tone & color adjustments",
           "Lossless Image to PDF & High-Res PNG Export: Instantly convert edited images directly into multi-page PDF documents or save as high-resolution PNG photos",
           "OWASP MASVS Security Hardening: Eliminated path traversal vulnerability in PDF merger with regex filename sanitization, hardened FileProvider configuration to restrict sharing strictly to dedicated document subdirectories, disabled insecure adb backup of sensitive documents, and switched PDFBox memory allocation from heap-only to disk-backed temp files to prevent OutOfMemory denial-of-service crashes",
