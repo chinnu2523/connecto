@@ -49,6 +49,13 @@ cp android/app/build/outputs/apk/release/app-release.apk backend/static/download
 cp store-app/app/build/outputs/apk/release/app-release.apk backend/static/downloads/our-store.apk
 ```
 
+### Step 3b: Mandatory Pruning of Old Releases & Server Data
+Automatically delete old/superseded application releases and obsolete artifacts across GitHub, Cloudflare D1, and Server storage (keeping only latest active and fallback releases):
+```bash
+cd /Users/madarauchiha/connecto
+./scripts/prune_old_data.sh 2
+```
+
 ### Step 4: Deploy to the Website (Cloudflare Pages)
 Deploy the website static files to Cloudflare Pages:
 ```bash

@@ -59,3 +59,24 @@
 6. **Commit & Push Repositories**:
    - Ensure all changes across `connecto` and `connecto-store` repositories are committed and pushed.
 
+---
+
+## 3. Mandatory Pruning & Deletion of Old Application Data, Releases & Artifacts
+
+### CRITICAL MANDATE:
+**ON EVERY APPLICATION RELEASE OR DEPLOYMENT CYCLE, YOU MUST AUTOMATICALLY DELETE AND PURGE ALL PREVIOUS/OLD APPLICATION RELEASES, OBSOLETE APKS, STALE DATABASE RECORDS, AND BUILD CACHES ACROSS GITHUB AND SERVER INFRASTRUCTURE.**
+
+### Mandatory Pruning Checklist:
+1. **GitHub Releases Pruning**:
+   - Automatically delete all previous/older GitHub releases and tags, keeping ONLY the latest 2 releases (active + 1 fallback).
+   - Run: `gh release delete <old_tag> --yes --cleanup-tag`.
+2. **Cloudflare D1 Database Pruning (`connecto-db`)**:
+   - Purge obsolete records in `app_releases`:
+     `DELETE FROM app_releases WHERE is_latest = 0 AND id NOT IN (SELECT id FROM app_releases ORDER BY created_at DESC LIMIT 2);`
+3. **Server Downloads & File Storage Pruning**:
+   - Remove stale binaries (`backend/static/downloads/app-release.apk`, deprecated versions, temporary files).
+   - Keep only current canonical binaries (`connecto-fun.apk`, `our-store.apk`, `pdf-studio.apk`).
+4. **Automated Pruning Script**:
+   - Run `/Users/madarauchiha/connecto/scripts/prune_old_data.sh 2` on every release cycle.
+
+

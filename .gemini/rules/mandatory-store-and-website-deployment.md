@@ -52,6 +52,13 @@ Whenever the trigger condition is met, execute the following steps in sequence:
   cp store-app/app/build/outputs/apk/release/app-release.apk backend/static/downloads/our-store.apk
   ```
 
+### Step 3b: Pruning & Deletion of Old Releases & Server Data
+- Automatically delete old/superseded application releases and obsolete artifacts across GitHub, Cloudflare D1, and Server storage (keeping only latest active and fallback releases):
+  ```bash
+  cd /Users/madarauchiha/connecto
+  ./scripts/prune_old_data.sh 2
+  ```
+
 ### Step 4: Deploy to the Website
 - Deploy the updated website assets to Cloudflare Pages:
   ```bash

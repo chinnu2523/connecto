@@ -374,30 +374,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       try {
         const canonicalApkUrls = [
           "https://github.com/chinnu2523/connecto/releases/download/v5.4.3/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.2/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.1/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.0/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.9/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.8/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.7/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.6/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.5/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.0/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.2.9/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.2.8/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.2.7/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v2.1.0/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v2.0.9/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v2.0.9/app-release.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v2.0.8/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v2.0.8/app-release.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v2.0.7/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v2.0.7/app-release.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v2.0.6/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v2.0.5/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v2.0.4/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v2.0.3/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.2.3/our-store.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.4.2/our-store.apk"
         ];
         const cache = caches.default;
         const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.1.4-b63-prod.apk", { method: "GET" });
@@ -619,27 +596,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       try {
         const canonicalApkUrls = [
           "https://github.com/chinnu2523/connecto/releases/download/v5.4.3/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.2/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.1/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.0/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.9/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.8/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.7/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.6/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.5/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.4/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.3/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.2/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.1/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.3.0/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.2.9/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.2.8/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.2.7/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.2.6/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.2.5/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.2.4/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.2.2/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.2.0/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.4.2/connecto-fun.apk"
         ];
         const cache = caches.default;
         const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.3.7-b151-prod.apk", { method: "GET" });
