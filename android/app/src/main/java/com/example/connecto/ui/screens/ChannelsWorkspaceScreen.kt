@@ -25,6 +25,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -339,23 +340,6 @@ fun ChannelsWorkspaceScreen(
         targetValue = if (drawerState.isOpen || drawerState.targetValue == DrawerValue.Open) 180f else 0f,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "drawerChevron"
-    )
-
-    val waveTransition = rememberInfiniteTransition(label = "voiceLoungeWave")
-    val waveBar1 by waveTransition.animateFloat(
-        initialValue = 4f, targetValue = 13f,
-        animationSpec = infiniteRepeatable(tween(420, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "wb1"
-    )
-    val waveBar2 by waveTransition.animateFloat(
-        initialValue = 12f, targetValue = 5f,
-        animationSpec = infiniteRepeatable(tween(560, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "wb2"
-    )
-    val waveBar3 by waveTransition.animateFloat(
-        initialValue = 6f, targetValue = 15f,
-        animationSpec = infiniteRepeatable(tween(380, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "wb3"
     )
 
     val displayMessages = remember(messages.toList(), channelSearchQuery) {
@@ -1250,15 +1234,13 @@ fun ChannelsWorkspaceScreen(
                                                 .padding(horizontal = 9.dp, vertical = 6.dp)
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(1.5.dp),
+                                                VoiceLoungeWaveBars(
+                                                    color = contentOnGradient,
+                                                    barWidth = 2.dp,
+                                                    spacing = 1.5.dp,
+                                                    scale = 1.0f,
                                                     modifier = Modifier.height(14.dp)
-                                                ) {
-                                                    Box(modifier = Modifier.width(2.dp).height(waveBar1.dp).clip(CircleShape).background(contentOnGradient))
-                                                    Box(modifier = Modifier.width(2.dp).height(waveBar2.dp).clip(CircleShape).background(contentOnGradient))
-                                                    Box(modifier = Modifier.width(2.dp).height(waveBar3.dp).clip(CircleShape).background(contentOnGradient))
-                                                }
+                                                )
                                                 Spacer(modifier = Modifier.width(5.dp))
                                                 Text(
                                                     text = "Join Lounge",
@@ -1582,15 +1564,13 @@ fun ChannelsWorkspaceScreen(
                                             )
                                             if (channelItem.id == "voice-lounge" && isSelected) {
                                                 Spacer(modifier = Modifier.width(5.dp))
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(1.dp),
+                                                VoiceLoungeWaveBars(
+                                                    color = OnlineGreen,
+                                                    barWidth = 1.5.dp,
+                                                    spacing = 1.dp,
+                                                    scale = 0.7f,
                                                     modifier = Modifier.height(10.dp)
-                                                ) {
-                                                    Box(modifier = Modifier.width(1.5.dp).height((waveBar1 * 0.7f).dp).clip(CircleShape).background(OnlineGreen))
-                                                    Box(modifier = Modifier.width(1.5.dp).height((waveBar2 * 0.7f).dp).clip(CircleShape).background(OnlineGreen))
-                                                    Box(modifier = Modifier.width(1.5.dp).height((waveBar3 * 0.7f).dp).clip(CircleShape).background(OnlineGreen))
-                                                }
+                                                )
                                             } else if (channelItem.id == "announcements") {
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Box(
@@ -3745,5 +3725,44 @@ private fun getGuestPinnedMessage(channelId: String): PinnedMessageDto {
             pinnedBy = "admin",
             pinnedAt = "Recent"
         )
+    }
+}
+
+@Composable
+private fun VoiceLoungeWaveBars(
+    color: Color,
+    modifier: Modifier = Modifier,
+    barWidth: Dp = 2.dp,
+    spacing: Dp = 1.5.dp,
+    scale: Float = 1.0f
+) {
+    val waveTransition = rememberInfiniteTransition(label = "voiceLoungeWave")
+    val waveBar1 by waveTransition.animateFloat(
+        initialValue = 4f * scale,
+        targetValue = 13f * scale,
+        animationSpec = infiniteRepeatable(tween(420, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "wb1"
+    )
+    val waveBar2 by waveTransition.animateFloat(
+        initialValue = 12f * scale,
+        targetValue = 5f * scale,
+        animationSpec = infiniteRepeatable(tween(560, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "wb2"
+    )
+    val waveBar3 by waveTransition.animateFloat(
+        initialValue = 6f * scale,
+        targetValue = 15f * scale,
+        animationSpec = infiniteRepeatable(tween(380, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "wb3"
+    )
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(spacing),
+        modifier = modifier
+    ) {
+        Box(modifier = Modifier.width(barWidth).height(waveBar1.dp).clip(CircleShape).background(color))
+        Box(modifier = Modifier.width(barWidth).height(waveBar2.dp).clip(CircleShape).background(color))
+        Box(modifier = Modifier.width(barWidth).height(waveBar3.dp).clip(CircleShape).background(color))
     }
 }

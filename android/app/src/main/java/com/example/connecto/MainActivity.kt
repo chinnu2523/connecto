@@ -931,7 +931,7 @@ fun ConnectoApp(
                                 state = tabPagerState,
                                 modifier = Modifier.fillMaxSize(),
                                 userScrollEnabled = !isDirectChatOpen && !isChannelDrawerOpen,
-                                beyondViewportPageCount = 0
+                                beyondViewportPageCount = 1
                             ) { pageIndex ->
                                 Box(modifier = Modifier.fillMaxSize().clipToBounds()) {
                                     when (tabs[pageIndex]) {

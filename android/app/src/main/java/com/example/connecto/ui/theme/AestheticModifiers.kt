@@ -336,17 +336,6 @@ fun Modifier.glassCanvasMesh(
         return this.background(Color(0xFF000000))
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "glassMeshAmbient")
-    val pulse by infiniteTransition.animateFloat(
-        initialValue = 0.88f,
-        targetValue = 1.12f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glassMeshPulse"
-    )
-
     return this.drawBehind {
         // Deep obsidian crystal backdrop
         drawRect(colors.background)
@@ -360,9 +349,9 @@ fun Modifier.glassCanvasMesh(
                     Color.Transparent
                 ),
                 center = Offset(size.width * 0.82f, size.height * 0.12f),
-                radius = size.width * 0.65f * pulse
+                radius = size.width * 0.65f
             ),
-            radius = size.width * 0.65f * pulse,
+            radius = size.width * 0.65f,
             center = Offset(size.width * 0.82f, size.height * 0.12f)
         )
 
@@ -375,9 +364,9 @@ fun Modifier.glassCanvasMesh(
                     Color.Transparent
                 ),
                 center = Offset(size.width * 0.15f, size.height * 0.82f),
-                radius = size.width * 0.70f / pulse
+                radius = size.width * 0.70f
             ),
-            radius = size.width * 0.70f / pulse,
+            radius = size.width * 0.70f,
             center = Offset(size.width * 0.15f, size.height * 0.82f)
         )
 

@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.3.3",
-        version_name: "v5.3.3",
-        version_code: 147,
-        build: 147,
-        sha256: "f48775debda67fb832c97a527351c3c19be7cf4789639867f45add4886bece71",
+        version: "5.3.4",
+        version_name: "v5.3.4",
+        version_code: 148,
+        build: 148,
+        sha256: "1d914a8b76104256346f2dc1f197077bd115743b5ec3d0143324ff10d191b096",
         filename: "connecto-fun.apk",
-        size_bytes: 38071808,
+        size_bytes: 38072331,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -609,6 +609,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.3.4/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.3/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.2/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.1/connecto-fun.apk",
@@ -623,14 +624,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.0/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.3.3-b147-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.3.4-b148-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.3.3");
-          res.headers.set("X-Connecto-Build", "147");
+          res.headers.set("X-Connecto-Version", "v5.3.4");
+          res.headers.set("X-Connecto-Build", "148");
           return res;
         }
 
@@ -682,7 +683,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.3.3/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.3.4/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2044,14 +2045,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.3.3",
-        version_code: 147,
-        size_bytes: 38071808,
+        version_name: "5.3.4",
+        version_code: 148,
+        size_bytes: 38072331,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "UI/UX High-Performance Optimization: Eliminated main-thread cryptographic operations (PBKDF2/SHA-256) by implementing an in-memory concurrent decrypted preview cache, making conversation list scrolling butter-smooth at 120fps",
+          "Eliminated Continuous 120fps Idle Redraws: De-scoped infinite transition animations from root composables and canvas mesh modifiers, preventing continuous full-screen GPU redraws on idle and drastically boosting battery and frame stability",
+          "Instantaneous Tab Navigation: Optimized HorizontalPager with pre-warmed viewport pages (beyondViewportPageCount = 1), eliminating cold screen inflation jank when switching between Home, Messages, and Channels",
+          "Optimized Chat Bubble & Swipe Rendering: Pre-allocated gradient brushes and switched swipe-to-reply spring physics to lambda-based offset calculations (Modifier.offset { IntOffset(...) }), bypassing unnecessary recomposition passes",
+          "Lightweight Quick Actions: Replaced nested LazyRow with a lightweight horizontal scroll row, eliminating nested gesture coordination overhead",
           "Real-Time Unread Message Count Badges: Real-time side number badge on conversation list items dynamically displaying unseen messages count, synchronizing instantly as chats are viewed or new messages arrive",
           "Bottom Navigation Unseen Messages Counter: Bottom Messages tab button accurately reflects the total sum of unseen messages across all chats with real-time sync, immediately decrementing and clearing when conversations are opened",
           "E2E Message Seen State Persistence: Unread status synchronizes across local SQLite and SharedPreferences for instantaneous, offline-ready UI loading without flicker",
@@ -7283,13 +7289,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.3.3",
-      version_name: "v5.3.3",
-      version_code: 147,
-      build: 147,
-      sha256: "f48775debda67fb832c97a527351c3c19be7cf4789639867f45add4886bece71",
+      version: "5.3.4",
+      version_name: "v5.3.4",
+      version_code: 148,
+      build: 148,
+      sha256: "1d914a8b76104256346f2dc1f197077bd115743b5ec3d0143324ff10d191b096",
       filename: "connecto-fun.apk",
-      size_bytes: 38071808,
+      size_bytes: 38072331,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",

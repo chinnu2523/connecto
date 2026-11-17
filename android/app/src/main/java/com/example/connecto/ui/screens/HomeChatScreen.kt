@@ -7,6 +7,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -928,41 +930,33 @@ fun HomeChatScreen(
 
                 // 3. Quick Actions Row
                 item {
-                    LazyRow(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = ConnectoSpacing.sm),
-                        contentPadding = PaddingValues(horizontal = ConnectoSpacing.md),
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = ConnectoSpacing.md, vertical = ConnectoSpacing.sm),
                         horizontalArrangement = Arrangement.spacedBy(ConnectoSpacing.sm)
                     ) {
-                        item {
-                            QuickActionChip(
-                                icon = Icons.AutoMirrored.Filled.Chat,
-                                label = "Messages",
-                                onClick = onNavigateToMessages
-                            )
-                        }
-                        item {
-                            QuickActionChip(
-                                icon = Icons.Default.Call,
-                                label = "Calls",
-                                onClick = onNavigateToCalls
-                            )
-                        }
-                        item {
-                            QuickActionChip(
-                                icon = Icons.Default.Tag,
-                                label = "Channels",
-                                onClick = { onNavigateToChannel?.invoke("general") ?: onNavigateToMessages() }
-                            )
-                        }
-                        item {
-                            QuickActionChip(
-                                icon = Icons.Default.Star,
-                                label = "Favourites",
-                                onClick = { isFavouritesDialogOpen = true }
-                            )
-                        }
+                        QuickActionChip(
+                            icon = Icons.AutoMirrored.Filled.Chat,
+                            label = "Messages",
+                            onClick = onNavigateToMessages
+                        )
+                        QuickActionChip(
+                            icon = Icons.Default.Call,
+                            label = "Calls",
+                            onClick = onNavigateToCalls
+                        )
+                        QuickActionChip(
+                            icon = Icons.Default.Tag,
+                            label = "Channels",
+                            onClick = { onNavigateToChannel?.invoke("general") ?: onNavigateToMessages() }
+                        )
+                        QuickActionChip(
+                            icon = Icons.Default.Star,
+                            label = "Favourites",
+                            onClick = { isFavouritesDialogOpen = true }
+                        )
                     }
                 }
 
