@@ -373,7 +373,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             "sample_rate": sample_rate
                         }
                         # Direct 1:1 personal relay: ensures instantaneous delivery without duplicate room amplification
-                        if target:
+                        if target and target.lower() not in (str(user.id).lower(), str(user.username).lower()):
                             await ws_manager.send_personal_event(target, voice_event)
                         # Multi-peer room broadcast: for group voice lounges or room-based routing
                         elif room_id:

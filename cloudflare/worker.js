@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.5.5",
-        version_name: "v5.5.5",
-        version_code: 169,
-        build: 169,
-        sha256: "096bcf683d8c445d5c8ce99972125e370420c1c8e5993a552bf59c633c01e0cf",
+        version: "5.5.6",
+        version_name: "v5.5.6",
+        version_code: 170,
+        build: 170,
+        sha256: "b36f04e5aaffa3165b3a0c61143ffb1dac6f46bf6adb4fba1d6e370a2aa58640",
         filename: "connecto-fun.apk",
-        size_bytes: 38070663,
+        size_bytes: 38058780,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -595,18 +595,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.5.5/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.5.4/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.5.6/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.5.5/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.5.5-b169-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.5.6-b170-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.5.5");
-          res.headers.set("X-Connecto-Build", "169");
+          res.headers.set("X-Connecto-Version", "v5.5.6");
+          res.headers.set("X-Connecto-Build", "170");
           return res;
         }
 
@@ -618,7 +618,7 @@ Sitemap: https://connecto.fun/sitemap.xml
               const resp = await fetch(currentFetchUrl, {
                 redirect: "manual",
                 headers: {
-                  "User-Agent": "Connecto-Cloud-Worker/5.5.5"
+                  "User-Agent": "Connecto-Cloud-Worker/5.5.6"
                 }
               });
               if (resp.status >= 300 && resp.status < 400) {
@@ -642,8 +642,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.5.5");
-              downloadHeaders.set("X-Connecto-Build", "169");
+              downloadHeaders.set("X-Connecto-Version", "v5.5.6");
+              downloadHeaders.set("X-Connecto-Build", "170");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -658,7 +658,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.5.5/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.5.6/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2028,15 +2028,20 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.5.5",
-        version_code: 169,
-        size_bytes: 38070663,
+        version_name: "5.5.6",
+        version_code: 170,
+        size_bytes: 38058780,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
-          "Comprehensive Legal Synchronization (Terms & Privacy): Synchronized in-app and web Privacy Policy and Terms of Use with current platform architecture (November 2026, Connecto v5.5.5) covering automated 18+ Date of Birth calculation, email OTP verification, earpiece-default WebRTC voice privacy, and OS-level FLAG_SECURE screen protection",
+          "Voice Call Self-Voice Echo Elimination & Full Audio Engine Overhaul: Identified and eliminated the self-voice echo loop caused by client-side socket reflection and simultaneous WebRTC P2P + WebSocket PCM dual streaming. Linked hardware Acoustic Echo Canceler (AEC) by synchronizing AudioTrack and AudioRecord session IDs, added strict self-packet rejection filters on client and server edge, stopped ringback immediately upon call connection, and explicitly forced speakerphone off for earpiece routing",
+          "Tier-1 Mobile UI Redesign (Home & Direct Messages): Elevated dark mode to rich obsidian (#0A0B0E) with subtle card elevation (#12141A) and interactive surfaces (#1A1D26), completely removing harsh 1px grey borders. Direct messages list refactored into clean edge-to-edge rows with inset 1px dividers, 48px avatars with 12px cutout status dots, 16px SemiBold titles, and 14px message previews. Streamlined segmented control with sunken #12141A track and #242836 active tab",
+          "Modern Flat Translucent Bottom Navigation Bar: Replaced wave/bump cutout with a sleek flat translucent navigation bar (rgba(14,16,22,0.88), blur 16px, 1px top border) with top-edge glowing accent pill indicator; automatically hides inside active direct and workspace channel chats",
+          "Calls Screen, Profile, & Chat Polish: Removed duplicate group call CTA, implemented swipe-to-delete on call history rows with colored initial avatar fallbacks, grouped consecutive calls on the same day, smoothed profile hero cover photo gradient (#12141C to transparent), redesigned wallpaper customization with isolated tabs and slim 4px sliders, and grouped consecutive chat messages within 3 minutes with 18px rounded bubbles",
+          "Comprehensive Light Mode Contrast & Status Bar Fixes: Dynamically synchronized system status bar and navigation bar with dark icons (isAppearanceLightStatusBars) in Light Mode, frosted white translucent headers with dark slate typography, crisp white message inputs with slate borders, and vibrant Indigo (#4F46E5) outgoing bubbles",
+          "Legal & Regulatory Terms Update (v5.5.6): Synchronized Privacy Policy and Terms of Use across web and mobile platforms with latest public beta testing specifications (November 2026, Connecto v5.5.6)",
           "Streamlined Clean Authentication Flow: Removed top segmented Sign In / Sign Up pill switcher, removed Keystore 256-bit AES text, and eliminated bottom protocol chips for a clean, minimalist Sign In screen",
           "Dedicated Create Account Interface: Tapping 'Create an account' opens a dedicated registration interface with back header, live debounced verification, email OTP validation, and full profile onboarding",
           "Contextual Guest Isolation: 'Continue as Guest' is strictly available on Sign In and hidden during account creation",
@@ -7309,13 +7314,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.5.5",
-      version_name: "v5.5.5",
-      version_code: 169,
-      build: 169,
-      sha256: "096bcf683d8c445d5c8ce99972125e370420c1c8e5993a552bf59c633c01e0cf",
+      version: "5.5.6",
+      version_name: "v5.5.6",
+      version_code: 170,
+      build: 170,
+      sha256: "b36f04e5aaffa3165b3a0c61143ffb1dac6f46bf6adb4fba1d6e370a2aa58640",
       filename: "connecto-fun.apk",
-      size_bytes: 38070663,
+      size_bytes: 38058780,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7329,10 +7334,27 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v5.5.5",
+          version: "v5.5.6",
           date: "Nov 18, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v5.5.6: Voice Call Echo Elimination & Tier-1 Mobile UI Redesign",
+          summary: "Completely eliminated self-voice echo in voice calls by synchronizing hardware AEC audio sessions, dropping reflected WebSocket packets, and routing to earpiece by default. Refactored the mobile UI into a tier-1 dark obsidian aesthetic (#0A0B0E) with edge-to-edge chat rows, modern flat translucent bottom bar, swipe-to-delete call history, and full Light Mode contrast repair.",
+          highlights: [
+            "Voice Call Self-Voice Echo Fix: Eliminated audio feedback loop caused by simultaneous WebRTC P2P + WebSocket PCM fallback streaming and self-packet WebSocket reflections. Linked hardware Acoustic Echo Canceler (AEC) by synchronizing AudioTrack and AudioRecord session IDs, stopped ringtone immediately upon connection, and forced speakerphone off for earpiece routing.",
+            "Tier-1 Mobile UI (Obsidian Surface & Clean Chat Rows): Elevated dark mode from flat black to rich obsidian (#0A0B0E), removing harsh grey borders. Refactored direct messages list into edge-to-edge rows with 78dp inset dividers, 48px avatars with 12px cutout status dots, 16px display names, and single-line message previews.",
+            "Modern Flat Translucent Bottom Bar: Implemented sleek flat translucent bottom navigation (rgba(14,16,22,0.88), 16px blur, 1px top border) with glowing accent pill indicator; automatically hides inside active direct and workspace chats.",
+            "Calls Screen, Profile, & Chat Polish: Removed duplicate group call CTA, added swipe-to-delete with red reveal, grouped consecutive calls on the same day, added colored initial avatar fallbacks, smoothed profile cover gradient (#12141C to transparent), and grouped consecutive messages within 3 minutes with 18px rounded bubbles.",
+            "Light Mode Dynamic Status Bar & Contrast: Dynamically enabled dark system status bar icons (isAppearanceLightStatusBars) in Light Mode, frosted white chat headers with dark slate text, crisp white message inputs, and vibrant Indigo (#4F46E5) outgoing bubbles.",
+            "Android Native App v5.5.6 (Build 170 • 36.3 MB): SHA-256 b36f04e5aaffa3165b3a0c61143ffb1dac6f46bf6adb4fba1d6e370a2aa58640."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
+          version: "v5.5.5",
+          date: "Nov 18, 2026",
+          category: "feature",
+          tag: "Production",
           title: "Connecto v5.5.5: Comprehensive Legal Synchronization (Terms & Privacy Policy)",
           summary: "Synchronized in-app and web Privacy Policy and Terms of Use with current platform architecture (November 2026, Connecto v5.5.5) covering automated 18+ Date of Birth calculation, email OTP verification, earpiece-default WebRTC voice privacy, and OS-level FLAG_SECURE screen protection.",
           highlights: [
@@ -10268,6 +10290,10 @@ export class ConnectoRealtimeRoom {
               const msg = JSON.stringify(audioPayload);
               for (const ws of chSet) {
                 if (ws === server) continue;
+                const wsMeta = this.connectedSockets.get(ws);
+                if (wsMeta && wsMeta.username && wsMeta.username.toLowerCase() === meta.username.toLowerCase()) {
+                  continue; // Never reflect audio packet back to sender's own sockets
+                }
                 try {
                   ws.send(msg);
                   deliveredToChannel++;
@@ -10280,7 +10306,7 @@ export class ConnectoRealtimeRoom {
             // or mobile background transition), resolve the peer directly and dispatch to their user socket.
             const target = data.target || data.target_user || data.target_user_id;
             const peer = this.resolveCallPeer(rId, meta.username, target);
-            if (peer && deliveredToChannel === 0) {
+            if (peer && deliveredToChannel === 0 && peer.toLowerCase() !== meta.username.toLowerCase()) {
               this.sendToUser(peer, audioPayload);
             }
           }

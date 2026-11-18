@@ -159,6 +159,16 @@ fun ConnectoDesignTheme(
         )
     }
 
+    val view = androidx.compose.ui.platform.LocalView.current
+    if (!view.isInEditMode) {
+        androidx.compose.runtime.SideEffect {
+            val window = (view.context as? android.app.Activity)?.window ?: return@SideEffect
+            val insetsController = androidx.core.view.WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = !connectoColors.isDark
+            insetsController.isAppearanceLightNavigationBars = !connectoColors.isDark
+        }
+    }
+
     CompositionLocalProvider(
         LocalConnectoColors provides connectoColors,
         LocalConnectoTypography provides connectoTypography

@@ -213,7 +213,7 @@ fun ConnectoSettingsRow(
                 } catch (_: Exception) {}
                 onClick()
             }
-            .padding(horizontal = 16.dp, vertical = 13.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Leading Icon
@@ -309,8 +309,8 @@ fun ConnectoSettingsRow(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = if (colors.isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
-                modifier = Modifier.size(17.dp)
+                tint = if (colors.isDark) Color(0xFF4A4E5C) else Color(0xFF94A3B8),
+                modifier = Modifier.size(14.dp)
             )
         }
     }
@@ -382,7 +382,7 @@ fun ConnectoThemeToggleRow(
                 } catch (_: Exception) {}
                 onToggleTheme(!isDarkTheme)
             }
-            .padding(horizontal = 16.dp, vertical = 13.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Leading Squircle Icon (Black & White monochrome theme icon)

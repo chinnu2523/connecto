@@ -1,5 +1,6 @@
 package com.example.connecto.ui.screens
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -92,6 +93,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -824,6 +826,7 @@ fun HomeChatScreen(
                     onMenuClick = null,
                     onVoiceGroupClick = null,
                     showProfileButton = false,
+                    showOnlineStatus = false,
                     onAvatarClick = {},
                     customAction = null
                 )
@@ -1195,8 +1198,8 @@ fun HomeChatScreen(
                                             Icon(
                                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                                 contentDescription = null,
-                                                tint = if (colors.isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
-                                                modifier = Modifier.size(17.dp)
+                                                tint = if (colors.isDark) Color(0xFF4A4E5C) else Color(0xFF94A3B8),
+                                                modifier = Modifier.size(14.dp)
                                             )
                                         }
                                         if (index < displayedFavourites.size - 1) {
@@ -1369,45 +1372,43 @@ private fun QuickActionChip(
     onClick: () -> Unit
 ) {
     val colors = LocalConnectoColors.current
-    val chipShape = RoundedCornerShape(ConnectoRadius.full)
+    val chipShape = RoundedCornerShape(20.dp)
+    val isDark = colors.isDark
+
     Row(
         modifier = Modifier
-            .pressScaleEffect(onClick = onClick, targetScale = 0.92f)
+            .pressScaleEffect(onClick = onClick, targetScale = 0.94f)
+            .clip(chipShape)
+            .background(if (isDark) Color(0xFF161922) else Color(0xFFFFFFFF))
             .then(
-                if (colors.isLiquidGlass) {
-                    Modifier.liquidGlassCard(shape = chipShape)
-                } else if (colors.isGlass) {
-                    Modifier.glassCard(shape = chipShape, backgroundColor = Color(0xFF1E293B), borderColor = Color(0x6038BDF8))
+                if (isDark) {
+                    Modifier.drawBehind {
+                        drawLine(
+                            color = Color(0x12FFFFFF), // rgba(255, 255, 255, 0.07) top-edge highlight
+                            start = Offset(0f, 0f),
+                            end = Offset(size.width, 0f),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                    }
                 } else {
-                    Modifier
-                        .clip(chipShape)
-                        .background(colors.surface)
-                        .border(1.dp, colors.borderSubtle.copy(alpha = 0.8f), chipShape)
+                    Modifier.border(1.dp, Color(0xFFE2E8F0), chipShape)
                 }
             )
-            .padding(start = 6.dp, end = ConnectoSpacing.md, top = 5.dp, bottom = 5.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(26.dp)
-                .clip(CircleShape)
-                .background(colors.primary.copy(alpha = 0.14f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = colors.primary,
-                modifier = Modifier.size(15.dp)
-            )
-        }
-        Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (isDark) Color.White else Color(0xFF0F172A),
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = label,
-            fontSize = 12.5.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
-            color = colors.textPrimary
+            color = if (isDark) Color.White else Color(0xFF0F172A)
         )
     }
 }

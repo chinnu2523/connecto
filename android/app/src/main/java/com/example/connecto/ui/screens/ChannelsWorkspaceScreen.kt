@@ -1131,13 +1131,7 @@ fun ChannelsWorkspaceScreen(
                                             targetScale = 0.95f
                                         )
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(if (colors.isDark) Color(0xFF151822) else Color(0xFFF1F3F9))
-                                        .border(
-                                            width = 1.dp,
-                                            color = colors.borderSubtle.copy(alpha = 0.6f),
-                                            shape = RoundedCornerShape(12.dp)
-                                        )
-                                        .padding(start = 7.dp, end = 9.dp, top = 5.dp, bottom = 5.dp)
+                                        .padding(horizontal = 4.dp, vertical = 4.dp)
                                 ) {
                                     Box(
                                         modifier = Modifier
@@ -2563,17 +2557,18 @@ private fun ChannelMessageCard(
                 horizontalAlignment = if (isMe) Alignment.End else Alignment.Start,
                 modifier = Modifier.widthIn(min = 80.dp, max = 310.dp)
             ) {
-                val bubbleShape = RoundedCornerShape(22.dp)
+                val bubbleShape = if (isMe) {
+                    RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 4.dp)
+                } else {
+                    RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 4.dp)
+                }
 
-                val isWhiteBubble = if (isMe) {
-                    colors.isDark || colors.primary == Color.White || colors.primary == Color(0xFFFAFAFA)
-                } else false
-
-                val ownBubbleBg = if (colors.isDark) Color(0xFFFFFFFF) else Color(0xFF141312)
-                val ownBubbleText = if (colors.isDark) Color(0xFF000000) else Color(0xFFFFFFFF)
-                val friendBubbleBg = if (colors.isDark) Color(0xFF18181B) else Color(0xFFF4F4F5)
-                val friendBubbleText = if (colors.isDark) Color(0xFFFFFFFF) else Color(0xFF141312)
-                val friendBorder = if (colors.isDark) Color(0xFF27272A) else Color(0xFFE4E4E7)
+                val isWhiteBubble = false
+                val ownBubbleBg = if (colors.isDark) Color(0xFF3B4254) else Color(0xFF4F46E5)
+                val ownBubbleText = Color(0xFFFFFFFF)
+                val friendBubbleBg = if (colors.isDark) Color(0xFF18181B) else Color(0xFFFFFFFF)
+                val friendBubbleText = if (colors.isDark) Color(0xFFFFFFFF) else Color(0xFF0F172A)
+                val friendBorder = if (colors.isDark) Color(0xFF27272A) else Color(0xFFE2E8F0)
 
                 val bubbleModifier = if (colors.isLiquidGlass || colors.isGlass) {
                     Modifier.glassBubble(isMe = isMe, shape = bubbleShape, isLiquid = colors.isLiquidGlass)
@@ -2666,34 +2661,13 @@ private fun ChannelMessageCard(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = if (isMe) "You" else message.authorName,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isMe) {
-                                        if (isWhiteBubble) Color(0xFF09090B) else Color.White.copy(alpha = 0.95f)
-                                    } else {
-                                        if (colors.isDark) Color.White else colors.primary
-                                    }
-                                )
-                                if (isMe) {
-                                    Spacer(modifier = Modifier.width(5.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(
-                                                if (isWhiteBubble) Color(0x18000000)
-                                                else Color.White.copy(alpha = 0.22f)
-                                            )
-                                            .padding(horizontal = 4.dp, vertical = 1.dp)
-                                    ) {
-                                        Text(
-                                            text = "YOU",
-                                            fontSize = 8.5.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isWhiteBubble) Color.Black else Color.White
-                                        )
-                                    }
+                                if (!isMe) {
+                                    Text(
+                                        text = message.authorName,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (colors.isDark) Color.White else colors.primary
+                                    )
                                 }
                             }
 
@@ -2800,59 +2774,6 @@ private fun ChannelMessageCard(
                                 fontSize = 13.5.sp,
                                 color = if (isMe) ownBubbleText else friendBubbleText,
                                 lineHeight = 19.sp
-                            )
-                        }
-                    }
-                }
-
-                // Trailing thought bubble dots tail matching reference image
-                if (isMe) {
-                    // Outgoing tail on bottom-right
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .padding(end = 6.dp)
-                    ) {
-                        Column(horizontalAlignment = Alignment.End) {
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = 3.dp, y = (-3).dp)
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(ownBubbleBg)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = 8.dp, y = (-1).dp)
-                                    .size(4.5.dp)
-                                    .clip(CircleShape)
-                                    .background(ownBubbleBg)
-                            )
-                        }
-                    }
-                } else {
-                    // Incoming tail on bottom-left
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.Start)
-                            .padding(start = 6.dp)
-                    ) {
-                        Column(horizontalAlignment = Alignment.Start) {
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = (-3).dp, y = (-3).dp)
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(friendBubbleBg)
-                                    .border(1.dp, friendBorder, CircleShape)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = (-8).dp, y = (-1).dp)
-                                    .size(4.5.dp)
-                                    .clip(CircleShape)
-                                    .background(friendBubbleBg)
-                                    .border(1.dp, friendBorder, CircleShape)
                             )
                         }
                     }

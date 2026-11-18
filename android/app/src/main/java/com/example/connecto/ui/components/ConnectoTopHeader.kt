@@ -78,6 +78,7 @@ fun ConnectoTopHeader(
     avatarUrl: String? = null,
     isStealthModeOn: Boolean = false,
     isOnline: Boolean = true,
+    showOnlineStatus: Boolean = true,
     onMenuClick: (() -> Unit)? = null,
     onVoiceGroupClick: (() -> Unit)? = null,
     onAddFriendClick: (() -> Unit)? = null,
@@ -188,19 +189,30 @@ fun ConnectoTopHeader(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(vertical = 1.dp, horizontal = 2.dp)
-                    ) {
-                        PulsingOnlineDot(
-                            color = colors.success,
-                            size = 6.dp
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
+                    if (showOnlineStatus) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(vertical = 1.dp, horizontal = 2.dp)
+                        ) {
+                            PulsingOnlineDot(
+                                color = colors.success,
+                                size = 6.dp
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = statusText,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = colors.textSecondary,
+                                maxLines = 1
+                            )
+                        }
+                    } else if (subtitle.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = statusText,
-                            fontSize = 11.5.sp,
+                            text = subtitle,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = colors.textSecondary,
                             maxLines = 1

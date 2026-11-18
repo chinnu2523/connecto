@@ -202,6 +202,8 @@ object VoiceCallManager {
     private val audioHardwareLock = Any()
     private var audioRecord: AudioRecord? = null
     private var audioTrack: AudioTrack? = null
+    @Volatile
+    private var currentAudioSessionId: Int = AudioManager.AUDIO_SESSION_ID_GENERATE
     private var recordingJob: Job? = null
     private var durationJob: Job? = null
     private var pingJob: Job? = null
@@ -1889,6 +1891,7 @@ object VoiceCallManager {
                     _callState.value = CallState.CONNECTED
                     _incomingCall.value = null
                     _participantCount.value = 2
+                    CallRingtoneManager.stopRingtoneAndVibration(appContext)
 
         // Activate EARPIECE by default for 1:1 voice calls (unless Bluetooth headset is connected)
         val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.EARPIECE
@@ -1944,6 +1947,27 @@ object VoiceCallManager {
                 }
 
                 "voice_data" -> {
+                    val sender = json.optString("sender_id").ifEmpty { json.optString("sender_username") }
+                    val myUser = ConnectoApiClient.currentUsername ?: ""
+                    val myId = ConnectoApiClient.currentUserId ?: ""
+                    if (sender.isNotBlank() && (sender.equals(myUser, ignoreCase = true) || sender.equals(myId, ignoreCase = true))) {
+                        // Drop self-echo packets immediately to eliminate loopback
+                        return
+                    }
+
+                    val isEchoCall = _activeCallTitle.value.contains("Echo", ignoreCase = true)
+                    val hasConnectedPeer = peerConnections.values.any { pc ->
+                        try {
+                            val s = pc.iceConnectionState()
+                            s == PeerConnection.IceConnectionState.CONNECTED || s == PeerConnection.IceConnectionState.COMPLETED
+                        } catch (_: Throwable) { false }
+                    }
+
+                    if (hasConnectedPeer && !isEchoCall) {
+                        // WebRTC P2P direct RTP is connected; drop fallback websocket audio to prevent dual-audio robotic echo
+                        return
+                    }
+
                     val base64Audio = json.optString("audio")
                     val sampleRate = json.optInt("sample_rate", SAMPLE_RATE)
                     if (base64Audio.isNotEmpty()) {
@@ -1953,7 +1977,7 @@ object VoiceCallManager {
                             Log.d(TAG, "Received voice_data while OUTGOING_RINGING; remote party answered! Transitioning to CONNECTED")
                             _isRemoteRinging.value = false
                             _callState.value = CallState.CONNECTED
-                            CallRingtoneManager.stopRingtoneAndVibration()
+                            CallRingtoneManager.stopRingtoneAndVibration(appContext)
                             startAudioHardware()
                             startDurationTimer()
                         }
@@ -3283,6 +3307,8 @@ object VoiceCallManager {
                         val earpiece = devices.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE }
                         if (earpiece != null) {
                             am.setCommunicationDevice(earpiece)
+                            @Suppress("DEPRECATION")
+                            am.isSpeakerphoneOn = false
                         } else {
                             val spk = devices.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
                             if (spk != null) {
@@ -3640,7 +3666,7 @@ object VoiceCallManager {
             // 120ms hardware buffer prevents underruns while maintaining instantaneous playback
             val bufSize = maxOf(minBuf * 2, (effectiveRate * 2 * 120) / 1000)
 
-            audioTrack = AudioTrack.Builder()
+            val trackBuilder = AudioTrack.Builder()
                 .setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
@@ -3656,7 +3682,14 @@ object VoiceCallManager {
                 )
                 .setBufferSizeInBytes(bufSize)
                 .setTransferMode(AudioTrack.MODE_STREAM)
-                .build()
+
+            val session = currentAudioSessionId
+            if (session != AudioManager.AUDIO_SESSION_ID_GENERATE && session > 0) {
+                try {
+                    trackBuilder.setSessionId(session)
+                } catch (_: Throwable) {}
+            }
+            audioTrack = trackBuilder.build()
 
             audioTrack?.play()
             try {
@@ -3699,12 +3732,6 @@ object VoiceCallManager {
             } ?: return
 
             if (track.playState != AudioTrack.PLAYSTATE_PLAYING) return
-
-            // Pre-roll safety cushion: when recovering from underrun/silence gap, wait for 2 chunks (~40ms)
-            // to absorb mobile network jitter, ensuring smooth, non-choppy playout
-            if (wasLastFrameUnderrun && jitterAudioQueue.size < 2) {
-                return
-            }
 
             while (true) {
                 val chunk = jitterAudioQueue.poll() ?: run {
@@ -3813,6 +3840,7 @@ object VoiceCallManager {
             }
 
             val sessionId = activeRecord.audioSessionId
+            currentAudioSessionId = sessionId
             if (NoiseSuppressor.isAvailable()) {
                 try {
                     hardwareNoiseSuppressor = NoiseSuppressor.create(sessionId)?.apply {
@@ -3895,6 +3923,8 @@ object VoiceCallManager {
                                         put("channel_id", roomId)
                                         put("audio", base64Str)
                                         put("sample_rate", SAMPLE_RATE)
+                                        put("sender_id", ConnectoApiClient.currentUserId ?: "")
+                                        put("sender_username", ConnectoApiClient.currentUsername ?: "")
                                         if (!partner.isNullOrBlank()) {
                                             put("target", partner)
                                             put("target_user", partner)

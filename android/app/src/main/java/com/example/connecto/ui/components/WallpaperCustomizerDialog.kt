@@ -47,6 +47,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -62,6 +63,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -104,6 +106,7 @@ fun WallpaperCustomizerDialog(
     var mode by remember { mutableStateOf(initialTransform.contentScaleMode) }
     var dim by remember { mutableFloatStateOf(initialTransform.dim) }
     var blur by remember { mutableFloatStateOf(initialTransform.blur) }
+    var applyToAllChats by remember { mutableStateOf(false) }
 
     var activeTab by remember {
         mutableIntStateOf(if (wallpaperId == "custom" && !customWallpaperUri.isNullOrBlank()) 1 else 0)
@@ -476,7 +479,7 @@ fun WallpaperCustomizerDialog(
                     }
 
                     // ================= TAB 2: ADJUST & BLUR =================
-                    if (activeTab == 2 || activeTab == 1) {
+                    if (activeTab == 2) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             // Fit Mode Selector
                             Row(
@@ -536,8 +539,9 @@ fun WallpaperCustomizerDialog(
                                     onValueChange = { dim = it },
                                     valueRange = 0.0f..0.85f,
                                     colors = SliderDefaults.colors(
-                                        thumbColor = MaterialTheme.colorScheme.primary,
-                                        activeTrackColor = MaterialTheme.colorScheme.primary
+                                        thumbColor = Color.White,
+                                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                                        inactiveTrackColor = Color(0xFF262936)
                                     )
                                 )
                             }
@@ -566,8 +570,9 @@ fun WallpaperCustomizerDialog(
                                     onValueChange = { blur = it },
                                     valueRange = 0f..20f,
                                     colors = SliderDefaults.colors(
-                                        thumbColor = MaterialTheme.colorScheme.primary,
-                                        activeTrackColor = MaterialTheme.colorScheme.primary
+                                        thumbColor = Color.White,
+                                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                                        inactiveTrackColor = Color(0xFF262936)
                                     )
                                 )
                             }
@@ -596,8 +601,9 @@ fun WallpaperCustomizerDialog(
                                     onValueChange = { scale = it },
                                     valueRange = 0.5f..3.0f,
                                     colors = SliderDefaults.colors(
-                                        thumbColor = MaterialTheme.colorScheme.primary,
-                                        activeTrackColor = MaterialTheme.colorScheme.primary
+                                        thumbColor = Color.White,
+                                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                                        inactiveTrackColor = Color(0xFF262936)
                                     )
                                 )
                                 Row(
@@ -677,7 +683,30 @@ fun WallpaperCustomizerDialog(
                         .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.20f))
                         .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Set for all chats toggle switch row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { applyToAllChats = !applyToAllChats }
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Set for all chats",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Switch(
+                                checked = applyToAllChats,
+                                onCheckedChange = { applyToAllChats = it },
+                                modifier = Modifier.scale(0.82f)
+                            )
+                        }
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -706,7 +735,7 @@ fun WallpaperCustomizerDialog(
                                         dim = dim,
                                         blur = blur
                                     )
-                                    onApply?.invoke(selectedWallpaperId, selectedCustomUri, updated, false)
+                                    onApply?.invoke(selectedWallpaperId, selectedCustomUri, updated, applyToAllChats)
                                     onSave?.invoke(updated)
                                     onDismissRequest()
                                 },
@@ -731,32 +760,6 @@ fun WallpaperCustomizerDialog(
                                     fontWeight = FontWeight.Bold
                                 )
                             }
-                        }
-
-                        TextButton(
-                            onClick = {
-                                val updated = WallpaperTransform(
-                                    scale = scale,
-                                    offsetX = offsetX,
-                                    offsetY = offsetY,
-                                    contentScaleMode = mode,
-                                    dim = dim,
-                                    blur = blur
-                                )
-                                onApply?.invoke(selectedWallpaperId, selectedCustomUri, updated, true)
-                                onSave?.invoke(updated)
-                                onDismissRequest()
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(32.dp)
-                        ) {
-                            Text(
-                                text = "Set for all chats",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
                         }
                     }
                 }

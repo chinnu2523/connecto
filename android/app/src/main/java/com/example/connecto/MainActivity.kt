@@ -905,7 +905,7 @@ fun ConnectoApp(
                     val emailVerification by com.example.connecto.network.ConnectoApiClient.emailVerificationState.collectAsState()
                     var showManualVerifyModal by rememberSaveable { mutableStateOf(false) }
 
-                    val showBottomBar = !(currentTab == ConnectoTab.MESSAGES && isDirectChatOpen) && !isImeVisible
+                    val showBottomBar = !(currentTab == ConnectoTab.MESSAGES && isDirectChatOpen) && currentTab != ConnectoTab.CHANNELS && !isImeVisible
 
                     val activity = context as? android.app.Activity
                     androidx.activity.compose.BackHandler(enabled = true) {

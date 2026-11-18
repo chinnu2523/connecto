@@ -1022,112 +1022,6 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(themeColors.background)
     ) {
-        if (hasCoverPhoto) {
-            // Full-Screen Transparent Cover Photo Layer
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { alpha = 0.35f }
-            ) {
-                if (isPresetBanner && presetBannerObj != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(presetBannerObj.brush)
-                    )
-                } else if (bannerImageRequest != null) {
-                    AsyncImage(
-                        model = bannerImageRequest,
-                        contentDescription = "Profile Cover Background",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
-
-            // High-End Multi-Stop Gradient Scrim for Contrast, Readability & Modern Depth across the entire FULL SCREEN
-            val scrimStops = if (themeColors.isLiquidGlass) {
-                arrayOf(
-                    0.00f to Color.Black.copy(alpha = 0.12f),
-                    0.30f to Color.Black.copy(alpha = 0.18f),
-                    0.65f to Color.Black.copy(alpha = 0.26f),
-                    1.00f to Color.Black.copy(alpha = 0.35f)
-                )
-            } else {
-                arrayOf(
-                    0.00f to Color.Black.copy(alpha = 0.18f),
-                    0.25f to Color.Black.copy(alpha = 0.28f),
-                    0.60f to Color.Black.copy(alpha = 0.38f),
-                    1.00f to Color.Black.copy(alpha = 0.48f)
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Brush.verticalGradient(colorStops = scrimStops))
-            )
-
-            // Atmospheric Tint matching Accent Colors (disabled for transparent liquid glass to avoid added colors)
-            if (!themeColors.isLiquidGlass) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .drawBehind {
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        themeColors.primary.copy(alpha = if (isThemeDark) 0.15f else 0.08f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(size.width * 0.85f, size.height * 0.12f),
-                                    radius = size.width * 0.80f
-                                ),
-                                radius = size.width * 0.80f,
-                                center = Offset(size.width * 0.85f, size.height * 0.12f)
-                            )
-                        }
-                )
-            }
-        } else {
-            // Ambient default background when no cover photo is set
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .drawBehind {
-                        drawRect(themeColors.background)
-                        if (!themeColors.isLiquidGlass) {
-                            // Static Ambient Caustic Glare (Top-Right)
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        themeColors.primary.copy(alpha = if (isThemeDark) 0.22f else 0.10f),
-                                        themeColors.info.copy(alpha = if (isThemeDark) 0.10f else 0.05f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(size.width * 0.85f, size.height * 0.10f),
-                                    radius = size.width * 0.75f
-                                ),
-                                radius = size.width * 0.75f,
-                                center = Offset(size.width * 0.85f, size.height * 0.10f)
-                            )
-                            // Static Deep Fluid Depth Orb (Bottom-Left)
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        themeColors.surfaceVariant.copy(alpha = if (isThemeDark) 0.16f else 0.08f),
-                                        themeColors.info.copy(alpha = if (isThemeDark) 0.08f else 0.04f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(size.width * 0.15f, size.height * 0.85f),
-                                    radius = size.width * 0.80f
-                                ),
-                                radius = size.width * 0.80f,
-                                center = Offset(size.width * 0.15f, size.height * 0.85f)
-                            )
-                        }
-                    }
-            )
-        }
         AnimatedContent(
             targetState = activeSubPage,
             transitionSpec = {
@@ -1347,9 +1241,24 @@ fun ProfileScreen(
                                                     .background(
                                                         Brush.verticalGradient(
                                                             listOf(
-                                                                Color.Black.copy(alpha = 0.55f),
-                                                                Color.Black.copy(alpha = 0.08f),
-                                                                Color.Black.copy(alpha = 0.45f)
+                                                                Color.Black.copy(alpha = 0.45f),
+                                                                Color.Transparent,
+                                                                Color.Black.copy(alpha = 0.30f)
+                                                            )
+                                                        )
+                                                    )
+                                            )
+                                            // Smooth bottom-to-top linear gradient over lower edge
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(72.dp)
+                                                    .align(Alignment.BottomCenter)
+                                                    .background(
+                                                        Brush.verticalGradient(
+                                                            listOf(
+                                                                Color.Transparent,
+                                                                if (isThemeDark) Color(0xFF12141C) else themeColors.surface
                                                             )
                                                         )
                                                     )
@@ -1399,147 +1308,35 @@ fun ProfileScreen(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(12.dp)
-                                                .align(Alignment.TopCenter),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                                .align(Alignment.TopEnd),
+                                            horizontalArrangement = Arrangement.End,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            // Category Tag
+                                            // Compact Glassmorphic Edit Banner Pill
                                             Box(
                                                 modifier = Modifier
-                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .clip(RoundedCornerShape(20.dp))
                                                     .background(Color.Black.copy(alpha = 0.50f))
-                                                    .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
-                                                    .padding(horizontal = 9.dp, vertical = 4.dp)
+                                                    .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
+                                                    .clickable { showCoverOptionsMenu = true }
+                                                    .padding(horizontal = 12.dp, vertical = 6.dp)
                                             ) {
-                                                Text(
-                                                    text = "PROFILE",
-                                                    fontSize = 10.5.sp,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = Color.White,
-                                                    letterSpacing = 0.8.sp
-                                                )
-                                            }
-
-                                            // Cover Action Buttons
-                                            if (isUploadingBanner) {
                                                 Row(
-                                                    modifier = Modifier
-                                                        .clip(RoundedCornerShape(12.dp))
-                                                        .background(Color.Black.copy(alpha = 0.60f))
-                                                        .border(1.dp, Color.White.copy(alpha = 0.30f), RoundedCornerShape(12.dp))
-                                                        .padding(horizontal = 10.dp, vertical = 5.dp),
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                 ) {
-                                                    CircularProgressIndicator(
-                                                        modifier = Modifier.size(13.dp),
-                                                        color = Color.White,
-                                                        strokeWidth = 2.dp
+                                                    Icon(
+                                                        imageVector = Icons.Default.CameraAlt,
+                                                        contentDescription = "Edit Banner",
+                                                        tint = Color.White,
+                                                        modifier = Modifier.size(14.dp)
                                                     )
                                                     Text(
-                                                        text = "Updating Cover...",
-                                                        fontSize = 11.sp,
+                                                        text = if (hasCoverPhoto) "Edit Banner" else "Add Banner",
+                                                        fontSize = 12.sp,
                                                         fontWeight = FontWeight.SemiBold,
                                                         color = Color.White
                                                     )
-                                                }
-                                            } else {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                                ) {
-                                                    if (hasCoverPhoto) {
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .clip(RoundedCornerShape(12.dp))
-                                                                .background(Color.Black.copy(alpha = 0.55f))
-                                                                .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-                                                                .clickable {
-                                                                    lightboxTitle = "Background Cover"
-                                                                    lightboxImageUrl = bannerPhotoUri
-                                                                    isLightboxBanner = true
-                                                                    showLightbox = true
-                                                                }
-                                                                .padding(horizontal = 9.dp, vertical = 5.dp)
-                                                        ) {
-                                                            Row(
-                                                                verticalAlignment = Alignment.CenterVertically,
-                                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                                            ) {
-                                                                Icon(
-                                                                    imageVector = Icons.Default.Visibility,
-                                                                    contentDescription = "View Cover",
-                                                                    tint = Color.White,
-                                                                    modifier = Modifier.size(13.dp)
-                                                                )
-                                                                Text(
-                                                                    text = "View",
-                                                                    fontSize = 11.sp,
-                                                                    fontWeight = FontWeight.SemiBold,
-                                                                    color = Color.White
-                                                                )
-                                                            }
-                                                        }
-                                                    }
-
-                                                    // Presets Button
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .clip(RoundedCornerShape(12.dp))
-                                                            .background(Color.Black.copy(alpha = 0.55f))
-                                                            .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-                                                            .clickable {
-                                                                showCoverPresetsDialog = true
-                                                            }
-                                                            .padding(horizontal = 9.dp, vertical = 5.dp)
-                                                    ) {
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.Palette,
-                                                                contentDescription = "Presets",
-                                                                tint = Color(0xFFA29BFE),
-                                                                modifier = Modifier.size(13.dp)
-                                                            )
-                                                            Text(
-                                                                text = "Presets",
-                                                                fontSize = 11.sp,
-                                                                fontWeight = FontWeight.SemiBold,
-                                                                color = Color.White
-                                                            )
-                                                        }
-                                                    }
-
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .clip(RoundedCornerShape(12.dp))
-                                                            .background(Color.Black.copy(alpha = 0.55f))
-                                                            .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                                                            .clickable {
-                                                                showCoverOptionsMenu = true
-                                                            }
-                                                            .padding(horizontal = 10.dp, vertical = 5.dp)
-                                                    ) {
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.CameraAlt,
-                                                                contentDescription = "Change Cover",
-                                                                tint = Color.White,
-                                                                modifier = Modifier.size(13.dp)
-                                                            )
-                                                            Text(
-                                                                text = if (hasCoverPhoto) "Change" else "Add Cover",
-                                                                fontSize = 11.sp,
-                                                                fontWeight = FontWeight.Bold,
-                                                                color = Color.White
-                                                            )
-                                                        }
-                                                    }
                                                 }
                                             }
                                         }
@@ -1740,27 +1537,18 @@ fun ProfileScreen(
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clip(RoundedCornerShape(14.dp))
-                                                .background(
-                                                    if (hasCoverPhoto) Color.Black.copy(alpha = 0.30f)
-                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                                )
-                                                .border(
-                                                    1.dp,
-                                                    if (hasCoverPhoto) Color.White.copy(alpha = 0.18f)
-                                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-                                                    RoundedCornerShape(14.dp)
-                                                )
-                                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(if (isThemeDark) Color(0xFF161922) else Color(0xFFF1F5F9))
+                                                .padding(horizontal = 16.dp, vertical = 12.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
                                                 text = bioInput.trim(),
-                                                fontSize = 13.sp,
-                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Normal,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontSize = 13.5.sp,
+                                                fontWeight = FontWeight.Normal,
+                                                color = if (isThemeDark) Color(0xFFD4D4D8) else Color(0xFF334155),
                                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                                lineHeight = 19.sp
+                                                lineHeight = 20.sp
                                             )
                                         }
                                     }

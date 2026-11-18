@@ -7,9 +7,18 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.runtime.mutableFloatStateOf
+import kotlin.math.roundToInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -203,6 +212,48 @@ data class CallLogItem(
     val friendUsername: String = "",
     val avatarUrl: String? = null
 )
+
+@Immutable
+data class GroupedCallLog(
+    val primaryLog: CallLogItem,
+    val count: Int
+)
+
+fun groupConsecutiveCallLogs(logs: List<CallLogItem>): List<GroupedCallLog> {
+    if (logs.isEmpty()) return emptyList()
+    val grouped = mutableListOf<GroupedCallLog>()
+    var current = logs[0]
+    var count = 1
+    for (i in 1 until logs.size) {
+        val next = logs[i]
+        if (next.callerName.equals(current.callerName, ignoreCase = true) &&
+            next.timeAgo == current.timeAgo &&
+            next.callType == current.callType
+        ) {
+            count++
+        } else {
+            grouped.add(GroupedCallLog(current, count))
+            current = next
+            count = 1
+        }
+    }
+    grouped.add(GroupedCallLog(current, count))
+    return grouped
+}
+
+fun getCallAvatarColor(name: String): Color {
+    val palette = listOf(
+        Color(0xFF6366F1), // Indigo
+        Color(0xFF8B5CF6), // Purple
+        Color(0xFFEC4899), // Pink
+        Color(0xFF14B8A6), // Teal
+        Color(0xFFF59E0B), // Amber
+        Color(0xFF3B82F6), // Blue
+        Color(0xFF10B981)  // Emerald
+    )
+    val hash = kotlin.math.abs(name.hashCode())
+    return palette[hash % palette.size]
+}
 
 private fun mapCallLogDtoToItem(
     log: CallLogDto,
@@ -588,6 +639,8 @@ fun CallsScreen(
         }
     }
 
+    val groupedLogs = remember(filteredLogs) { groupConsecutiveCallLogs(filteredLogs) }
+
     val colors = LocalConnectoColors.current
 
     Box(
@@ -629,30 +682,7 @@ fun CallsScreen(
                     onAvatarClick = {},
                     onNotificationClick = null,
                     unreadNotificationsCount = 0,
-                    customAction = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Brush.linearGradient(gradientColors))
-                                .pressScaleEffect(onClick = { showCreateVoiceGroupDialog = true })
-                                .padding(horizontal = 12.dp, vertical = 7.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.GroupAdd,
-                                contentDescription = "Group Voice Call",
-                                tint = contentOnGradient,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Group Call",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = contentOnGradient
-                            )
-                        }
-                    }
+                    customAction = null
                 )
             }
 
@@ -674,23 +704,15 @@ fun CallsScreen(
             }
 
             // Quick Tab Filter Bar (All, Incoming, Outgoing, Missed)
-            val filterShape = RoundedCornerShape(14.dp)
+            val filterShape = RoundedCornerShape(12.dp)
+            val trackBg = if (colors.isDark) Color(0xFF12141A) else Color(0xFFF1F5F9)
+            val activeTabBg = if (colors.isDark) Color(0xFF242836) else Color(0xFF0F172A)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .then(
-                        if (colors.isLiquidGlass) {
-                            Modifier.liquidGlassCard(shape = filterShape)
-                        } else if (colors.isGlass) {
-                            Modifier.glassCard(shape = filterShape, backgroundColor = Color(0xFF1E293B), borderColor = Color(0x6038BDF8))
-                        } else {
-                            Modifier
-                                .clip(filterShape)
-                                .background(MaterialTheme.colorScheme.surface)
-                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), filterShape)
-                        }
-                    )
+                    .clip(filterShape)
+                    .background(trackBg)
                     .padding(4.dp)
             ) {
                 Row(
@@ -708,21 +730,15 @@ fun CallsScreen(
                     quickTabs.forEach { (filter, icon) ->
                         val isSelected = selectedFilter == filter
                         val isMissedTab = filter == "Missed"
-                        val unselectedChipBg = MaterialTheme.colorScheme.surfaceVariant
-                        val selectedTextColor = if (isMissedTab) Color.White else contentOnGradient
+                        val selectedTabBg = if (isMissedTab && isSelected) MaterialTheme.colorScheme.error else activeTabBg
+                        val selectedTextColor = Color.White
+                        val unselectedTextColor = if (colors.isDark) Color(0xFF7A7F8F) else Color(0xFF64748B)
+
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(10.dp))
-                                .then(
-                                    if (isSelected && isMissedTab) {
-                                        Modifier.background(MaterialTheme.colorScheme.error)
-                                    } else if (isSelected) {
-                                        Modifier.background(Brush.linearGradient(gradientColors))
-                                    } else {
-                                        Modifier.background(unselectedChipBg)
-                                    }
-                                )
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) selectedTabBg else Color.Transparent)
                                 .pressScaleEffect(
                                     onClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -741,7 +757,7 @@ fun CallsScreen(
                                     Icon(
                                         imageVector = icon,
                                         contentDescription = null,
-                                        tint = if (isSelected) selectedTextColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = if (isSelected) selectedTextColor else unselectedTextColor,
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Spacer(modifier = Modifier.width(3.dp))
@@ -750,7 +766,7 @@ fun CallsScreen(
                                     text = filter,
                                     fontSize = 11.5.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) selectedTextColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = if (isSelected) selectedTextColor else unselectedTextColor,
                                     maxLines = 1
                                 )
                             }
@@ -921,125 +937,153 @@ fun CallsScreen(
                 } else {
                     item(key = "calls_grouped_card") {
                         ConnectoSettingsCard {
-                            filteredLogs.forEachIndexed { idx, log ->
-                                Row(
+                            groupedLogs.forEachIndexed { idx, grouped ->
+                                val log = grouped.primaryLog
+                                val displayName = if (grouped.count > 1) "${log.callerName} (${grouped.count})" else log.callerName
+                                var swipeOffsetX by remember(log.id) { mutableFloatStateOf(0f) }
+                                val animatedSwipeOffset by animateFloatAsState(
+                                    targetValue = swipeOffsetX,
+                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+                                    label = "callRowSwipe"
+                                )
+
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .pointerInput(log.id) {
+                                            detectHorizontalDragGestures(
+                                                onDragEnd = {
+                                                    if (swipeOffsetX < -80f) {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        logPendingDelete = log
+                                                    }
+                                                    swipeOffsetX = 0f
+                                                },
+                                                onDragCancel = {
+                                                    swipeOffsetX = 0f
+                                                },
+                                                onHorizontalDrag = { _, dragAmount ->
+                                                    if (dragAmount < 0 || swipeOffsetX < 0) {
+                                                        swipeOffsetX = (swipeOffsetX + dragAmount).coerceIn(-120f, 0f)
+                                                    }
+                                                }
+                                            )
+                                        }
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        // Caller Initial or Profile Avatar
+                                    if (animatedSwipeOffset < -10f) {
                                         Box(
                                             modifier = Modifier
-                                                .size(42.dp)
-                                                .clip(CircleShape)
-                                                .background(
-                                                    if (log.isMissed) colors.error.copy(alpha = 0.12f)
-                                                    else if (colors.isDark) Color.White.copy(alpha = 0.08f)
-                                                    else Color(0xFFF1F5F9)
-                                                ),
-                                            contentAlignment = Alignment.Center
+                                                .matchParentSize()
+                                                .background(Color(0xFFEF4444).copy(alpha = 0.2f))
+                                                .padding(end = 20.dp),
+                                            contentAlignment = Alignment.CenterEnd
                                         ) {
-                                            if (!log.avatarUrl.isNullOrBlank()) {
-                                                val imgModel = resolveImageModel(log.avatarUrl)
-                                                AsyncImage(
-                                                    model = imgModel,
-                                                    contentDescription = log.callerName,
-                                                    modifier = Modifier
-                                                        .fillMaxSize()
-                                                        .clip(CircleShape),
-                                                    contentScale = ContentScale.Crop
-                                                )
-                                            } else {
-                                                Text(
-                                                    text = log.initial,
-                                                    fontSize = 16.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (log.isMissed) colors.error else colors.textPrimary
-                                                )
-                                            }
-                                        }
-
-                                        Spacer(modifier = Modifier.width(14.dp))
-
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = log.callerName,
-                                                fontSize = 15.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = colors.textPrimary,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                            Icon(
+                                                imageVector = Icons.Rounded.DeleteOutline,
+                                                contentDescription = "Delete",
+                                                tint = Color(0xFFEF4444),
+                                                modifier = Modifier.size(20.dp)
                                             )
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                val isCancelled = log.isOutgoing && log.durationSeconds == 0 && !log.isMissed
-                                                Icon(
-                                                    imageVector = if (log.isMissed) Icons.AutoMirrored.Filled.CallMissed else if (log.isOutgoing) Icons.AutoMirrored.Filled.CallMade else Icons.AutoMirrored.Filled.CallReceived,
-                                                    contentDescription = null,
-                                                    tint = if (log.isMissed) colors.error else if (isCancelled) colors.textDisabled else OnlineGreen,
-                                                    modifier = Modifier.size(13.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                val statusText = when {
-                                                    log.isMissed -> "Missed"
-                                                    log.isOutgoing && log.durationSeconds > 0 -> "Outgoing"
-                                                    log.isOutgoing -> "Cancelled"
-                                                    else -> "Incoming"
-                                                }
-                                                val durStr = formatCallDuration(log.durationSeconds)
-                                                val displaySubtext = if (durStr.isNotBlank()) {
-                                                    "$statusText • ${log.timeAgo} • $durStr"
-                                                } else {
-                                                    "$statusText • ${log.timeAgo}"
-                                                }
-                                                Text(
-                                                    text = displaySubtext,
-                                                    fontSize = 12.sp,
-                                                    color = if (log.isMissed) colors.error else colors.textSecondary,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
                                         }
                                     }
 
                                     Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .offset { IntOffset(animatedSwipeOffset.roundToInt(), 0) }
+                                            .background(if (colors.isDark) Color(0xFF12141A) else Color.White)
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        // Delete Single Call Log Action
-                                        Box(
-                                            modifier = Modifier
-                                                .size(34.dp)
-                                                .clip(CircleShape)
-                                                .background(if (colors.isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f))
-                                                .pressScaleEffect(
-                                                    onClick = {
-                                                        logPendingDelete = log
-                                                    }
-                                                ),
-                                            contentAlignment = Alignment.Center
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.DeleteOutline,
-                                                contentDescription = "Delete Call Log",
-                                                tint = colors.textSecondary,
-                                                modifier = Modifier.size(16.dp)
-                                            )
+                                            // Caller Initial or Profile Avatar
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(44.dp)
+                                                    .clip(CircleShape)
+                                                    .background(
+                                                        if (log.isMissed) colors.error.copy(alpha = 0.15f)
+                                                        else if (!log.avatarUrl.isNullOrBlank()) (if (colors.isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFF1F5F9))
+                                                        else getCallAvatarColor(log.callerName)
+                                                    ),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                if (!log.avatarUrl.isNullOrBlank()) {
+                                                    val imgModel = resolveImageModel(log.avatarUrl)
+                                                    AsyncImage(
+                                                        model = imgModel,
+                                                        contentDescription = log.callerName,
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .clip(CircleShape),
+                                                        contentScale = ContentScale.Crop
+                                                    )
+                                                } else {
+                                                    Text(
+                                                        text = log.initial.ifBlank { log.callerName.take(1).uppercase() },
+                                                        fontSize = 17.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (log.isMissed) colors.error else Color.White
+                                                    )
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.width(14.dp))
+
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = displayName,
+                                                    fontSize = 15.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = colors.textPrimary,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    val isCancelled = log.isOutgoing && log.durationSeconds == 0 && !log.isMissed
+                                                    Icon(
+                                                        imageVector = if (log.isMissed) Icons.AutoMirrored.Filled.CallMissed else if (log.isOutgoing) Icons.AutoMirrored.Filled.CallMade else Icons.AutoMirrored.Filled.CallReceived,
+                                                        contentDescription = null,
+                                                        tint = if (log.isMissed) colors.error else if (isCancelled) colors.textDisabled else OnlineGreen,
+                                                        modifier = Modifier.size(13.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    val statusText = when {
+                                                        log.isMissed -> "Missed"
+                                                        log.isOutgoing && log.durationSeconds > 0 -> "Outgoing"
+                                                        log.isOutgoing -> "Cancelled"
+                                                        else -> "Incoming"
+                                                    }
+                                                    val durStr = formatCallDuration(log.durationSeconds)
+                                                    val displaySubtext = if (durStr.isNotBlank()) {
+                                                        "$statusText • ${log.timeAgo} • $durStr"
+                                                    } else {
+                                                        "$statusText • ${log.timeAgo}"
+                                                    }
+                                                    Text(
+                                                        text = displaySubtext,
+                                                        fontSize = 12.sp,
+                                                        color = if (log.isMissed) colors.error else colors.textSecondary,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                            }
                                         }
 
-                                        // Initiate 1:1 Voice Call Action Button
+                                        // Single clean phone icon button on the right (#1C202B circular fill)
+                                        val phoneButtonBg = if (colors.isDark) Color(0xFF1C202B) else Color(0xFFF1F5F9)
+                                        val phoneIconTint = if (colors.isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B)
                                         Box(
                                             modifier = Modifier
                                                 .size(36.dp)
                                                 .clip(CircleShape)
-                                                .background(colors.primary.copy(alpha = 0.12f))
+                                                .background(phoneButtonBg)
                                                 .pressScaleEffect(
                                                     onClick = {
                                                         val dialTarget = if (log.friendUsername.isNotBlank()) log.friendUsername else log.callerName
@@ -1055,14 +1099,14 @@ fun CallsScreen(
                                             Icon(
                                                 imageVector = Icons.Default.Call,
                                                 contentDescription = "Voice Call",
-                                                tint = colors.primary,
-                                                modifier = Modifier.size(17.dp)
+                                                tint = phoneIconTint,
+                                                modifier = Modifier.size(16.dp)
                                             )
                                         }
                                     }
                                 }
-                                if (idx < filteredLogs.size - 1) {
-                                    ConnectoSettingsDivider(startIndent = 70.dp)
+                                if (idx < groupedLogs.size - 1) {
+                                    ConnectoSettingsDivider(startIndent = 74.dp)
                                 }
                             }
                         }
