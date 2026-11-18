@@ -704,20 +704,10 @@ fun CustomizedChatScreen(
     var showAddFriendDialog by remember { mutableStateOf(false) }
     var showCreateGroupChatDialog by remember { mutableStateOf(false) }
     var showCreateVoiceGroupDialog by remember { mutableStateOf(false) }
-    var showMessagesMoreMenu by remember { mutableStateOf(false) }
     var isFabExpanded by remember { mutableStateOf(false) }
     var pendingRequestsCount by remember { mutableIntStateOf(0) }
     var friendSearchQuery by remember { mutableStateOf("") }
-    var isSearchOpen by rememberSaveable { mutableStateOf(false) }
     val searchFocusRequester = remember { FocusRequester() }
-    LaunchedEffect(isSearchOpen) {
-        if (isSearchOpen) {
-            kotlinx.coroutines.delay(120)
-            try {
-                searchFocusRequester.requestFocus()
-            } catch (_: Exception) {}
-        }
-    }
     var typedMessage by remember { mutableStateOf("") }
     var isInputFocused by remember { mutableStateOf(false) }
     var isFriendTyping by remember { mutableStateOf(false) }
@@ -1058,9 +1048,10 @@ fun CustomizedChatScreen(
     }
 
     // Active Chat Theme & Wallpaper Resolution (Auto-adapts to Liquid Glass when app is in liquid glass theme)
+    val isLight = isAppInLightTheme()
     val isGlassTheme = ConnectoTheme.isGlass
     val isLiquidGlassTheme = ConnectoTheme.isLiquidGlass
-    val isPureBlack = ConnectoTheme.colors.background == Color(0xFF000000)
+    val isPureBlack = !isLight || ConnectoTheme.colors.background == Color(0xFF000000) || ConnectoTheme.colors.background == Color(0xFF0A0B0E)
     val activeChatTheme = remember(chatThemeId, isGlassTheme, isLiquidGlassTheme) {
         if (chatThemeId != "default") {
             val resolvedId = if (chatThemeId == "glass") "liquid_glass" else chatThemeId
@@ -1084,7 +1075,6 @@ fun CustomizedChatScreen(
     // Dynamic Accent Colors & Light/Dark Theme Detector
     val gradientColors = getDynamicAccentGradientColors()
     val contentOnGradient = getContentColorOnAccentGradient()
-    val isLight = isAppInLightTheme()
     val userInitial = if (currentUsername.isNotBlank()) currentUsername.first().toString().uppercase() else "C"
 
     // Theme Aware Message Bubble Colors - Dynamically configured per friend theme
@@ -4269,7 +4259,7 @@ fun CustomizedChatScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(if (!isLight) Color(0xFF0A0B0E) else MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -4889,388 +4879,108 @@ fun CustomizedChatScreen(
                         pendingFriendRequestsCount = 0,
                         showProfileButton = false,
                         onAvatarClick = {},
-                        customAction = {
-                            val haptic = LocalHapticFeedback.current
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                // Simple Small Search Button
-                                val searchInteraction = remember { MutableInteractionSource() }
-                                val isSearchPressed by searchInteraction.collectIsPressedAsState()
-                                val searchScale by animateFloatAsState(
-                                    targetValue = if (isSearchPressed) 0.90f else 1.0f,
-                                    animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
-                                    label = "searchBtnScale"
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .graphicsLayer {
-                                            scaleX = searchScale
-                                            scaleY = searchScale
-                                        }
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (isSearchOpen || friendSearchQuery.isNotEmpty()) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                            else MaterialTheme.colorScheme.surfaceVariant
-                                        )
-                                        .border(
-                                            1.dp,
-                                            if (isSearchOpen || friendSearchQuery.isNotEmpty()) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-                                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.40f),
-                                            CircleShape
-                                        )
-                                        .clickable(
-                                            interactionSource = searchInteraction,
-                                            indication = null
-                                        ) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            isSearchOpen = !isSearchOpen
-                                            if (!isSearchOpen) {
-                                                friendSearchQuery = ""
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = if (isSearchOpen) Icons.Default.Close else Icons.Default.Search,
-                                        contentDescription = if (isSearchOpen) "Close search" else "Search conversations",
-                                        tint = if (isSearchOpen || friendSearchQuery.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-
-                                // Group Chat Button
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Brush.linearGradient(gradientColors))
-                                        .clickable { showCreateGroupChatDialog = true }
-                                        .padding(horizontal = 11.dp, vertical = 7.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.GroupAdd,
-                                        contentDescription = "Create Group Chat",
-                                        tint = contentOnGradient,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(5.dp))
-                                    Text(
-                                        text = "Group",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = contentOnGradient
-                                    )
-                                }
-
-                                // 3-Dots Menu Button
-                                val moreInteraction = remember { MutableInteractionSource() }
-                                val isMorePressed by moreInteraction.collectIsPressedAsState()
-                                val moreScale by animateFloatAsState(
-                                    targetValue = if (isMorePressed) 0.90f else 1.0f,
-                                    animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
-                                    label = "moreBtnScale"
-                                )
-                                Box {
-                                    Box(
-                                        modifier = Modifier
-                                            .graphicsLayer {
-                                                scaleX = moreScale
-                                                scaleY = moreScale
-                                            }
-                                            .size(36.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (showMessagesMoreMenu) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                                else MaterialTheme.colorScheme.surfaceVariant
-                                            )
-                                            .border(
-                                                1.dp,
-                                                if (showMessagesMoreMenu) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-                                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.40f),
-                                                CircleShape
-                                            )
-                                            .clickable(
-                                                interactionSource = moreInteraction,
-                                                indication = null
-                                            ) {
-                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                showMessagesMoreMenu = !showMessagesMoreMenu
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.MoreVert,
-                                            contentDescription = "Messages Options",
-                                            tint = if (showMessagesMoreMenu) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(19.dp)
-                                        )
-                                    }
-
-                                    DropdownMenu(
-                                        expanded = showMessagesMoreMenu,
-                                        onDismissRequest = { showMessagesMoreMenu = false },
-                                        modifier = Modifier
-                                            .background(if (isPureBlack) Color(0xFF13151B) else MaterialTheme.colorScheme.surface)
-                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                                    ) {
-                                        // 1. New Chat (Direct Message)
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text("New Chat", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-                                            },
-                                            leadingIcon = {
-                                                Icon(
-                                                    imageVector = Icons.Default.PersonAdd,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            },
-                                            onClick = {
-                                                showMessagesMoreMenu = false
-                                                showAddFriendDialog = true
-                                            }
-                                        )
-
-                                        // 2. New Group Chat
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text("New Group", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-                                            },
-                                            leadingIcon = {
-                                                Icon(
-                                                    imageVector = Icons.Default.GroupAdd,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            },
-                                            onClick = {
-                                                showMessagesMoreMenu = false
-                                                showCreateGroupChatDialog = true
-                                            }
-                                        )
-
-                                        // 3. New Voice Group
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text("Voice Group", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-                                            },
-                                            leadingIcon = {
-                                                Icon(
-                                                    imageVector = Icons.Default.RecordVoiceOver,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            },
-                                            onClick = {
-                                                showMessagesMoreMenu = false
-                                                showCreateVoiceGroupDialog = true
-                                            }
-                                        )
-
-                                        // 4. Mark All as Read
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text("Mark All as Read", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-                                            },
-                                            leadingIcon = {
-                                                Icon(
-                                                    imageVector = Icons.Default.DoneAll,
-                                                    contentDescription = null,
-                                                    tint = Color(0xFF0284C7),
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            },
-                                            onClick = {
-                                                showMessagesMoreMenu = false
-                                                var markedCount = 0
-                                                friendsList.forEach { f ->
-                                                    if (f.unreadCount > 0) {
-                                                        markFriendChatAsReadLocallyAndRemotely(f)
-                                                        markedCount++
-                                                    }
-                                                }
-                                                onUnreadCountChanged(0)
-                                                onUnreadStatusChanged(false)
-                                                Toast.makeText(
-                                                    context,
-                                                    if (markedCount > 0) "Marked $markedCount chat${if (markedCount > 1) "s" else ""} as read"
-                                                    else "All chats already read",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-                                        )
-
-                                        // 5. Refresh / Sync
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text("Refresh Chats", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-                                            },
-                                            leadingIcon = {
-                                                Icon(
-                                                    imageVector = Icons.Default.Refresh,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            },
-                                            onClick = {
-                                                showMessagesMoreMenu = false
-                                                isRefreshingFriends = true
-                                                coroutineScope.launch {
-                                                    try {
-                                                        syncAcceptedFriends()
-                                                    } finally {
-                                                        isRefreshingFriends = false
-                                                    }
-                                                }
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                        customAction = null
                     )
                 }
 
-                // Expandable Search Bar UI (Only visible when small search button is activated)
-                AnimatedVisibility(
-                    visible = isSearchOpen,
-                    enter = expandVertically(animationSpec = tween(240, easing = EaseOutCubic)) + fadeIn(animationSpec = tween(220, easing = EaseOutCubic)),
-                    exit = shrinkVertically(animationSpec = tween(180, easing = EaseInCubic)) + fadeOut(animationSpec = tween(160, easing = EaseInCubic))
+                // Dedicated Search Bar (Stitch Design System & Tier-1 Dark Theme)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
                 ) {
-                    Box(
+                    val isQueryActive = friendSearchQuery.isNotEmpty()
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 8.dp)
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (!isLight) Color(0xFF12141A) else Color(0xFFF1F5F9))
+                            .border(
+                                width = 1.dp,
+                                color = if (isQueryActive) Color(0xFF2563EB) else (if (!isLight) Color(0x0FFFFFFF) else Color(0x0F000000)),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            .padding(horizontal = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val isQueryActive = friendSearchQuery.isNotEmpty()
-                        val searchBorderBrush = if (isQueryActive) {
-                            Brush.horizontalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    Color.White.copy(alpha = 0.6f),
-                                    MaterialTheme.colorScheme.primary
-                                )
-                            )
-                        } else {
-                            Brush.horizontalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
-                                )
-                            )
-                        }
-
-                        Row(
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search Conversations",
+                            tint = if (isQueryActive) Color(0xFF38BDF8) else (if (!isLight) Color(0xFF8E929F) else Color(0xFF64748B)),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        BasicTextField(
+                            value = friendSearchQuery,
+                            onValueChange = { friendSearchQuery = it },
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.70f))
-                                .border(
-                                    width = if (isQueryActive) 1.5.dp else 1.dp,
-                                    brush = searchBorderBrush,
-                                    shape = RoundedCornerShape(16.dp)
-                                )
-                                .padding(horizontal = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Search Conversations",
-                                tint = if (isQueryActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                                modifier = Modifier.size(19.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            BasicTextField(
-                                value = friendSearchQuery,
-                                onValueChange = { friendSearchQuery = it },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .focusRequester(searchFocusRequester),
-                                textStyle = TextStyle(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                singleLine = true,
-                                decorationBox = { innerTextField ->
-                                    if (friendSearchQuery.isEmpty()) {
-                                        Text(
-                                            text = "Search messages, friends or @username...",
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f),
-                                            fontSize = 13.5.sp
-                                        )
-                                    }
-                                    innerTextField()
-                                }
-                            )
-
-                            if (isQueryActive) {
-                                // Match Count Capsule
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 7.dp, vertical = 2.5.dp)
-                                ) {
+                                .weight(1f)
+                                .focusRequester(searchFocusRequester),
+                            textStyle = TextStyle(
+                                color = if (!isLight) Color(0xFFFFFFFF) else Color(0xFF0F172A),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            cursorBrush = SolidColor(if (!isLight) Color(0xFF38BDF8) else Color(0xFF2563EB)),
+                            singleLine = true,
+                            decorationBox = { innerTextField ->
+                                if (friendSearchQuery.isEmpty()) {
                                     Text(
-                                        text = "${filteredFriends.size}",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        text = "Search messages, groups, or friends...",
+                                        color = if (!isLight) Color(0xFF686C78) else Color(0xFF94A3B8),
+                                        fontSize = 13.5.sp
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                // Clear Button
-                                Box(
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
-                                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
-                                        .clickable {
-                                            friendSearchQuery = ""
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Clear search",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                }
+                                innerTextField()
+                            }
+                        )
+
+                        if (isQueryActive) {
+                            // Match Count Capsule
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (!isLight) Color(0xFF1E2230) else Color(0xFFE2E8F0))
+                                    .padding(horizontal = 7.dp, vertical = 2.5.dp)
+                            ) {
+                                Text(
+                                    text = "${filteredFriends.size}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (!isLight) Color(0xFF38BDF8) else Color(0xFF2563EB)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            // Clear Button
+                            Box(
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .clip(CircleShape)
+                                    .background(if (!isLight) Color(0xFF1E2230) else Color(0xFFCBD5E1))
+                                    .clickable {
+                                        friendSearchQuery = ""
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Clear search",
+                                    tint = if (!isLight) Color(0xFF8E929F) else Color(0xFF475569),
+                                    modifier = Modifier.size(12.dp)
+                                )
                             }
                         }
                     }
                 }
 
-                // Subtle specular divider line separating TopBar & Search from the conversations list
+                // Inset 1px divider under Search Bar
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
                         .height(1.dp)
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(
-                                    Color.Transparent,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                                    Color.White.copy(alpha = 0.15f),
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
+                        .background(if (!isLight) Color(0x0DFFFFFF) else Color(0x0F000000))
                 )
             }
 

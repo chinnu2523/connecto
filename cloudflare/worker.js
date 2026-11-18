@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.5.7",
-        version_name: "v5.5.7",
-        version_code: 171,
-        build: 171,
-        sha256: "a77ff74703ac1c979bc6d303d71cc91e21dcdc50bf62f2197b23aef488e624a5",
+        version: "5.5.8",
+        version_name: "v5.5.8",
+        version_code: 172,
+        build: 172,
+        sha256: "ccee3ddab2920dbbf075056e47346d3e78b62e5b60d4429f4112a28aa6bba251",
         filename: "connecto-fun.apk",
-        size_bytes: 38065687,
+        size_bytes: 38052270,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -218,6 +218,7 @@ Sitemap: https://connecto.fun/sitemap.xml
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Full Dark Theme & Stitch Search Bar (v5.5.8): Obsidian dark canvas (#0A0B0E) across Messages, dedicated Stitch search bar with count badge, and clean header without group/3-dots buttons.",
           "Integrated Message Tab Top Search Bar: Prominently placed, real-time searchable header input with match count badge, deep friend/chat/message query filtering, and 1-tap instant clear.",
           "Enhanced Navigation Bottom Bar: Illuminated active micro-pip indicators, dynamic unread message count badges, and zero-jank 120fps optimized rendering across Home, Messages, Channels, Calls, and Profile tabs.",
           "Instantaneous Non-Adjacent Tab Switching: Multi-tab navigation jumps directly to the target page via scrollToPage, completely bypassing intermediate screen composition, layout, and image decoding.",
@@ -595,18 +596,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.5.7/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.5.6/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.5.8/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.5.7/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.5.7-b171-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.5.8-b172-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.5.7");
-          res.headers.set("X-Connecto-Build", "171");
+          res.headers.set("X-Connecto-Version", "v5.5.8");
+          res.headers.set("X-Connecto-Build", "172");
           return res;
         }
 
@@ -642,8 +643,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.5.7");
-              downloadHeaders.set("X-Connecto-Build", "171");
+              downloadHeaders.set("X-Connecto-Version", "v5.5.8");
+              downloadHeaders.set("X-Connecto-Build", "172");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -658,7 +659,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.5.7/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.5.8/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2029,14 +2030,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.5.7",
-        version_code: 171,
-        size_bytes: 38065687,
+        version_name: "5.5.8",
+        version_code: 172,
+        size_bytes: 38052270,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Tier-1 Messages & Channels Refactor (v5.5.8): Full rich obsidian dark black theme (#0A0B0E) in the Messages tab, removed top Group button and 3-dots menu from header, implemented permanent dedicated Stitch-styled Search Bar with instant filtering and match badges, and removed 'Connecto Workspace' brand header from the Channels left navigation drawer.",
           "Flagship-Level Motion & UI Micro-Interactions (v5.5.7): Animated Bottom Tab Bar with spring-physics sliding top pill indicator (20x3dp), active icon bounce and ambient radial glow, and tab press feedback. Direct Messages Speed-Dial FAB fan-out with full-screen blur backdrop scrim, spring-rotating FAB icon (45°), and elevated borderless speed-dial chips. Sliding background pill on segmented controls (All | Direct | Groups and Call history filters). Polished Channel Chat (#general) with right-aligned outgoing bubbles without avatar, pinned bottom-right timestamps, message entry spring animations, and subtle input bar focus glow. FAQ accordion with 180° rotating chevrons and smooth expansion in Help & Support, guaranteed colored initial avatars on Calls screen, and staggered list reveal animations.",
           "Voice Call Self-Voice Echo Elimination & Full Audio Engine Overhaul: Identified and eliminated the self-voice echo loop caused by client-side socket reflection and simultaneous WebRTC P2P + WebSocket PCM dual streaming. Linked hardware Acoustic Echo Canceler (AEC) by synchronizing AudioTrack and AudioRecord session IDs, added strict self-packet rejection filters on client and server edge, stopped ringback immediately upon call connection, and explicitly forced speakerphone off for earpiece routing",
           "Tier-1 Mobile UI Redesign (Home & Direct Messages): Elevated dark mode to rich obsidian (#0A0B0E) with subtle card elevation (#12141A) and interactive surfaces (#1A1D26), completely removing harsh 1px grey borders. Direct messages list refactored into clean edge-to-edge rows with inset 1px dividers, 48px avatars with 12px cutout status dots, 16px SemiBold titles, and 14px message previews. Streamlined segmented control with sunken #12141A track and #242836 active tab",
@@ -7316,13 +7318,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.5.7",
-      version_name: "v5.5.7",
-      version_code: 171,
-      build: 171,
-      sha256: "a77ff74703ac1c979bc6d303d71cc91e21dcdc50bf62f2197b23aef488e624a5",
+      version: "5.5.8",
+      version_name: "v5.5.8",
+      version_code: 172,
+      build: 172,
+      sha256: "ccee3ddab2920dbbf075056e47346d3e78b62e5b60d4429f4112a28aa6bba251",
       filename: "connecto-fun.apk",
-      size_bytes: 38065687,
+      size_bytes: 38052270,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7336,10 +7338,26 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v5.5.7",
+          version: "v5.5.8",
           date: "Nov 18, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v5.5.8: Full Dark Theme, Dedicated Search & Header Streamline",
+          summary: "Implemented full obsidian dark theme across Messages tab, removed top Group and 3-dots buttons from header, integrated dedicated Stitch search bar with count badge, and removed 'Connecto Workspace' from the Channels drawer.",
+          highlights: [
+            "Messages Tab Full Dark Theme: Applied rich obsidian background (#0A0B0E) and clean dark cards throughout the conversation list and search elements.",
+            "Streamlined Top Header: Removed top Group action button and 3-dots menu button for a sleek, distraction-free conversation view.",
+            "Dedicated Stitch Search Bar: Always-visible search bar with obsidian surface (#12141A), subtle 1px border, 14dp squircle, live match count badge, and 1-tap clear button.",
+            "Channels Drawer Cleanup: Removed redundant 'Connecto Workspace' brand header from the left-side channel navigation drawer.",
+            "Android Native App v5.5.8 (Build 172 • 36.3 MB): SHA-256 ccee3ddab2920dbbf075056e47346d3e78b62e5b60d4429f4112a28aa6bba251."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
+          version: "v5.5.7",
+          date: "Nov 18, 2026",
+          category: "feature",
+          tag: "Production",
           title: "Connecto v5.5.7: Flagship Animations & Micro-Interactions",
           summary: "Added tier-1 motion design, tactile spring micro-interactions, animated sliding segmented controls, DM speed-dial FAB fan-out with blur scrim, right-aligned channel bubbles, and Help & Support accordion animations.",
           highlights: [

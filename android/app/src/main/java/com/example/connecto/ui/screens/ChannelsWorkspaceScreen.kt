@@ -1181,7 +1181,7 @@ fun ChannelsWorkspaceScreen(
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text(
-                                                text = "Connecto Workspace",
+                                                text = "Workspace",
                                                 fontSize = 10.sp,
                                                 fontWeight = FontWeight.Medium,
                                                 color = colors.textSecondary,

@@ -210,13 +210,13 @@ fun LegalTermsDialog(
                     ) {
                         if (selectedTab == 0) {
                             // TERMS OF USE CONTENT
-                            LegalBadge(text = "Official Legal Agreement • Connecto v5.5.7 • Nov 2026")
+                            LegalBadge(text = "Official Legal Agreement • Connecto v5.5.8 • Nov 2026")
                             Spacer(modifier = Modifier.height(8.dp))
 
                             LegalSection(
                                 number = "01",
                                 title = "Agreement to Terms & Public Beta Testing Stage",
-                                content = "These Terms of Use constitute a legally binding agreement between you and Connecto Network (\"Connecto\"). Connecto is currently in an active Public Beta Testing Stage (v5.5.7). By accessing connecto.fun, creating an account via email OTP verification, exploring in guest sandbox mode, or downloading the Connecto Android client, you agree to comply with all terms herein and acknowledge that features, edge sync mechanisms, and audio protocols are continuously optimized."
+                                content = "These Terms of Use constitute a legally binding agreement between you and Connecto Network (\"Connecto\"). Connecto is currently in an active Public Beta Testing Stage (v5.5.8). By accessing connecto.fun, creating an account via email OTP verification, exploring in guest sandbox mode, or downloading the Connecto Android client, you agree to comply with all terms herein and acknowledge that features, edge sync mechanisms, and audio protocols are continuously optimized."
                             )
 
                             LegalSection(
