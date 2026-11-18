@@ -385,8 +385,8 @@ fun ConnectoThemeToggleRow(
             .padding(horizontal = 16.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Leading Squircle Icon (Matches ConnectoSettingsRow style)
-        val iconTint = if (isDarkTheme) Color(0xFF38BDF8) else Color(0xFFF59E0B)
+        // Leading Squircle Icon (Black & White monochrome theme icon)
+        val iconTint = if (isDarkTheme) Color.White else Color.Black
         Box(
             modifier = Modifier
                 .size(28.dp)
@@ -397,11 +397,11 @@ fun ConnectoThemeToggleRow(
                 }
                 .clip(RoundedCornerShape(8.dp))
                 .background(
-                    if (colors.isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFF1F5F9)
+                    if (colors.isDark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.05f)
                 )
                 .border(
                     width = 1.dp,
-                    color = if (isDarkTheme) Color(0xFF38BDF8).copy(alpha = 0.35f) else Color(0xFFF59E0B).copy(alpha = 0.35f),
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.16f),
                     shape = RoundedCornerShape(8.dp)
                 ),
             contentAlignment = Alignment.Center
@@ -416,52 +416,20 @@ fun ConnectoThemeToggleRow(
 
         Spacer(modifier = Modifier.width(14.dp))
 
-        // Title and Subtitle (Matches ConnectoSettingsRow hierarchy)
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Display Theme",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = colors.textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = if (isDarkTheme) "Pure 0-nit OLED Black" else "Studio Crisp White",
-                fontSize = 12.sp,
-                color = colors.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        // Active State Status Pill (Matches ConnectoSettingsRow value/badge pattern)
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(colors.primary.copy(alpha = if (isDarkTheme) 0.14f else 0.09f))
-                .border(
-                    0.6.dp,
-                    colors.primary.copy(alpha = if (isDarkTheme) 0.32f else 0.22f),
-                    RoundedCornerShape(6.dp)
-                )
-                .padding(horizontal = 7.dp, vertical = 2.5.dp)
-        ) {
-            Text(
-                text = if (isDarkTheme) "Black" else "White",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = colors.primary
-            )
-        }
+        // Title (Subtitle removed per user specification)
+        Text(
+            text = "Display Theme",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.textPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
 
         Spacer(modifier = Modifier.width(10.dp))
 
-        // Trailing Switch with Micro-Aperture Sun/Moon Thumb & Exact Coordinate Capture
+        // Trailing Switch in Strict Black & White with Coordinate Capture
         Switch(
             checked = isDarkTheme,
             onCheckedChange = { checked ->
@@ -474,17 +442,17 @@ fun ConnectoThemeToggleRow(
                 Icon(
                     imageVector = if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
                     contentDescription = null,
-                    tint = if (isDarkTheme) Color(0xFF000000) else Color(0xFFF59E0B),
+                    tint = if (isDarkTheme) Color.Black else Color.White,
                     modifier = Modifier.size(12.dp)
                 )
             },
             colors = SwitchDefaults.colors(
-                checkedTrackColor = Color(0xFF38BDF8),
-                checkedThumbColor = Color(0xFFFFFFFF),
-                checkedBorderColor = Color(0xFF38BDF8),
-                uncheckedTrackColor = if (colors.isDark) Color(0xFF27272A) else Color(0xFFE2E8F0),
-                uncheckedThumbColor = if (colors.isDark) Color(0xFFA1A1AA) else Color(0xFFFFFFFF),
-                uncheckedBorderColor = if (colors.isDark) Color(0xFF3F3F46) else Color(0xFFCBD5E1)
+                checkedTrackColor = Color.White,
+                checkedThumbColor = Color.Black,
+                checkedBorderColor = Color.White,
+                uncheckedTrackColor = if (colors.isDark) Color(0xFF27272A) else Color(0xFFE4E4E7),
+                uncheckedThumbColor = if (colors.isDark) Color.White else Color.Black,
+                uncheckedBorderColor = if (colors.isDark) Color(0xFF3F3F46) else Color(0xFF71717A)
             ),
             modifier = Modifier.onGloballyPositioned { coordinates ->
                 val rootOffset = coordinates.positionInRoot()

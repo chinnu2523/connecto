@@ -2,6 +2,7 @@ package com.example.connecto.ui.designsystem
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -185,9 +187,11 @@ object ThemeTransitionManager {
 }
 
 /**
- * Full-screen theme transition iris reveal container.
- * Animates a silky circular aperture open/close reveal originating directly
- * from the toggle's physical screen coordinates.
+ * Full-screen theme transition portal reveal container.
+ * Animates an immersive dimensional portal opening and expanding directly
+ * from the toggle's physical screen coordinates in pure Black & White.
+ * Features a swirling vortex core, event horizon rings, spinning portal blades,
+ * and outer gravitational shockwave ripples.
  */
 @Composable
 fun ConnectoThemeTransitionContainer(
@@ -206,8 +210,8 @@ fun ConnectoThemeTransitionContainer(
             transitionProgress.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(
-                    durationMillis = 440,
-                    easing = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
+                    durationMillis = 520,
+                    easing = CubicBezierEasing(0.12f, 0.8f, 0.15f, 1.0f)
                 )
             )
         }
@@ -224,56 +228,103 @@ fun ConnectoThemeTransitionContainer(
             Canvas(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Origin starts from the toggle button coordinates or falls back to top right
+                // Portal origin starts directly from the toggle switch or falls back
                 val center = origin ?: Offset(size.width * 0.82f, size.height * 0.32f)
 
-                // Calculate the exact distance from center to the furthest of the 4 screen corners
+                // Calculate distance to the furthest screen corner to fully engulf the viewport
                 val maxRadius = maxOf(
                     hypot(center.x, center.y),
                     hypot(size.width - center.x, center.y),
                     hypot(center.x, size.height - center.y),
                     hypot(size.width - center.x, size.height - center.y)
-                ) * 1.05f
+                ) * 1.12f
 
                 val currentRadius = maxRadius * progress
 
-                val accentColor = if (animatingToDark) Color(0xFF38BDF8) else Color(0xFFF59E0B)
-                val targetBg = if (animatingToDark) Color(0xFF000000) else Color(0xFFFAF9F6)
+                // Strict Black & White dimensional portal palette
+                val horizonColor = if (animatingToDark) Color.White else Color.Black
+                val voidColor = if (animatingToDark) Color.Black else Color.White
 
-                // 1. Soft radial aperture aura expanding from the toggle
-                val fillAlpha = ((1f - progress) * 0.18f).coerceIn(0f, 1f)
-                val radialBrush = Brush.radialGradient(
-                    colors = listOf(
-                        accentColor.copy(alpha = fillAlpha * 0.95f),
-                        targetBg.copy(alpha = fillAlpha * 0.50f),
-                        Color.Transparent
-                    ),
+                // 1. Vortex Core Singularity (Radial Dimensional Gradient)
+                val fillAlpha = ((1f - progress) * 0.28f).coerceIn(0f, 1f)
+                val coreAlpha = ((1f - progress * 0.65f) * 0.40f).coerceIn(0f, 1f)
+                val portalBrush = Brush.radialGradient(
+                    0.0f to horizonColor.copy(alpha = coreAlpha),
+                    0.55f to voidColor.copy(alpha = fillAlpha * 0.70f),
+                    0.92f to horizonColor.copy(alpha = fillAlpha * 0.95f),
+                    1.0f to Color.Transparent,
                     center = center,
                     radius = currentRadius.coerceAtLeast(1f)
                 )
                 drawCircle(
-                    brush = radialBrush,
+                    brush = portalBrush,
                     radius = currentRadius,
                     center = center
                 )
 
-                // 2. Glowing Iris wavefront boundary ring (Aperture opening / closing)
-                val ringAlpha = ((1f - progress * 0.75f) * 0.85f).coerceIn(0f, 1f)
+                // 2. Primary Event Horizon Ring
+                val ringAlpha = ((1f - progress * 0.70f) * 0.90f).coerceIn(0f, 1f)
                 drawCircle(
-                    color = accentColor.copy(alpha = ringAlpha),
+                    color = horizonColor.copy(alpha = ringAlpha),
                     radius = currentRadius,
                     center = center,
-                    style = Stroke(width = 3.5.dp.toPx())
+                    style = Stroke(width = 4.dp.toPx())
                 )
 
-                // 3. Ambient soft bloom aura around the wavefront
-                val glowAlpha = ((1f - progress) * 0.40f).coerceIn(0f, 1f)
+                // 3. Inner Swirling Vortex Depth Rings
+                val innerRing1Alpha = ((1f - progress) * 0.55f).coerceIn(0f, 1f)
+                val innerRadius1 = currentRadius * 0.76f
+                if (innerRadius1 > 1f) {
+                    drawCircle(
+                        color = horizonColor.copy(alpha = innerRing1Alpha),
+                        radius = innerRadius1,
+                        center = center,
+                        style = Stroke(width = 2.dp.toPx())
+                    )
+                }
+
+                val innerRing2Alpha = ((1f - progress) * 0.35f).coerceIn(0f, 1f)
+                val innerRadius2 = currentRadius * 0.46f
+                if (innerRadius2 > 1f) {
+                    drawCircle(
+                        color = horizonColor.copy(alpha = innerRing2Alpha),
+                        radius = innerRadius2,
+                        center = center,
+                        style = Stroke(width = 1.2.dp.toPx())
+                    )
+                }
+
+                // 4. Outer Gravitational Shockwave Ripple
+                val shockwaveAlpha = ((1f - progress) * 0.38f).coerceIn(0f, 1f)
                 drawCircle(
-                    color = accentColor.copy(alpha = glowAlpha),
-                    radius = (currentRadius + 4.dp.toPx()),
+                    color = horizonColor.copy(alpha = shockwaveAlpha),
+                    radius = currentRadius * 1.08f,
                     center = center,
-                    style = Stroke(width = 8.dp.toPx())
+                    style = Stroke(width = 1.5.dp.toPx())
                 )
+
+                // 5. Spinning Portal Horizon Blades / Rotating Vortex Arcs
+                val spinAngle = progress * 240f
+                val bladeAlpha = ((1f - progress * 0.80f) * 0.80f).coerceIn(0f, 1f)
+                val bladeRadius = currentRadius * 0.92f
+                if (bladeRadius > 2f) {
+                    val bladeDiameter = bladeRadius * 2f
+                    val bladeTopLeft = Offset(center.x - bladeRadius, center.y - bladeRadius)
+                    val bladeSize = Size(bladeDiameter, bladeDiameter)
+
+                    for (i in 0 until 6) {
+                        val arcStart = (i * 60f + spinAngle) % 360f
+                        drawArc(
+                            color = horizonColor.copy(alpha = bladeAlpha),
+                            startAngle = arcStart,
+                            sweepAngle = 32f,
+                            useCenter = false,
+                            topLeft = bladeTopLeft,
+                            size = bladeSize,
+                            style = Stroke(width = 2.5.dp.toPx())
+                        )
+                    }
+                }
             }
         }
     }
