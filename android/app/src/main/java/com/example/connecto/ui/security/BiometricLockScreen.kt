@@ -709,7 +709,7 @@ fun BiometricLockScreen(
                     )
                     if (!passwordError.isNullOrBlank()) {
                         Text(
-                            text = passwordError!!,
+                            text = passwordError ?: "",
                             color = Color(0xFFEF4444),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium

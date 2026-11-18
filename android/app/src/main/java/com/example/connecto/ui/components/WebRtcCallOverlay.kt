@@ -566,7 +566,7 @@ fun FullScreenCallUI(
         contentAlignment = Alignment.Center
     ) {
         val bgModel = resolveImageModel(resolvedAvatar)
-        val isBgEmoji = resolvedAvatar != null && !resolvedAvatar!!.contains("/") && !resolvedAvatar!!.contains(".") && resolvedAvatar!!.length <= 4
+        val isBgEmoji = resolvedAvatar?.let { !it.contains("/") && !it.contains(".") && it.length <= 4 } == true
         if (!resolvedAvatar.isNullOrBlank() && !isBgEmoji && bgModel != null) {
             // Whole-screen friend profile photo covering entire display with cinematic blur
             AsyncImage(
@@ -884,7 +884,7 @@ fun FullScreenCallUI(
                             contentAlignment = Alignment.Center
                         ) {
                             val imgModel = resolveImageModel(resolvedAvatar)
-                            val isEmoji = resolvedAvatar != null && !resolvedAvatar!!.contains("/") && !resolvedAvatar!!.contains(".") && resolvedAvatar!!.length <= 4
+                            val isEmoji = resolvedAvatar?.let { !it.contains("/") && !it.contains(".") && it.length <= 4 } == true
                             if (!resolvedAvatar.isNullOrBlank() && !isEmoji && imgModel != null) {
                                 AsyncImage(
                                     model = imgModel,
@@ -896,7 +896,7 @@ fun FullScreenCallUI(
                                 )
                             } else if (isEmoji && resolvedAvatar != null) {
                                 Text(
-                                    text = resolvedAvatar!!,
+                                    text = resolvedAvatar ?: "",
                                     fontSize = 64.sp
                                 )
                             } else {

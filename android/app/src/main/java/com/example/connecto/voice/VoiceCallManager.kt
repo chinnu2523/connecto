@@ -419,7 +419,16 @@ object VoiceCallManager {
         if (clean.isBlank()) return
         userPresenceMap[clean] = Pair(isOnline, System.currentTimeMillis())
         _userPresenceUpdates.tryEmit(clean to isOnline)
-        _presenceState.value = _presenceState.value.toMutableMap().apply { put(clean, isOnline) }
+        scope.launch(Dispatchers.Main) {
+            try {
+                val current = _presenceState.value
+                if (current[clean] != isOnline) {
+                    _presenceState.value = current.toMutableMap().apply { put(clean, isOnline) }
+                }
+            } catch (t: Throwable) {
+                Log.w(TAG, "Error updating presence state on Main thread: ${t.message}")
+            }
+        }
     }
 
     fun isUserOnline(usernameOrId: String?): Boolean {
@@ -677,13 +686,21 @@ object VoiceCallManager {
         return result.joinToString("\r\n") + "\r\n"
     }
 
+    @Volatile
+    private var isWebRtcInitialized = false
+
     private fun initWebRtcFactory(context: Context) {
         if (peerConnectionFactory != null) return
-        try {
-            val initOptions = PeerConnectionFactory.InitializationOptions.builder(context.applicationContext)
-                .setEnableInternalTracer(false)
-                .createInitializationOptions()
-            PeerConnectionFactory.initialize(initOptions)
+        synchronized(this) {
+            if (peerConnectionFactory != null) return
+            try {
+                if (!isWebRtcInitialized) {
+                    val initOptions = PeerConnectionFactory.InitializationOptions.builder(context.applicationContext)
+                        .setEnableInternalTracer(false)
+                        .createInitializationOptions()
+                    PeerConnectionFactory.initialize(initOptions)
+                    isWebRtcInitialized = true
+                }
 
             val hasAec = try { JavaAudioDeviceModule.isBuiltInAcousticEchoCancelerSupported() } catch (_: Throwable) { false }
             val hasNs = try { JavaAudioDeviceModule.isBuiltInNoiseSuppressorSupported() } catch (_: Throwable) { false }
@@ -760,6 +777,7 @@ object VoiceCallManager {
         } catch (t: Throwable) {
             Log.e(TAG, "Failed to initialize PeerConnectionFactory: ${t.message}", t)
         }
+        }
     }
 
     private fun createAudioConstraints(voiceIsolationEnabled: Boolean = true): MediaConstraints {
@@ -785,23 +803,28 @@ object VoiceCallManager {
     fun preWarmAudio() {
         val ctx = appContext ?: return
         try {
-            initWebRtcFactory(ctx)
-            startLocalAudio()
-            Log.d(TAG, "Audio pre-warmed: AudioDeviceModule and local audio track initialized (<300ms call accept ready)")
+            if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                initWebRtcFactory(ctx)
+                startLocalAudio()
+                Log.d(TAG, "Audio pre-warmed: AudioDeviceModule and local audio track initialized (<300ms call accept ready)")
+            }
         } catch (t: Throwable) {
             Log.w(TAG, "preWarmAudio error: ${t.message}")
         }
     }
 
     private fun startLocalAudio() {
-        val factory = peerConnectionFactory ?: return
-        if (localAudioTrack != null) return
-
         val context = appContext ?: return
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Log.w(TAG, "Cannot start local WebRTC audio: RECORD_AUDIO permission missing")
             return
         }
+
+        if (peerConnectionFactory == null) {
+            initWebRtcFactory(context)
+        }
+        val factory = peerConnectionFactory ?: return
+        if (localAudioTrack != null) return
 
         try {
             val audioConstraints = createAudioConstraints(_isVoiceIsolationEnabled.value)
@@ -835,6 +858,10 @@ object VoiceCallManager {
             val existing = peerConnections[peerId]
             if (existing != null && !disposedPcs.contains(existing)) {
                 return existing
+            }
+            val ctx = appContext ?: return null
+            if (peerConnectionFactory == null) {
+                initWebRtcFactory(ctx)
             }
             val factory = peerConnectionFactory ?: return null
             startLocalAudio()
@@ -1412,10 +1439,7 @@ object VoiceCallManager {
         val savedVoiceIso = context.getSharedPreferences("connecto_audio_prefs", Context.MODE_PRIVATE)
             .getBoolean("connecto_voice_isolation_enabled", true)
         _isVoiceIsolationEnabled.value = savedVoiceIso
-        detectVoiceIsolationCapabilities(context)
-        applyHardwareVoiceIsolationParams(savedVoiceIso)
-        initWebRtcFactory(context)
-        initAudioDeviceCallbacks()
+        // Defer WebRTC factory, AudioDeviceModule, and AudioRecord/AudioTrack setup until an actual call starts
         ProximityScreenLockManager.init(context)
         scope.launch {
             _callState.collect {
@@ -4100,6 +4124,12 @@ object VoiceCallManager {
             Log.w(TAG, "Cannot start audio capture: RECORD_AUDIO permission not granted")
             return
         }
+
+        try {
+            detectVoiceIsolationCapabilities(context)
+            applyHardwareVoiceIsolationParams(_isVoiceIsolationEnabled.value)
+            initAudioDeviceCallbacks()
+        } catch (_: Exception) {}
 
         // Ensure WebRTC local audio track is created for P2P negotiation
         try {

@@ -45,6 +45,16 @@ class VoiceCallForegroundService : Service() {
 
         fun startService(context: Context, title: String, partner: String? = null, isMuted: Boolean = false) {
             try {
+                // Strict Android 14+ Guard: Do not start microphone foreground service without RECORD_AUDIO permission
+                if (androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.RECORD_AUDIO
+                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) {
+                    Log.w(TAG, "Cannot start VoiceCallForegroundService: RECORD_AUDIO permission not granted")
+                    return
+                }
+
                 val intent = Intent(context, VoiceCallForegroundService::class.java).apply {
                     action = ACTION_START
                     putExtra(EXTRA_CALL_TITLE, title)
@@ -98,13 +108,13 @@ class VoiceCallForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "VoiceCallForegroundService created")
-        createNotificationChannel()
-        acquireLocks()
-        startDurationCollector()
         try {
+            createNotificationChannel()
+            acquireLocks()
+            startDurationCollector()
             startForegroundWithNotification()
         } catch (t: Throwable) {
-            Log.w(TAG, "Initial startForeground in onCreate: ${t.message}")
+            Log.e(TAG, "Error in VoiceCallForegroundService onCreate: ${t.message}", t)
         }
     }
 
@@ -112,30 +122,34 @@ class VoiceCallForegroundService : Service() {
         val action = intent?.action ?: ACTION_START
         Log.d(TAG, "onStartCommand action: $action")
 
-        when (action) {
-            ACTION_STOP -> {
-                stopCallService()
-                return START_NOT_STICKY
-            }
+        try {
+            when (action) {
+                ACTION_STOP -> {
+                    stopCallService()
+                    return START_NOT_STICKY
+                }
 
-            ACTION_UPDATE_MUTE -> {
-                isMuted = intent?.getBooleanExtra(EXTRA_IS_MUTED, isMuted) ?: isMuted
-                updateNotification()
-            }
+                ACTION_UPDATE_MUTE -> {
+                    isMuted = intent?.getBooleanExtra(EXTRA_IS_MUTED, isMuted) ?: isMuted
+                    updateNotification()
+                }
 
-            ACTION_UPDATE_DURATION -> {
-                currentDurationSec = intent?.getLongExtra(EXTRA_DURATION_SEC, currentDurationSec) ?: currentDurationSec
-                updateNotification()
-            }
+                ACTION_UPDATE_DURATION -> {
+                    currentDurationSec = intent?.getLongExtra(EXTRA_DURATION_SEC, currentDurationSec) ?: currentDurationSec
+                    updateNotification()
+                }
 
-            ACTION_START -> {
-                val title = intent?.getStringExtra(EXTRA_CALL_TITLE)
-                if (!title.isNullOrBlank()) currentTitle = title
-                currentPartner = intent?.getStringExtra(EXTRA_CALL_PARTNER)
-                isMuted = intent?.getBooleanExtra(EXTRA_IS_MUTED, false) ?: false
+                ACTION_START -> {
+                    val title = intent?.getStringExtra(EXTRA_CALL_TITLE)
+                    if (!title.isNullOrBlank()) currentTitle = title
+                    currentPartner = intent?.getStringExtra(EXTRA_CALL_PARTNER)
+                    isMuted = intent?.getBooleanExtra(EXTRA_IS_MUTED, false) ?: false
 
-                startForegroundWithNotification()
+                    startForegroundWithNotification()
+                }
             }
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error processing action $action: ${t.message}", t)
         }
 
         return START_STICKY
@@ -238,23 +252,37 @@ class VoiceCallForegroundService : Service() {
 
     private fun startForegroundWithNotification() {
         val notification = buildCallNotification()
+        val hasMicPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+            this,
+            android.Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val fgsType = if (hasMicPermission) {
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
+                } else {
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
+                }
                 startForeground(
                     NOTIFICATION_ID,
                     notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
+                    fgsType
                 )
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(
-                    NOTIFICATION_ID,
-                    notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-                )
+                if (hasMicPermission) {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                    )
+                } else {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
-            Log.d(TAG, "startForeground initialized successfully")
+            Log.d(TAG, "startForeground initialized successfully (micPermission=$hasMicPermission)")
         } catch (t: Throwable) {
             Log.e(TAG, "startForeground fallback execution: ${t.message}", t)
             try {

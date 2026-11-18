@@ -774,8 +774,7 @@ fun ChannelsWorkspaceScreen(
             return
         }
 
-        if (editingMessage != null) {
-            val editTarget = editingMessage!!
+        editingMessage?.let { editTarget ->
             val newText = text
             val index = messages.indexOfFirst { it.id == editTarget.id }
             if (index != -1) {
@@ -975,8 +974,9 @@ fun ChannelsWorkspaceScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 // ================= STANDARDIZED TOP HEADER BAR / SELECTION HEADER =================
-                if (selectedMessageForAction != null) {
-                    val selMsg = selectedMessageForAction!!
+                val activeSelMsg = selectedMessageForAction
+                if (activeSelMsg != null) {
+                    val selMsg = activeSelMsg
                     val isMyMsg = remember(selMsg, currentUsername) {
                         val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
                         val myDisplay = (ConnectoApiClient.currentUserDisplayName ?: "").trim().lowercase().removePrefix("@")
@@ -2552,8 +2552,9 @@ fun ChannelsWorkspaceScreen(
             }
 
             // Full Emoji Sheet Dialog for Reaction Pill "+" Button
-            if (showFullEmojiDialogForMessage != null) {
-                val targetMsg = showFullEmojiDialogForMessage!!
+            val fullEmojiTarget = showFullEmojiDialogForMessage
+            if (fullEmojiTarget != null) {
+                val targetMsg = fullEmojiTarget
                 AlertDialog(
                     onDismissRequest = { showFullEmojiDialogForMessage = null },
                     title = {

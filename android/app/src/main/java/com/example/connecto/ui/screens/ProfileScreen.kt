@@ -5477,8 +5477,9 @@ fun ProfileScreen(
     }
 
     // Confirmation Dialog for Deleting Group from Profile (Admin)
-    if (groupToConfirmDelete != null) {
-        val targetGroup = groupToConfirmDelete!!
+    val deleteGroupTarget = groupToConfirmDelete
+    if (deleteGroupTarget != null) {
+        val targetGroup = deleteGroupTarget
         AlertDialog(
             onDismissRequest = { if (!isDeletingProfileGroup) groupToConfirmDelete = null },
             title = {
@@ -5561,8 +5562,9 @@ fun ProfileScreen(
     }
 
     // Confirmation Dialog for Leaving Group from Profile (Member)
-    if (groupToConfirmLeave != null) {
-        val targetGroup = groupToConfirmLeave!!
+    val leaveGroupTarget = groupToConfirmLeave
+    if (leaveGroupTarget != null) {
+        val targetGroup = leaveGroupTarget
         AlertDialog(
             onDismissRequest = { if (!isLeavingProfileGroup) groupToConfirmLeave = null },
             title = {
@@ -5706,9 +5708,10 @@ fun ProfileScreen(
         )
     }
 
-    if (showCropDialog && pendingCropUri != null) {
+    val cropUri = pendingCropUri
+    if (showCropDialog && cropUri != null) {
         InteractiveCropFitDialog(
-            imageUri = pendingCropUri!!,
+            imageUri = cropUri,
             cropMode = activeCropMode,
             onCropConfirmed = { croppedBitmap ->
                 showCropDialog = false
@@ -5840,8 +5843,9 @@ fun ProfileScreen(
         )
     }
 
-    if (changeContactTarget != null) {
-        val targetMethod = changeContactTarget!!
+    val contactTarget = changeContactTarget
+    if (contactTarget != null) {
+        val targetMethod = contactTarget
         ChangeContactDialog(
             method = targetMethod,
             currentValue = emailInput,
@@ -8442,7 +8446,7 @@ private fun PersonalDetailsChangePasswordSection(
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = OnlineGreen, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = changePasswordSuccessMsg!!,
+                        text = changePasswordSuccessMsg ?: "Password updated successfully",
                         color = OnlineGreen,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold

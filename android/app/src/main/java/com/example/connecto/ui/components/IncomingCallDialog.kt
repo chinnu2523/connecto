@@ -177,7 +177,7 @@ fun IncomingCallDialog(
                             contentAlignment = Alignment.Center
                         ) {
                             val imgModel = resolveImageModel(resolvedAvatar)
-                            val isEmoji = resolvedAvatar != null && !resolvedAvatar!!.contains("/") && !resolvedAvatar!!.contains(".") && resolvedAvatar!!.length <= 4
+                            val isEmoji = resolvedAvatar?.let { !it.contains("/") && !it.contains(".") && it.length <= 4 } == true
                             if (!resolvedAvatar.isNullOrBlank() && !isEmoji && imgModel != null) {
                                 AsyncImage(
                                     model = imgModel,
@@ -189,7 +189,7 @@ fun IncomingCallDialog(
                                 )
                             } else if (isEmoji && resolvedAvatar != null) {
                                 Text(
-                                    text = resolvedAvatar!!,
+                                    text = resolvedAvatar ?: "",
                                     fontSize = 36.sp
                                 )
                             } else {

@@ -1043,10 +1043,10 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 val lastTs = if (tsCol >= 0) it.getLong(tsCol) else 0L
                 list.add(
                     FriendItem(
-                        id = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_ID)),
-                        name = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_NAME)),
-                        handle = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_HANDLE)),
-                        initial = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_INITIAL)),
+                        id = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_ID)) ?: "",
+                        name = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_NAME)) ?: "Friend",
+                        handle = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_HANDLE)) ?: "",
+                        initial = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_INITIAL)) ?: "F",
                         status = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_STATUS)) ?: "Accepted Friend",
                         bio = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_BIO)) ?: "Connecto Gamer",
                         lastMessage = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_LAST_MSG)) ?: "Direct chat active",
@@ -1149,10 +1149,10 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
 
                 list.add(
                     FriendItem(
-                        id = it.getString(it.getColumnIndexOrThrow(COL_GROUP_ID)),
-                        name = it.getString(it.getColumnIndexOrThrow(COL_GROUP_NAME)),
-                        handle = it.getString(it.getColumnIndexOrThrow(COL_GROUP_HANDLE)),
-                        initial = it.getString(it.getColumnIndexOrThrow(COL_GROUP_INITIAL)),
+                        id = it.getString(it.getColumnIndexOrThrow(COL_GROUP_ID)) ?: "",
+                        name = it.getString(it.getColumnIndexOrThrow(COL_GROUP_NAME)) ?: "Group",
+                        handle = it.getString(it.getColumnIndexOrThrow(COL_GROUP_HANDLE)) ?: "",
+                        initial = it.getString(it.getColumnIndexOrThrow(COL_GROUP_INITIAL)) ?: "G",
                         status = it.getString(it.getColumnIndexOrThrow(COL_GROUP_STATUS)) ?: "$mCount members",
                         bio = it.getString(it.getColumnIndexOrThrow(COL_GROUP_BIO)) ?: "Connecto Group Chat",
                         lastMessage = it.getString(it.getColumnIndexOrThrow(COL_GROUP_LAST_MSG)) ?: "Group Chat • Tap to open and talk",

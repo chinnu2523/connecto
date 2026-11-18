@@ -1159,39 +1159,38 @@ fun ConnectoApp(
             }
         }
 
-        // Mode A Floating Heads-Up Banner for Incoming Group Voice Call
-        if (incomingGroupCall != null && !isGroupCallModeBOpen) {
-            ModeAGroupCallBanner(
-                incomingData = incomingGroupCall!!,
-                onExpandModeB = { isGroupCallModeBOpen = true },
-                onJoin = {
-                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                        micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        // Safe Mode A / Mode B Group Voice Call Handling (No !! forced unwrap)
+        incomingGroupCall?.let { groupCallData ->
+            if (!isGroupCallModeBOpen) {
+                ModeAGroupCallBanner(
+                    incomingData = groupCallData,
+                    onExpandModeB = { isGroupCallModeBOpen = true },
+                    onJoin = {
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                        VoiceCallManager.acceptGroupCall(initialMuteState = false)
+                    },
+                    onDecline = {
+                        VoiceCallManager.declineGroupCall()
                     }
-                    VoiceCallManager.acceptGroupCall(initialMuteState = false)
-                },
-                onDecline = {
-                    VoiceCallManager.declineGroupCall()
-                }
-            )
-        }
-
-        // Mode B Full-Screen Incoming Group Voice Call UI
-        if (incomingGroupCall != null && isGroupCallModeBOpen) {
-            IncomingGroupCallUI(
-                incomingData = incomingGroupCall!!,
-                onAccept = { initialMute ->
-                    isGroupCallModeBOpen = false
-                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                        micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                )
+            } else {
+                IncomingGroupCallUI(
+                    incomingData = groupCallData,
+                    onAccept = { initialMute ->
+                        isGroupCallModeBOpen = false
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                        VoiceCallManager.acceptGroupCall(initialMuteState = initialMute)
+                    },
+                    onDecline = { replyMsg ->
+                        isGroupCallModeBOpen = false
+                        VoiceCallManager.declineGroupCall(sendReplyMessage = replyMsg)
                     }
-                    VoiceCallManager.acceptGroupCall(initialMuteState = initialMute)
-                },
-                onDecline = { replyMsg ->
-                    isGroupCallModeBOpen = false
-                    VoiceCallManager.declineGroupCall(sendReplyMessage = replyMsg)
-                }
-            )
+                )
+            }
         }
 
         // Global Full-Screen Audio Call Overlay (Only when CONNECTED or OUTGOING_RINGING, never during INCOMING_RINGING)

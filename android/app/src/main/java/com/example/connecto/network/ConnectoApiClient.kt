@@ -143,7 +143,15 @@ data class MessageDto(
     val replyToId: String? = null,
     val replyToContent: String? = null,
     val replyToAuthor: String? = null,
-    val isRead: Boolean? = null
+    val isRead: Boolean? = null,
+    val reactions: Map<String, List<String>> = emptyMap(),
+    val seenBy: List<String> = emptyList(),
+    val readAt: String? = null,
+    val replyToMessageId: String? = null,
+    val replyToSenderName: String? = null,
+    val replyToText: String? = null,
+    val isOnline: Boolean = false,
+    val lastSeen: String? = null
 )
 
 data class PinnedMessageDto(
@@ -186,7 +194,10 @@ data class FriendshipDto(
     val bio: String? = null,
     val lastMessage: String? = null,
     val lastMessageTimestamp: Long = 0L,
-    val unreadCount: Int = 0
+    val unreadCount: Int = 0,
+    val lastSeen: String? = null,
+    val seenBy: List<String> = emptyList(),
+    val reactions: List<String> = emptyList()
 )
 
 data class NotificationDto(
@@ -293,7 +304,10 @@ data class ProfileDataDto(
     val isEmailVerified: Boolean = true,
     val isTemporarilyBlocked: Boolean = false,
     val verificationDaysLeft: Int? = null,
-    val verificationDeadline: String? = null
+    val verificationDeadline: String? = null,
+    val lastSeen: String? = null,
+    val seenBy: List<String> = emptyList(),
+    val reactions: Map<String, List<String>> = emptyMap()
 )
 
 object ConnectoApiClient {

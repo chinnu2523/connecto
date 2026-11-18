@@ -576,7 +576,10 @@ data class FriendItem(
     val members: List<String> = emptyList(),
     val admin: String = "",
     val creator: String = "",
-    val lastMessageTimestamp: Long = 0L
+    val lastMessageTimestamp: Long = 0L,
+    val lastSeen: String? = null,
+    val seenBy: List<String> = emptyList(),
+    val reactions: List<String> = emptyList()
 ) {
     fun isUserAdmin(username: String?): Boolean {
         if (!isGroup) return true
@@ -607,7 +610,14 @@ data class CustomMessageItem(
     val replyToAuthor: String? = null,
     val isEncrypted: Boolean = false,
     val timestampMillis: Long = System.currentTimeMillis(),
-    val reactions: Map<String, List<String>> = emptyMap()
+    val reactions: Map<String, List<String>> = emptyMap(),
+    val seenBy: List<String> = emptyList(),
+    val readAt: String? = null,
+    val replyToMessageId: String? = null,
+    val replyToSenderName: String? = null,
+    val replyToText: String? = null,
+    val isOnline: Boolean = false,
+    val lastSeen: String? = null
 )
 
 fun parseMessageTimestamp(timeStr: String?): Long {
@@ -1884,7 +1894,8 @@ fun CustomizedChatScreen(
                             dbHelper.saveGroups(userGroupsList.toList())
                         } catch (_: Exception) {}
                     }
-                    if (selectedFriend != null && selectedFriend!!.isGroup && userGroupsList.none { it.id == selectedFriend!!.id }) {
+                    val selF = selectedFriend
+                    if (selF != null && selF.isGroup && userGroupsList.none { it.id == selF.id }) {
                         selectedFriend = null
                         chatWallpaperId = "default"
                         customWallpaperUri = null
@@ -2376,9 +2387,12 @@ fun CustomizedChatScreen(
                 // Update friends list entry — current chat always has 0 unread
                 val currentTs = System.currentTimeMillis()
                 val safeInChatPreview = cleanMessageContentForDisplay(decryptedContent, "Direct chat active • Tap to message")
-                val fIdx = friendsList.indexOfFirst {
-                    it.id == currentFriend!!.id || it.handle.removePrefix("@").equals(currentFriend!!.handle.removePrefix("@"), ignoreCase = true)
-                }
+                val activeCurrFriend = currentFriend
+                val fIdx = if (activeCurrFriend != null) {
+                    friendsList.indexOfFirst {
+                        it.id == activeCurrFriend.id || it.handle.removePrefix("@").equals(activeCurrFriend.handle.removePrefix("@"), ignoreCase = true)
+                    }
+                } else -1
                 if (fIdx != -1) {
                     val target = friendsList[fIdx]
                     val cleanHandle = target.handle.removePrefix("@").trim().lowercase()
@@ -2404,8 +2418,8 @@ fun CustomizedChatScreen(
                         } catch (_: Exception) {}
                     }
                     markFriendChatAsReadLocallyAndRemotely(updated)
-                } else {
-                    val gIdx = userGroupsList.indexOfFirst { it.id == currentFriend!!.id }
+                } else if (activeCurrFriend != null) {
+                    val gIdx = userGroupsList.indexOfFirst { it.id == activeCurrFriend.id }
                     if (gIdx != -1) {
                         val updated = userGroupsList[gIdx].copy(
                             lastMessage = safeInChatPreview,
@@ -3019,8 +3033,9 @@ fun CustomizedChatScreen(
     }
 
     // Friend Profile Info Dialog - Disabled in favor of full screen Friend Profile tab
-    if (false && showFriendProfileDialog && selectedFriend != null) {
-        val friendObj = selectedFriend!!
+    val curSelFriend = selectedFriend
+    if (false && showFriendProfileDialog && curSelFriend != null) {
+        val friendObj = curSelFriend
         val profData = selectedFriendProfileData
         val friendHandleClean = friendObj.handle.removePrefix("@")
         val effectiveFullName = profData?.fullName?.ifBlank { friendObj.name } ?: friendObj.name
@@ -3879,8 +3894,9 @@ fun CustomizedChatScreen(
     }
 
     // Friend Profile Photo Fullscreen Lightbox Dialog
-    if (showPhotoLightbox && selectedFriend != null) {
-        val friendObj = selectedFriend!!
+    val lightboxFriend = selectedFriend
+    if (showPhotoLightbox && lightboxFriend != null) {
+        val friendObj = lightboxFriend
         val friendClean = friendObj.handle.removePrefix("@").trim().lowercase()
         val prof = selectedFriendProfileData?.takeIf {
             it.username.lowercase() == friendClean || (it.id.isNotBlank() && it.id == friendObj.id)
@@ -3961,8 +3977,9 @@ fun CustomizedChatScreen(
     }
 
     // Unfriend Confirmation Modal Dialog with Data Wipe Warning Tab
-    if (showUnfriendConfirmDialog && selectedFriend != null) {
-        val friendToRemove = selectedFriend!!
+    val unfriendTarget = selectedFriend
+    if (showUnfriendConfirmDialog && unfriendTarget != null) {
+        val friendToRemove = unfriendTarget
         val friendUser = friendToRemove.handle.removePrefix("@").ifBlank { friendToRemove.name }
         val friendName = friendToRemove.name.ifBlank { friendUser }
 
@@ -4163,8 +4180,9 @@ fun CustomizedChatScreen(
     }
 
     // Full Emoji Sheet Dialog for Reaction Pill "+" Button
-    if (showFullEmojiDialogForMessage != null) {
-        val targetMsg = showFullEmojiDialogForMessage!!
+    val fullEmojiSheetTarget = showFullEmojiDialogForMessage
+    if (fullEmojiSheetTarget != null) {
+        val targetMsg = fullEmojiSheetTarget
         AlertDialog(
             onDismissRequest = { showFullEmojiDialogForMessage = null },
             title = {
@@ -4229,7 +4247,7 @@ fun CustomizedChatScreen(
                                             }
                                             selectedMessageForAction = null
 
-                                            val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) selectedFriend!!.id else getCanonicalChatId(selectedFriend))
+                                            val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) (selectedFriend?.id ?: "") else getCanonicalChatId(selectedFriend))
                                             val recipientU = selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.name?.removePrefix("@")
                                             VoiceCallManager.sendReactionToggled(
                                                 messageId = msgToReact.id,
@@ -4381,8 +4399,9 @@ fun CustomizedChatScreen(
         )
     }
 
-    if (showGroupProfileDialog && selectedFriend != null && selectedFriend!!.isGroup) {
-        val groupItem = selectedFriend!!
+    val currentGrpTarget = selectedFriend
+    if (showGroupProfileDialog && currentGrpTarget != null && currentGrpTarget.isGroup) {
+        val groupItem = currentGrpTarget
         val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
         val userPrefix = effUser.trim().removePrefix("@").lowercase()
         FullScreenGroupProfileDialog(
@@ -4506,7 +4525,7 @@ fun CustomizedChatScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             // ========== TOP HEADER ==========
-            if (isFriendProfileOpen && selectedFriend != null && !selectedFriend!!.isGroup) {
+            if (isFriendProfileOpen && selectedFriend?.isGroup == false) {
                 // Friend Profile screen renders its own full-screen custom top header
             } else if (selectedFriend != null) {
                 // 1:1 Direct Chat Header with Call Buttons & Friend Profile Info Trigger
@@ -4658,7 +4677,7 @@ fun CustomizedChatScreen(
 
                             Column {
                                 Text(
-                                    text = if (isGroupChat) "#${selectedFriend!!.name}" else selectedFriend!!.name,
+                                    text = if (isGroupChat) "#${selectedFriend?.name.orEmpty()}" else selectedFriend?.name.orEmpty(),
                                     color = headerTitleColor,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -5072,7 +5091,7 @@ fun CustomizedChatScreen(
             }
 
             val currentScreenState = when {
-                isFriendProfileOpen && selectedFriend != null && !selectedFriend!!.isGroup -> "FRIEND_PROFILE"
+                isFriendProfileOpen && selectedFriend?.isGroup == false -> "FRIEND_PROFILE"
                 selectedFriend != null -> "DIRECT_CHAT"
                 else -> "FRIENDS_LIST"
             }
@@ -6701,7 +6720,7 @@ fun CustomizedChatScreen(
                                                     },
                                                     onUnsendClick = {
                                                         val msgId = msg.id
-                                                        val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) selectedFriend!!.id else getCanonicalChatId(selectedFriend))
+                                                        val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) (selectedFriend?.id ?: "") else getCanonicalChatId(selectedFriend))
                                                         friendMessages = friendMessages.filterNot { it.id == msgId }
                                                         selectedMessageForAction = null
 
@@ -6769,7 +6788,7 @@ fun CustomizedChatScreen(
                                                         }
                                                         selectedMessageForAction = null
 
-                                                        val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) selectedFriend!!.id else getCanonicalChatId(selectedFriend))
+                                                        val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) (selectedFriend?.id ?: "") else getCanonicalChatId(selectedFriend))
                                                         val recipientU = selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.name?.removePrefix("@")
                                                         VoiceCallManager.sendReactionToggled(
                                                             messageId = targetMsg.id,
@@ -6972,13 +6991,14 @@ fun CustomizedChatScreen(
                         }
 
                         // ================= 3. ADVANCED CHAT INPUT BAR & SEND BUTTON =================
-                        val isAcceptedFriend = selectedFriend == null || selectedFriend?.isGroup == true || friendsList.any {
-                            it.id == selectedFriend!!.id ||
-                            it.handle.removePrefix("@").equals(selectedFriend!!.handle.removePrefix("@"), ignoreCase = true)
+                        val selFriendForInput = selectedFriend
+                        val isAcceptedFriend = selFriendForInput == null || selFriendForInput.isGroup || friendsList.any {
+                            it.id == selFriendForInput.id ||
+                            it.handle.removePrefix("@").equals(selFriendForInput.handle.removePrefix("@"), ignoreCase = true)
                         }
 
-                        if (selectedFriend != null && !isAcceptedFriend) {
-                            val targetHandle = selectedFriend!!.handle.removePrefix("@")
+                        if (selFriendForInput != null && !isAcceptedFriend) {
+                            val targetHandle = selFriendForInput.handle.removePrefix("@")
                             var isSendingReq by remember { mutableStateOf(false) }
                             var reqSentLocally by remember { mutableStateOf(false) }
 
@@ -7315,8 +7335,9 @@ fun CustomizedChatScreen(
 
                             // Dynamic Send Action Button
                             val onSendMessage = {
-                                if (editingMessage != null) {
-                                    val editTarget = editingMessage!!
+                                val targetToEdit = editingMessage
+                                if (targetToEdit != null) {
+                                    val editTarget = targetToEdit
                                     val newContent = typedMessage.trim()
                                     if (newContent.isNotBlank()) {
                                         val targetId = editTarget.id
@@ -8047,7 +8068,8 @@ fun CustomChatBubble(
                 if (message.reactions.isNotEmpty()) {
                     message.reactions
                 } else if (!message.reaction.isNullOrBlank()) {
-                    mapOf(message.reaction!! to listOf("user"))
+                    val r = message.reaction ?: ""
+                    if (r.isNotBlank()) mapOf(r to listOf("user")) else emptyMap()
                 } else {
                     emptyMap()
                 }
