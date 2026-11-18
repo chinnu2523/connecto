@@ -12,7 +12,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.EaseInCubic
@@ -50,6 +52,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import com.example.connecto.crypto.ConnectoE2EEncryption
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -5377,37 +5380,75 @@ fun CustomizedChatScreen(
                             val activeTextColor = Color(0xFFFFFFFF)
                             val inactiveTextColor = if (isDark) Color(0xFF7A7F8F) else Color(0xFF64748B)
 
-                            Row(
+                            BoxWithConstraints(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(trackBg)
-                                    .padding(4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    .padding(4.dp)
                             ) {
-                                filterOptions.forEach { (key, label) ->
-                                    val isSelected = (messageTabFilter == key)
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(36.dp)
-                                            .clip(RoundedCornerShape(9.dp))
-                                            .background(
-                                                if (isSelected) activeTabBg
-                                                else Color.Transparent
-                                            )
-                                            .clickable { messageTabFilter = key }
-                                            .padding(horizontal = 4.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = label,
-                                            fontSize = 13.sp,
-                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                            color = if (isSelected) activeTextColor else inactiveTextColor,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                val haptic = LocalHapticFeedback.current
+                                val totalWidth = maxWidth
+                                val optionCount = filterOptions.size
+                                val tabWidth = totalWidth / optionCount
+                                val selectedIndex = filterOptions.indexOfFirst { it.first == messageTabFilter }.coerceAtLeast(0)
+
+                                val animatedPillOffset by animateDpAsState(
+                                    targetValue = tabWidth * selectedIndex,
+                                    animationSpec = spring(
+                                        dampingRatio = 0.8f,
+                                        stiffness = 380f
+                                    ),
+                                    label = "slidingPillOffset"
+                                )
+
+                                // Sliding active background pill behind text (smooth 250ms spring curve)
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = animatedPillOffset)
+                                        .width(tabWidth)
+                                        .height(36.dp)
+                                        .padding(horizontal = 2.dp)
+                                        .clip(RoundedCornerShape(9.dp))
+                                        .background(activeTabBg)
+                                )
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceAround
+                                ) {
+                                    filterOptions.forEach { (key, label) ->
+                                        val isSelected = (messageTabFilter == key)
+                                        val textColor by animateColorAsState(
+                                            targetValue = if (isSelected) activeTextColor else inactiveTextColor,
+                                            animationSpec = tween(200),
+                                            label = "segmentedTextColor"
                                         )
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(36.dp)
+                                                .clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null
+                                                ) {
+                                                    try {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                    } catch (_: Exception) {}
+                                                    messageTabFilter = key
+                                                }
+                                                .padding(horizontal = 4.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = label,
+                                                fontSize = 13.sp,
+                                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                                color = textColor,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -5684,10 +5725,26 @@ fun CustomizedChatScreen(
                                     }
                                 }
 
+                                val rowInteraction = remember { MutableInteractionSource() }
+                                val isRowPressed by rowInteraction.collectIsPressedAsState()
+                                val rowScale by animateFloatAsState(
+                                    targetValue = if (isRowPressed) 0.98f else 1.0f,
+                                    animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                                    label = "chatRowScale"
+                                )
+
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable(onClick = onRowClick)
+                                        .graphicsLayer {
+                                            scaleX = rowScale
+                                            scaleY = rowScale
+                                        }
+                                        .clickable(
+                                            interactionSource = rowInteraction,
+                                            indication = null,
+                                            onClick = onRowClick
+                                        )
                                 ) {
                                     Row(
                                         modifier = Modifier
@@ -5853,16 +5910,16 @@ fun CustomizedChatScreen(
                     }
 
                     // ================= MESSAGES TAB FAB & SPEED-DIAL =================
-                    // 1. Scrim overlay when speed-dial is expanded
+                    // 1. Scrim overlay when speed-dial is expanded (rgba(6, 7, 10, 0.65))
                     androidx.compose.animation.AnimatedVisibility(
                         visible = isFabExpanded,
-                        enter = fadeIn(animationSpec = tween(180, easing = EaseOutCubic)),
-                        exit = fadeOut(animationSpec = tween(150, easing = EaseInCubic))
+                        enter = fadeIn(animationSpec = tween(200, easing = EaseOutCubic)),
+                        exit = fadeOut(animationSpec = tween(180, easing = EaseInCubic))
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.45f))
+                                .background(Color(0xA606070A))
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
@@ -5872,48 +5929,97 @@ fun CustomizedChatScreen(
                         )
                     }
 
-                    // 2. Expandable Speed-Dial Action Pills
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = isFabExpanded,
-                        enter = fadeIn(animationSpec = tween(220, easing = EaseOutCubic)) +
-                                slideInVertically(initialOffsetY = { it / 3 }, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 450f)),
-                        exit = fadeOut(animationSpec = tween(160, easing = EaseInCubic)) +
-                               slideOutVertically(targetOffsetY = { it / 3 }, animationSpec = tween(160)),
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 20.dp, bottom = 86.dp)
-                    ) {
+                    // 2. Expandable Speed-Dial Action Pills (Staggered Fan-Out from bottom to top, 40ms delay)
+                    val r1Alpha by animateFloatAsState(
+                        targetValue = if (isFabExpanded) 1f else 0f,
+                        animationSpec = if (isFabExpanded) tween(200, delayMillis = 0, easing = EaseOutCubic) else tween(120),
+                        label = "fabR1Alpha"
+                    )
+                    val r1Y by animateFloatAsState(
+                        targetValue = if (isFabExpanded) 0f else 16f,
+                        animationSpec = if (isFabExpanded) spring(stiffness = 450f, dampingRatio = Spring.DampingRatioMediumBouncy) else tween(120),
+                        label = "fabR1Y"
+                    )
+                    val r1Scale by animateFloatAsState(
+                        targetValue = if (isFabExpanded) 1f else 0.85f,
+                        animationSpec = if (isFabExpanded) spring(stiffness = 450f, dampingRatio = Spring.DampingRatioMediumBouncy) else tween(120),
+                        label = "fabR1Scale"
+                    )
+
+                    val r2Alpha by animateFloatAsState(
+                        targetValue = if (isFabExpanded) 1f else 0f,
+                        animationSpec = if (isFabExpanded) tween(200, delayMillis = 40, easing = EaseOutCubic) else tween(120),
+                        label = "fabR2Alpha"
+                    )
+                    val r2Y by animateFloatAsState(
+                        targetValue = if (isFabExpanded) 0f else 16f,
+                        animationSpec = if (isFabExpanded) spring(stiffness = 450f, dampingRatio = Spring.DampingRatioMediumBouncy) else tween(120),
+                        label = "fabR2Y"
+                    )
+                    val r2Scale by animateFloatAsState(
+                        targetValue = if (isFabExpanded) 1f else 0.85f,
+                        animationSpec = if (isFabExpanded) spring(stiffness = 450f, dampingRatio = Spring.DampingRatioMediumBouncy) else tween(120),
+                        label = "fabR2Scale"
+                    )
+
+                    val r3Alpha by animateFloatAsState(
+                        targetValue = if (isFabExpanded) 1f else 0f,
+                        animationSpec = if (isFabExpanded) tween(200, delayMillis = 80, easing = EaseOutCubic) else tween(120),
+                        label = "fabR3Alpha"
+                    )
+                    val r3Y by animateFloatAsState(
+                        targetValue = if (isFabExpanded) 0f else 16f,
+                        animationSpec = if (isFabExpanded) spring(stiffness = 450f, dampingRatio = Spring.DampingRatioMediumBouncy) else tween(120),
+                        label = "fabR3Y"
+                    )
+                    val r3Scale by animateFloatAsState(
+                        targetValue = if (isFabExpanded) 1f else 0.85f,
+                        animationSpec = if (isFabExpanded) spring(stiffness = 450f, dampingRatio = Spring.DampingRatioMediumBouncy) else tween(120),
+                        label = "fabR3Scale"
+                    )
+
+                    if (isFabExpanded || r3Alpha > 0.02f) {
                         Column(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 20.dp, bottom = 86.dp),
                             horizontalAlignment = Alignment.End,
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
                             val haptic = LocalHapticFeedback.current
+                            val isDark = !isLight
 
-                            // Option A: Voice Group / Audio Room
+                            // Option A: Voice Group / Audio Room (Top row, delay 80ms)
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier.clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    isFabExpanded = false
-                                    showCreateVoiceGroupDialog = true
-                                }
+                                modifier = Modifier
+                                    .graphicsLayer {
+                                        alpha = r3Alpha
+                                        translationY = r3Y.dp.toPx()
+                                        scaleX = r3Scale
+                                        scaleY = r3Scale
+                                    }
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        isFabExpanded = false
+                                        showCreateVoiceGroupDialog = true
+                                    }
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
-                                    color = if (isPureBlack) Color(0xFF1E2029) else MaterialTheme.colorScheme.surface,
-                                    tonalElevation = 4.dp,
-                                    shadowElevation = 4.dp,
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                                    color = if (isDark) Color(0xFF1C202B) else Color.White,
+                                    shadowElevation = 6.dp,
+                                    border = null
                                 ) {
                                     Text(
                                         text = "Voice Group",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface,
+                                        color = if (isDark) Color.White else Color(0xFF0F172A),
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                     )
                                 }
@@ -5922,7 +6028,7 @@ fun CustomizedChatScreen(
                                         .size(44.dp)
                                         .clip(CircleShape)
                                         .background(Color(0xFF10B981))
-                                        .shadow(4.dp, CircleShape),
+                                        .shadow(6.dp, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -5934,31 +6040,37 @@ fun CustomizedChatScreen(
                                 }
                             }
 
-                            // Option B: New Group Chat
+                            // Option B: New Group Chat (Middle row, delay 40ms)
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier.clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    isFabExpanded = false
-                                    showCreateGroupChatDialog = true
-                                }
+                                modifier = Modifier
+                                    .graphicsLayer {
+                                        alpha = r2Alpha
+                                        translationY = r2Y.dp.toPx()
+                                        scaleX = r2Scale
+                                        scaleY = r2Scale
+                                    }
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        isFabExpanded = false
+                                        showCreateGroupChatDialog = true
+                                    }
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
-                                    color = if (isPureBlack) Color(0xFF1E2029) else MaterialTheme.colorScheme.surface,
-                                    tonalElevation = 4.dp,
-                                    shadowElevation = 4.dp,
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                                    color = if (isDark) Color(0xFF1C202B) else Color.White,
+                                    shadowElevation = 6.dp,
+                                    border = null
                                 ) {
                                     Text(
                                         text = "New Group",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface,
+                                        color = if (isDark) Color.White else Color(0xFF0F172A),
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                     )
                                 }
@@ -5967,7 +6079,7 @@ fun CustomizedChatScreen(
                                         .size(44.dp)
                                         .clip(CircleShape)
                                         .background(Color(0xFF6366F1))
-                                        .shadow(4.dp, CircleShape),
+                                        .shadow(6.dp, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -5979,31 +6091,37 @@ fun CustomizedChatScreen(
                                 }
                             }
 
-                            // Option C: New Direct Chat
+                            // Option C: New Direct Chat (Bottom row, delay 0ms)
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier.clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    isFabExpanded = false
-                                    showAddFriendDialog = true
-                                }
+                                modifier = Modifier
+                                    .graphicsLayer {
+                                        alpha = r1Alpha
+                                        translationY = r1Y.dp.toPx()
+                                        scaleX = r1Scale
+                                        scaleY = r1Scale
+                                    }
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        isFabExpanded = false
+                                        showAddFriendDialog = true
+                                    }
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
-                                    color = if (isPureBlack) Color(0xFF1E2029) else MaterialTheme.colorScheme.surface,
-                                    tonalElevation = 4.dp,
-                                    shadowElevation = 4.dp,
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                                    color = if (isDark) Color(0xFF1C202B) else Color.White,
+                                    shadowElevation = 6.dp,
+                                    border = null
                                 ) {
                                     Text(
                                         text = "New Chat",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface,
+                                        color = if (isDark) Color.White else Color(0xFF0F172A),
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                     )
                                 }
@@ -6012,7 +6130,7 @@ fun CustomizedChatScreen(
                                         .size(44.dp)
                                         .clip(CircleShape)
                                         .background(Color(0xFF0284C7))
-                                        .shadow(4.dp, CircleShape),
+                                        .shadow(6.dp, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -6026,7 +6144,7 @@ fun CustomizedChatScreen(
                         }
                     }
 
-                    // 3. Primary Floating Action Button
+                    // 3. Primary Floating Action Button (Rotates 45deg from + to x)
                     val haptic = LocalHapticFeedback.current
                     val fabInteraction = remember { MutableInteractionSource() }
                     val isFabPressed by fabInteraction.collectIsPressedAsState()
@@ -6036,8 +6154,8 @@ fun CustomizedChatScreen(
                         label = "fabScale"
                     )
                     val fabRotation by animateFloatAsState(
-                        targetValue = if (isFabExpanded) 135f else 0f,
-                        animationSpec = spring(stiffness = 450f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                        targetValue = if (isFabExpanded) 45f else 0f,
+                        animationSpec = spring(stiffness = 400f, dampingRatio = Spring.DampingRatioMediumBouncy),
                         label = "fabRotation"
                     )
 

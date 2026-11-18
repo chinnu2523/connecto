@@ -19,11 +19,15 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.runtime.mutableFloatStateOf
 import kotlin.math.roundToInt
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -707,7 +711,15 @@ fun CallsScreen(
             val filterShape = RoundedCornerShape(12.dp)
             val trackBg = if (colors.isDark) Color(0xFF12141A) else Color(0xFFF1F5F9)
             val activeTabBg = if (colors.isDark) Color(0xFF242836) else Color(0xFF0F172A)
-            Box(
+            val quickTabs = listOf(
+                "All" to null,
+                "Incoming" to Icons.AutoMirrored.Filled.CallReceived,
+                "Outgoing" to Icons.AutoMirrored.Filled.CallMade,
+                "Missed" to Icons.AutoMirrored.Filled.CallMissed
+            )
+            val selectedIndex = quickTabs.indexOfFirst { it.first == selectedFilter }.coerceAtLeast(0)
+
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
@@ -715,38 +727,61 @@ fun CallsScreen(
                     .background(trackBg)
                     .padding(4.dp)
             ) {
+                val totalWidth = maxWidth
+                val tabCount = quickTabs.size
+                val tabWidth = totalWidth / tabCount
+
+                val animatedPillOffset by animateDpAsState(
+                    targetValue = tabWidth * selectedIndex,
+                    animationSpec = spring(
+                        dampingRatio = 0.8f,
+                        stiffness = 380f
+                    ),
+                    label = "callsSlidingPill"
+                )
+
+                val isMissedSelected = selectedFilter == "Missed"
+                val slidingPillBg = if (isMissedSelected) MaterialTheme.colorScheme.error else activeTabBg
+
+                // Sliding active pill behind text (smooth 250ms spring curve)
+                Box(
+                    modifier = Modifier
+                        .offset(x = animatedPillOffset)
+                        .width(tabWidth)
+                        .height(34.dp)
+                        .padding(horizontal = 2.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(slidingPillBg)
+                )
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val quickTabs = listOf(
-                        "All" to null,
-                        "Incoming" to Icons.AutoMirrored.Filled.CallReceived,
-                        "Outgoing" to Icons.AutoMirrored.Filled.CallMade,
-                        "Missed" to Icons.AutoMirrored.Filled.CallMissed
-                    )
-
                     quickTabs.forEach { (filter, icon) ->
                         val isSelected = selectedFilter == filter
-                        val isMissedTab = filter == "Missed"
-                        val selectedTabBg = if (isMissedTab && isSelected) MaterialTheme.colorScheme.error else activeTabBg
                         val selectedTextColor = Color.White
                         val unselectedTextColor = if (colors.isDark) Color(0xFF7A7F8F) else Color(0xFF64748B)
+
+                        val textColor by animateColorAsState(
+                            targetValue = if (isSelected) selectedTextColor else unselectedTextColor,
+                            animationSpec = tween(200),
+                            label = "callTabTextColor"
+                        )
 
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) selectedTabBg else Color.Transparent)
-                                .pressScaleEffect(
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        selectedFilter = filter
-                                    },
-                                    targetScale = 0.95f
-                                )
-                                .padding(vertical = 7.dp),
+                                .height(34.dp)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    selectedFilter = filter
+                                }
+                                .padding(vertical = 4.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Row(
@@ -757,7 +792,7 @@ fun CallsScreen(
                                     Icon(
                                         imageVector = icon,
                                         contentDescription = null,
-                                        tint = if (isSelected) selectedTextColor else unselectedTextColor,
+                                        tint = textColor,
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Spacer(modifier = Modifier.width(3.dp))
@@ -766,7 +801,7 @@ fun CallsScreen(
                                     text = filter,
                                     fontSize = 11.5.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) selectedTextColor else unselectedTextColor,
+                                    color = textColor,
                                     maxLines = 1
                                 )
                             }
@@ -938,6 +973,7 @@ fun CallsScreen(
                     item(key = "calls_grouped_card") {
                         ConnectoSettingsCard {
                             groupedLogs.forEachIndexed { idx, grouped ->
+                                StaggeredReveal(index = idx, staggerMs = 25L, initialOffsetY = 8f) {
                                 val log = grouped.primaryLog
                                 val displayName = if (grouped.count > 1) "${log.callerName} (${grouped.count})" else log.callerName
                                 var swipeOffsetX by remember(log.id) { mutableFloatStateOf(0f) }
@@ -1000,19 +1036,33 @@ fun CallsScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier.weight(1f)
                                         ) {
-                                            // Caller Initial or Profile Avatar
+                                            // Caller Initial or Profile Avatar with guaranteed bold initial fallback
+                                            val hasRemotePhoto = !log.avatarUrl.isNullOrBlank() &&
+                                                log.avatarUrl != "null" &&
+                                                log.avatarUrl != "default" &&
+                                                (log.avatarUrl.startsWith("http://") || log.avatarUrl.startsWith("https://") || log.avatarUrl.startsWith("content://"))
+
+                                            val cleanInitial = log.initial.ifBlank {
+                                                log.callerName.trimStart { !it.isLetterOrDigit() }.take(1).uppercase().ifBlank { "C" }
+                                            }
+
                                             Box(
                                                 modifier = Modifier
                                                     .size(44.dp)
                                                     .clip(CircleShape)
                                                     .background(
                                                         if (log.isMissed) colors.error.copy(alpha = 0.15f)
-                                                        else if (!log.avatarUrl.isNullOrBlank()) (if (colors.isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFF1F5F9))
                                                         else getCallAvatarColor(log.callerName)
                                                     ),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                if (!log.avatarUrl.isNullOrBlank()) {
+                                                Text(
+                                                    text = cleanInitial,
+                                                    fontSize = 17.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (log.isMissed) colors.error else Color.White
+                                                )
+                                                if (hasRemotePhoto) {
                                                     val imgModel = resolveImageModel(log.avatarUrl)
                                                     AsyncImage(
                                                         model = imgModel,
@@ -1021,13 +1071,6 @@ fun CallsScreen(
                                                             .fillMaxSize()
                                                             .clip(CircleShape),
                                                         contentScale = ContentScale.Crop
-                                                    )
-                                                } else {
-                                                    Text(
-                                                        text = log.initial.ifBlank { log.callerName.take(1).uppercase() },
-                                                        fontSize = 17.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = if (log.isMissed) colors.error else Color.White
                                                     )
                                                 }
                                             }
@@ -1105,8 +1148,9 @@ fun CallsScreen(
                                         }
                                     }
                                 }
-                                if (idx < groupedLogs.size - 1) {
-                                    ConnectoSettingsDivider(startIndent = 74.dp)
+                                    if (idx < groupedLogs.size - 1) {
+                                        ConnectoSettingsDivider(startIndent = 74.dp)
+                                    }
                                 }
                             }
                         }

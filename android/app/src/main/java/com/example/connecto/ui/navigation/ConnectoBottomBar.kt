@@ -166,17 +166,37 @@ fun ConnectoBottomBar(
         val animatedCenterX by animateDpAsState(
             targetValue = targetCenterX,
             animationSpec = spring(
-                dampingRatio = 0.75f,
-                stiffness = 500f
+                dampingRatio = 0.78f,
+                stiffness = 400f
             ),
             label = "navPillCenterX"
         )
 
-        // Glowing Accent Pill Indicator (16px x 3px) at very top edge of active tab slot
+        val pillWidth = 20.dp
+        val pillHeight = 3.dp
+
+        // Soft radial ambient glow directly under the top indicator pill (rgba(255, 255, 255, 0.12), blur(10px))
         Box(
             modifier = Modifier
-                .offset(x = animatedCenterX - 8.dp, y = 0.dp)
-                .size(width = 16.dp, height = 3.dp)
+                .offset(x = animatedCenterX - 24.dp, y = 0.dp)
+                .size(width = 48.dp, height = 20.dp)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            (if (isDark) Color.White else Color(0xFF0F172A)).copy(alpha = 0.12f),
+                            Color.Transparent
+                        ),
+                        center = Offset(48f, 0f),
+                        radius = 48f
+                    )
+                )
+        )
+
+        // Sliding Top Pill Indicator (20px wide, 3px tall, rounded) with spring physics
+        Box(
+            modifier = Modifier
+                .offset(x = animatedCenterX - (pillWidth / 2), y = 0.dp)
+                .size(width = pillWidth, height = pillHeight)
                 .clip(RoundedCornerShape(bottomStart = 1.5.dp, bottomEnd = 1.5.dp))
                 .background(if (isDark) Color.White else Color(0xFF0F172A))
         )
@@ -191,23 +211,44 @@ fun ConnectoBottomBar(
                 val interactionSource = remember { MutableInteractionSource() }
                 val isPressed by interactionSource.collectIsPressedAsState()
 
+                // Tap feedback: scale(0.92) for 100ms
                 val buttonPressScale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.94f else 1.0f,
-                    animationSpec = tween(120, easing = EaseOutCubic),
+                    targetValue = if (isPressed) 0.92f else 1.0f,
+                    animationSpec = tween(100, easing = EaseOutCubic),
                     label = "tabPressScale"
                 )
 
-                val iconColor = if (isSelected) {
-                    if (isDark) Color.White else Color(0xFF0F172A)
-                } else {
-                    if (isDark) Color(0xFF7A7F8F) else Color(0xFF64748B)
+                // Active icon bounce & spring scale (1.0 -> 1.18 -> 1.08) on selection
+                val iconBounce = remember { Animatable(1f) }
+                LaunchedEffect(isSelected) {
+                    if (isSelected) {
+                        iconBounce.snapTo(1.0f)
+                        iconBounce.animateTo(1.18f, tween(100, easing = EaseOutCubic))
+                        iconBounce.animateTo(1.08f, spring(dampingRatio = 0.7f, stiffness = 400f))
+                    } else {
+                        iconBounce.snapTo(1.0f)
+                    }
                 }
 
-                val textColor = if (isSelected) {
-                    if (isDark) Color.White else Color(0xFF0F172A)
-                } else {
-                    if (isDark) Color(0xFF7A7F8F) else Color(0xFF64748B)
-                }
+                val iconColor by animateColorAsState(
+                    targetValue = if (isSelected) {
+                        if (isDark) Color.White else Color(0xFF0F172A)
+                    } else {
+                        if (isDark) Color(0xFF7A7F8F) else Color(0xFF64748B)
+                    },
+                    animationSpec = tween(200, easing = EaseOutCubic),
+                    label = "tabIconColor"
+                )
+
+                val labelColor by animateColorAsState(
+                    targetValue = if (isSelected) {
+                        if (isDark) Color.White else Color(0xFF0F172A)
+                    } else {
+                        if (isDark) Color(0xFF7A7F8F) else Color(0xFF64748B)
+                    },
+                    animationSpec = tween(200, easing = EaseOutCubic),
+                    label = "tabTextColor"
+                )
 
                 Box(
                     modifier = Modifier
@@ -233,7 +274,12 @@ fun ConnectoBottomBar(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Box(
-                            modifier = Modifier.size(26.dp),
+                            modifier = Modifier
+                                .size(26.dp)
+                                .graphicsLayer {
+                                    scaleX = iconBounce.value
+                                    scaleY = iconBounce.value
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             ClassicAestheticTabIcon(
@@ -289,7 +335,7 @@ fun ConnectoBottomBar(
 
                         Text(
                             text = tab.title,
-                            color = textColor,
+                            color = labelColor,
                             fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             letterSpacing = 0.2.sp,

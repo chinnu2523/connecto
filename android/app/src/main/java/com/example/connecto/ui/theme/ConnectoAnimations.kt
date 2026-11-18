@@ -574,8 +574,9 @@ fun TypingIndicatorDots(
 @Composable
 fun StaggeredReveal(
     index: Int,
-    durationMs: Int = 350,
-    staggerMs: Long = 55L,
+    durationMs: Int = 300,
+    staggerMs: Long = 25L,
+    initialOffsetY: Float = 16f,
     content: @Composable () -> Unit
 ) {
     var visible by remember { mutableStateOf(false) }
@@ -594,7 +595,7 @@ fun StaggeredReveal(
         label = "staggerAlpha_$index"
     )
     val translationY by animateFloatAsState(
-        targetValue = if (visible) 0f else 32f,
+        targetValue = if (visible) 0f else initialOffsetY,
         animationSpec = tween(durationMillis = durationMs, easing = FastOutSlowInEasing),
         label = "staggerY_$index"
     )

@@ -904,8 +904,9 @@ fun ConnectoApp(
 
                     val emailVerification by com.example.connecto.network.ConnectoApiClient.emailVerificationState.collectAsState()
                     var showManualVerifyModal by rememberSaveable { mutableStateOf(false) }
+                    var isProfileSubScreenOpen by rememberSaveable { mutableStateOf(false) }
 
-                    val showBottomBar = !(currentTab == ConnectoTab.MESSAGES && isDirectChatOpen) && currentTab != ConnectoTab.CHANNELS && !isImeVisible
+                    val showBottomBar = !(currentTab == ConnectoTab.MESSAGES && isDirectChatOpen) && currentTab != ConnectoTab.CHANNELS && !(currentTab == ConnectoTab.PROFILE && isProfileSubScreenOpen) && !isImeVisible
 
                     val activity = context as? android.app.Activity
                     androidx.activity.compose.BackHandler(enabled = true) {
@@ -1068,6 +1069,7 @@ fun ConnectoApp(
                                             onOpenNotifications = { isNotificationCenterOpen = true },
                                             unreadNotificationsCount = unreadNotifCount,
                                             scrollToTopTrigger = profileScrollToTopTrigger,
+                                            onSubScreenChanged = { isProfileSubScreenOpen = it },
                                             onSignOut = {
                                                 performCompleteSignOut(context, authenticatedUsername)
                                                 flowState = AppFlowState.AUTH_HOME

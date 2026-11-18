@@ -68,6 +68,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Spring
@@ -342,6 +343,7 @@ fun ProfileScreen(
     onOpenNotifications: (() -> Unit)? = null,
     unreadNotificationsCount: Int = 0,
     scrollToTopTrigger: Int = 0,
+    onSubScreenChanged: ((Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -808,6 +810,7 @@ fun ProfileScreen(
     }
 
     LaunchedEffect(activeSubPage) {
+        onSubScreenChanged?.invoke(activeSubPage != null)
         if (activeSubPage == ProfileSubPage.SESSION_MANAGEMENT || activeSubPage == ProfileSubPage.TWO_FACTOR_SECURITY) {
             refreshUserSessions()
         }
@@ -5273,19 +5276,29 @@ fun ProfileScreen(
 
                                     faqs.forEachIndexed { index, (question, answer) ->
                                         val isExpanded = expandedFaqIndex == index
+                                        val chevronRotation by animateFloatAsState(
+                                            targetValue = if (isExpanded) 180f else 0f,
+                                            animationSpec = tween(durationMillis = 220, easing = EaseOutCubic),
+                                            label = "faqChevronRotation"
+                                        )
+                                        val cardBg by animateColorAsState(
+                                            targetValue = if (isExpanded) Color(0xFF181B24) else Color(0xFF12141A),
+                                            animationSpec = tween(durationMillis = 220, easing = EaseOutCubic),
+                                            label = "faqCardBg"
+                                        )
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clip(RoundedCornerShape(14.dp))
                                                 .background(
                                                     if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
-                                                    else MaterialTheme.colorScheme.surface
+                                                    else cardBg
                                                 )
                                                 .border(
                                                     1.dp,
-                                                    if (isExpanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                                    if (isExpanded) Color(0x33FFFFFF)
                                                     else if (hasCoverPhoto) Color.White.copy(alpha = 0.15f)
-                                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                                    else Color(0x0FFFFFFF),
                                                     RoundedCornerShape(14.dp)
                                                 )
                                                 .clickable {
@@ -5303,22 +5316,29 @@ fun ProfileScreen(
                                                         text = question,
                                                         fontSize = 13.5.sp,
                                                         fontWeight = FontWeight.SemiBold,
-                                                        color = if (isExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                                        color = if (isExpanded) Color.White else Color(0xFFD4D4D8),
                                                         modifier = Modifier.weight(1f)
                                                     )
                                                     Icon(
-                                                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                        imageVector = Icons.Default.ExpandMore,
                                                         contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        modifier = Modifier.size(20.dp)
+                                                        tint = Color(0xFFA1A1AA),
+                                                        modifier = Modifier
+                                                            .size(20.dp)
+                                                            .graphicsLayer { rotationZ = chevronRotation }
                                                     )
                                                 }
-                                                if (isExpanded) {
+                                                AnimatedVisibility(
+                                                    visible = isExpanded,
+                                                    enter = expandVertically(animationSpec = tween(220, easing = EaseOutCubic)) + fadeIn(animationSpec = tween(200)),
+                                                    exit = shrinkVertically(animationSpec = tween(180, easing = EaseInCubic)) + fadeOut(animationSpec = tween(150))
+                                                ) {
                                                     Text(
                                                         text = answer,
                                                         fontSize = 12.5.sp,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        lineHeight = 18.sp
+                                                        color = Color(0xFFA1A1AA),
+                                                        lineHeight = 18.sp,
+                                                        modifier = Modifier.padding(top = 4.dp)
                                                     )
                                                 }
                                             }

@@ -4,6 +4,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.EaseInCubic
@@ -1280,7 +1281,7 @@ fun ChannelsWorkspaceScreen(
                                         DropdownMenu(
                                             expanded = showChannelOptionsMenu,
                                             onDismissRequest = { showChannelOptionsMenu = false },
-                                            modifier = Modifier.background(if (colors.isDark) Color(0xFF1E2029) else Color.White)
+                                            modifier = Modifier.background(if (colors.isDark) Color(0xEB181B24) else Color.White)
                                         ) {
                                             DropdownMenuItem(
                                                 text = { Text(if (isChannelMuted) "Unmute Channel" else "Mute Channel", color = colors.textPrimary) },
@@ -1306,8 +1307,8 @@ fun ChannelsWorkspaceScreen(
                             // Row 2: In-Channel Expandable Search Bar
                             AnimatedVisibility(
                                 visible = isChannelSearchOpen,
-                                enter = expandVertically(tween(240, easing = EaseOutCubic)) + fadeIn(tween(220, easing = EaseOutCubic)),
-                                exit = shrinkVertically(tween(180, easing = EaseInCubic)) + fadeOut(tween(160, easing = EaseInCubic))
+                                enter = expandVertically(tween(240, easing = EaseOutCubic)) + fadeIn(tween(220, easing = EaseOutCubic)) + slideInVertically(animationSpec = tween(240, easing = EaseOutCubic), initialOffsetY = { -it / 3 }),
+                                exit = shrinkVertically(tween(180, easing = EaseInCubic)) + fadeOut(tween(160, easing = EaseInCubic)) + slideOutVertically(animationSpec = tween(180, easing = EaseInCubic), targetOffsetY = { -it / 3 })
                             ) {
                                 Box(
                                     modifier = Modifier
@@ -2004,8 +2005,8 @@ fun ChannelsWorkspaceScreen(
                     val hasText = typedMessage.trim().isNotEmpty()
 
                     val focusBorderColor by animateColorAsState(
-                        targetValue = if (isInputFocused) (if (colors.isDark) Color(0xFFFAFAFA) else Color(0xFF18181B))
-                                      else if (colors.isDark) Color(0xFF27272A)
+                        targetValue = if (isInputFocused) (if (colors.isDark) Color(0x47FFFFFF) else Color(0xFF18181B))
+                                      else if (colors.isDark) Color(0x14FFFFFF)
                                       else Color(0xFFE2E8F0),
                         animationSpec = tween(220),
                         label = "inputBorder"
@@ -2490,8 +2491,27 @@ private fun ChannelMessageCard(
         trimmed.startsWith("http") && (trimmed.endsWith(".jpg") || trimmed.endsWith(".png") || trimmed.endsWith(".jpeg") || trimmed.endsWith(".webp") || trimmed.endsWith(".gif"))
     }
 
+    val entryAnim = remember { Animatable(0f) }
+    LaunchedEffect(message.id) {
+        entryAnim.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = 500f
+            )
+        )
+    }
+
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                val progress = entryAnim.value
+                translationY = (1f - progress) * 12.dp.toPx()
+                scaleX = 0.96f + (0.04f * progress)
+                scaleY = 0.96f + (0.04f * progress)
+                alpha = progress.coerceIn(0f, 1f)
+            },
         horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
     ) {
         Row(
@@ -2654,52 +2674,30 @@ private fun ChannelMessageCard(
                         .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
                     Column {
-                        // Header row (Author Name + Timestamp)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (!isMe) {
-                                    Text(
-                                        text = message.authorName,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (colors.isDark) Color.White else colors.primary
-                                    )
-                                }
-                            }
+                        // Header row (Author Name + Timestamp for other members)
+                        if (!isMe) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = message.authorName,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (colors.isDark) Color.White else colors.primary
+                                )
 
-                            Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = formattedTime,
                                     fontSize = 10.sp,
-                                    color = if (isMe) {
-                                        if (isWhiteBubble) Color(0x99000000) else Color.White.copy(alpha = 0.75f)
-                                    } else {
-                                        if (colors.isDark) Color(0xFFA1A1AA) else colors.textSecondary
-                                    }
+                                    color = if (colors.isDark) Color(0xFFA1A1AA) else colors.textSecondary
                                 )
-                                if (isMe) {
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Icon(
-                                        imageVector = if (isPending) Icons.Rounded.Schedule else Icons.Rounded.DoneAll,
-                                        contentDescription = null,
-                                        tint = if (isWhiteBubble) {
-                                            if (isPending) Color(0x66000000) else Color(0xCC000000)
-                                        } else {
-                                            if (isPending) Color.White.copy(alpha = 0.60f) else Color(0xFF67E8F9)
-                                        },
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                }
                             }
+                            Spacer(modifier = Modifier.height(4.dp))
                         }
-
-                        Spacer(modifier = Modifier.height(4.dp))
 
                         // Quoted Reply Preview inside bubble
                         if (!message.replyToContent.isNullOrBlank()) {
@@ -2775,6 +2773,32 @@ private fun ChannelMessageCard(
                                 color = if (isMe) ownBubbleText else friendBubbleText,
                                 lineHeight = 19.sp
                             )
+                        }
+
+                        // Outgoing message timestamp & delivery ticks pinned to bottom-right
+                        if (isMe) {
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Row(
+                                modifier = Modifier.align(Alignment.End),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = formattedTime,
+                                    fontSize = 10.sp,
+                                    color = if (isWhiteBubble) Color(0x99000000) else Color.White.copy(alpha = 0.75f)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = if (isPending) Icons.Rounded.Schedule else Icons.Rounded.DoneAll,
+                                    contentDescription = null,
+                                    tint = if (isWhiteBubble) {
+                                        if (isPending) Color(0x66000000) else Color(0xCC000000)
+                                    } else {
+                                        if (isPending) Color.White.copy(alpha = 0.60f) else Color(0xFF67E8F9)
+                                    },
+                                    modifier = Modifier.size(13.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -2943,36 +2967,7 @@ private fun ChannelMessageCard(
                 }
             }
 
-            // Right Avatar for current user
-            if (isMe) {
-                Spacer(modifier = Modifier.width(8.dp))
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(Brush.linearGradient(gradientColors)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val initial = if (message.authorName.isNotBlank()) message.authorName.first().toString().uppercase() else "U"
-                    Text(
-                        text = initial,
-                        color = contentOnGradient,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    if (!message.authorAvatar.isNullOrBlank()) {
-                        val fullAvatar = if (message.authorAvatar.startsWith("/")) "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}${message.authorAvatar}" else message.authorAvatar
-                        AsyncImage(
-                            model = fullAvatar,
-                            contentDescription = message.authorName,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape)
-                        )
-                    }
-                }
-            }
+
             if (!isMe) {
                 Box(
                     modifier = Modifier
