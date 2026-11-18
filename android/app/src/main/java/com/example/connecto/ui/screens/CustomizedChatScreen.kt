@@ -85,6 +85,10 @@ import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.RecordVoiceOver
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material.icons.filled.Close
@@ -697,6 +701,8 @@ fun CustomizedChatScreen(
     var showAddFriendDialog by remember { mutableStateOf(false) }
     var showCreateGroupChatDialog by remember { mutableStateOf(false) }
     var showCreateVoiceGroupDialog by remember { mutableStateOf(false) }
+    var showMessagesMoreMenu by remember { mutableStateOf(false) }
+    var isFabExpanded by remember { mutableStateOf(false) }
     var pendingRequestsCount by remember { mutableIntStateOf(0) }
     var friendSearchQuery by remember { mutableStateOf("") }
     var isSearchOpen by rememberSaveable { mutableStateOf(false) }
@@ -4991,6 +4997,175 @@ fun CustomizedChatScreen(
                                         color = contentOnGradient
                                     )
                                 }
+
+                                // 3-Dots Menu Button
+                                val moreInteraction = remember { MutableInteractionSource() }
+                                val isMorePressed by moreInteraction.collectIsPressedAsState()
+                                val moreScale by animateFloatAsState(
+                                    targetValue = if (isMorePressed) 0.90f else 1.0f,
+                                    animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                                    label = "moreBtnScale"
+                                )
+                                Box {
+                                    Box(
+                                        modifier = Modifier
+                                            .graphicsLayer {
+                                                scaleX = moreScale
+                                                scaleY = moreScale
+                                            }
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (showMessagesMoreMenu) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                                else MaterialTheme.colorScheme.surfaceVariant
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (showMessagesMoreMenu) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.40f),
+                                                CircleShape
+                                            )
+                                            .clickable(
+                                                interactionSource = moreInteraction,
+                                                indication = null
+                                            ) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                showMessagesMoreMenu = !showMessagesMoreMenu
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = "Messages Options",
+                                            tint = if (showMessagesMoreMenu) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(19.dp)
+                                        )
+                                    }
+
+                                    DropdownMenu(
+                                        expanded = showMessagesMoreMenu,
+                                        onDismissRequest = { showMessagesMoreMenu = false },
+                                        modifier = Modifier
+                                            .background(if (isPureBlack) Color(0xFF13151B) else MaterialTheme.colorScheme.surface)
+                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                                    ) {
+                                        // 1. New Chat (Direct Message)
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text("New Chat", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.PersonAdd,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            },
+                                            onClick = {
+                                                showMessagesMoreMenu = false
+                                                showAddFriendDialog = true
+                                            }
+                                        )
+
+                                        // 2. New Group Chat
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text("New Group", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.GroupAdd,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            },
+                                            onClick = {
+                                                showMessagesMoreMenu = false
+                                                showCreateGroupChatDialog = true
+                                            }
+                                        )
+
+                                        // 3. New Voice Group
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text("Voice Group", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.RecordVoiceOver,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            },
+                                            onClick = {
+                                                showMessagesMoreMenu = false
+                                                showCreateVoiceGroupDialog = true
+                                            }
+                                        )
+
+                                        // 4. Mark All as Read
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text("Mark All as Read", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.DoneAll,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFF0284C7),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            },
+                                            onClick = {
+                                                showMessagesMoreMenu = false
+                                                var markedCount = 0
+                                                friendsList.forEach { f ->
+                                                    if (f.unreadCount > 0) {
+                                                        markFriendChatAsReadLocallyAndRemotely(f)
+                                                        markedCount++
+                                                    }
+                                                }
+                                                onUnreadCountChanged(0)
+                                                onUnreadStatusChanged(false)
+                                                Toast.makeText(
+                                                    context,
+                                                    if (markedCount > 0) "Marked $markedCount chat${if (markedCount > 1) "s" else ""} as read"
+                                                    else "All chats already read",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        )
+
+                                        // 5. Refresh / Sync
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text("Refresh Chats", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.Refresh,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            },
+                                            onClick = {
+                                                showMessagesMoreMenu = false
+                                                isRefreshingFriends = true
+                                                coroutineScope.launch {
+                                                    try {
+                                                        syncAcceptedFriends()
+                                                    } finally {
+                                                        isRefreshingFriends = false
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
                     )
@@ -5163,6 +5338,7 @@ fun CustomizedChatScreen(
                 when (screenState) {
                     "FRIENDS_LIST" -> {
                     // ================= 1. FRIENDS LIST SCREEN =================
+                    Box(modifier = Modifier.fillMaxSize()) {
                     com.example.connecto.ui.components.ConnectoDragToRefresh(
                         isRefreshing = isRefreshingFriends,
                         onRefresh = {
@@ -5694,6 +5870,238 @@ fun CustomizedChatScreen(
                             }
                         }
                     } // end DisableSelection
+                    }
+
+                    // ================= MESSAGES TAB FAB & SPEED-DIAL =================
+                    // 1. Scrim overlay when speed-dial is expanded
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = isFabExpanded,
+                        enter = fadeIn(animationSpec = tween(180, easing = EaseOutCubic)),
+                        exit = fadeOut(animationSpec = tween(150, easing = EaseInCubic))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.45f))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    isFabExpanded = false
+                                }
+                        )
+                    }
+
+                    // 2. Expandable Speed-Dial Action Pills
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = isFabExpanded,
+                        enter = fadeIn(animationSpec = tween(220, easing = EaseOutCubic)) +
+                                slideInVertically(initialOffsetY = { it / 3 }, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 450f)),
+                        exit = fadeOut(animationSpec = tween(160, easing = EaseInCubic)) +
+                               slideOutVertically(targetOffsetY = { it / 3 }, animationSpec = tween(160)),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 20.dp, bottom = 86.dp)
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            val haptic = LocalHapticFeedback.current
+
+                            // Option A: Voice Group / Audio Room
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    isFabExpanded = false
+                                    showCreateVoiceGroupDialog = true
+                                }
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (isPureBlack) Color(0xFF1E2029) else MaterialTheme.colorScheme.surface,
+                                    tonalElevation = 4.dp,
+                                    shadowElevation = 4.dp,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                                ) {
+                                    Text(
+                                        text = "Voice Group",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF10B981))
+                                        .shadow(4.dp, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.RecordVoiceOver,
+                                        contentDescription = "New Voice Group",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            // Option B: New Group Chat
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    isFabExpanded = false
+                                    showCreateGroupChatDialog = true
+                                }
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (isPureBlack) Color(0xFF1E2029) else MaterialTheme.colorScheme.surface,
+                                    tonalElevation = 4.dp,
+                                    shadowElevation = 4.dp,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                                ) {
+                                    Text(
+                                        text = "New Group",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF6366F1))
+                                        .shadow(4.dp, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.GroupAdd,
+                                        contentDescription = "New Group Chat",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            // Option C: New Direct Chat
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    isFabExpanded = false
+                                    showAddFriendDialog = true
+                                }
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (isPureBlack) Color(0xFF1E2029) else MaterialTheme.colorScheme.surface,
+                                    tonalElevation = 4.dp,
+                                    shadowElevation = 4.dp,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                                ) {
+                                    Text(
+                                        text = "New Chat",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF0284C7))
+                                        .shadow(4.dp, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PersonAdd,
+                                        contentDescription = "New Direct Chat",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 3. Primary Floating Action Button
+                    val haptic = LocalHapticFeedback.current
+                    val fabInteraction = remember { MutableInteractionSource() }
+                    val isFabPressed by fabInteraction.collectIsPressedAsState()
+                    val fabScale by animateFloatAsState(
+                        targetValue = if (isFabPressed) 0.90f else 1.0f,
+                        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                        label = "fabScale"
+                    )
+                    val fabRotation by animateFloatAsState(
+                        targetValue = if (isFabExpanded) 135f else 0f,
+                        animationSpec = spring(stiffness = 450f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                        label = "fabRotation"
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 20.dp, bottom = 20.dp)
+                            .graphicsLayer {
+                                scaleX = fabScale
+                                scaleY = fabScale
+                            }
+                            .size(56.dp)
+                            .shadow(elevation = 8.dp, shape = CircleShape)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                                        if (isPureBlack) Color(0xFF38BDF8) else MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                            )
+                            .border(1.2.dp, Color.White.copy(alpha = 0.35f), CircleShape)
+                            .clickable(
+                                interactionSource = fabInteraction,
+                                indication = null
+                            ) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                isFabExpanded = !isFabExpanded
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = if (isFabExpanded) "Close options" else "Start conversation",
+                            tint = contentOnGradient,
+                            modifier = Modifier
+                                .size(26.dp)
+                                .graphicsLayer {
+                                    rotationZ = fabRotation
+                                }
+                        )
+                    }
                     }
                     }
                     } // end FRIENDS_LIST branch
