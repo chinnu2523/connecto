@@ -401,6 +401,9 @@ object VoiceCallManager {
     private var lastRelaySendTimeMs = 0L
     private val audioPlayExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val pendingAudioChunksCount = java.util.concurrent.atomic.AtomicInteger(0)
+    private val jitterAudioQueue = java.util.concurrent.ConcurrentLinkedQueue<ByteArray>()
+    @Volatile
+    private var wasLastFrameUnderrun = true
 
     // Thread-safe queue for remote ICE candidates that arrive before setRemoteDescription completes
     private val queuedIceCandidates = ConcurrentHashMap<String, MutableList<IceCandidate>>()
@@ -3016,12 +3019,12 @@ object VoiceCallManager {
             Log.w(TAG, "Failed to set hardware noise suppressor: ${t.message}")
         }
         try {
-            hardwareEchoCanceler?.enabled = enabled
+            hardwareEchoCanceler?.enabled = true // Echo cancellation MUST remain permanently active during calls to prevent acoustic feedback loop
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to set hardware echo canceler: ${t.message}")
         }
         try {
-            hardwareGainControl?.enabled = enabled
+            hardwareGainControl?.enabled = true // AGC automatically balances whisper and loud speech volume
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to set hardware gain control: ${t.message}")
         }
@@ -3034,7 +3037,7 @@ object VoiceCallManager {
         } catch (_: Throwable) {}
     }
 
-    // Biquad filter state for 2nd-order Butterworth HPF (140Hz cutoff at 16kHz)
+    // Biquad filter state for 2nd-order Butterworth HPF (80Hz cutoff at 16kHz)
     private var hpX1 = 0f
     private var hpX2 = 0f
     private var hpY1 = 0f
@@ -3060,12 +3063,12 @@ object VoiceCallManager {
     }
 
     // Filter coefficients precomputed for 16kHz audio:
-    // HPF: fc = 140Hz, Q = 0.7071
-    private val hpB0 = 0.961870f
-    private val hpB1 = -1.923740f
-    private val hpB2 = 0.961870f
-    private val hpA1 = -1.922286f
-    private val hpA2 = 0.925195f
+    // HPF: fc = 80Hz (ITU-T G.722 Wideband HD Voice standard, preserves full male & female vocal body down to 80Hz while rejecting DC offset, desk rumble, and electrical hum)
+    private val hpB0 = 0.9780305f
+    private val hpB1 = -1.9560610f
+    private val hpB2 = 0.9780305f
+    private val hpA1 = -1.9555782f
+    private val hpA2 = 0.9565437f
 
     // LPF: fc = 3400Hz, Q = 0.7071
     private val lpB0 = 0.227117f
@@ -3076,11 +3079,11 @@ object VoiceCallManager {
 
     /**
      * Multi-stage studio Voice Isolation DSP:
-     * 1. 2nd-order Butterworth High-Pass Filter (140Hz) rejecting DC offset, handling noise, desk thumps, AC hum.
-     * 2. 2nd-order Butterworth Low-Pass Filter (3400Hz) rejecting fan turbulence, coil whine, keyboard clicks.
+     * 1. 2nd-order Butterworth High-Pass Filter (80Hz) rejecting DC offset, handling noise, desk thumps, AC hum while preserving deep male vocal fundamentals.
+     * 2. Full wideband vocal preservation (80Hz - 7900Hz HD Voice).
      * 3. Statistical ambient noise floor estimation with stationary noise isolation.
-     * 4. Downward expander / voice gate: complete black silence (0.00f) during pauses, 250ms hangover hold time.
-     * 5. Vocal presence normalization with soft saturation limiter preventing clipping.
+     * 4. Downward expander / voice gate: soft hangover preservation (~800ms) ensuring soft word endings never drop.
+     * 5. Vocal presence normalization with analogue soft-knee saturation limiter preventing all digital clipping.
      */
     private fun applyVoiceIsolationDsp(buffer: ByteArray, length: Int) {
         if (length < 2) return
@@ -3094,14 +3097,14 @@ object VoiceCallManager {
             val high = buffer[i * 2 + 1].toInt()
             val raw = ((high shl 8) or low).toFloat()
 
-            // 1. High-Pass Filter (140Hz) rejecting DC rumble and sub-bass handling noise
+            // 1. High-Pass Filter (80Hz) rejecting DC rumble and sub-bass handling noise
             val hpY = hpB0 * raw + hpB1 * hpX1 + hpB2 * hpX2 - hpA1 * hpY1 - hpA2 * hpY2
             hpX2 = hpX1
             hpX1 = raw
             hpY2 = hpY1
             hpY1 = hpY
 
-            // Full wideband vocal preservation (140Hz - 7900Hz HD Voice)
+            // Full wideband vocal preservation (80Hz - 7900Hz HD Voice)
             filtered[i] = hpY
             frameEnergy += hpY * hpY
         }
@@ -3149,11 +3152,13 @@ object VoiceCallManager {
             val sample = filtered[i]
             var isolated = if (sample.isNaN() || sample.isInfinite()) 0f else sample * dspSmoothedGain
 
-            // Soft saturation limiter to preserve vocal warmth without digital clipping
-            if (isolated > 30000f) {
-                isolated = 30000f + (isolated - 30000f) * 0.2f
-            } else if (isolated < -30000f) {
-                isolated = -30000f + (isolated + 30000f) * 0.2f
+            // Studio-grade analogue soft-knee saturation: 100% prevents harsh digital clipping while preserving dynamic vocal warmth
+            val absVal = Math.abs(isolated)
+            if (absVal > 26000f) {
+                val sign = if (isolated >= 0f) 1f else -1f
+                val excess = (absVal - 26000f) / 6767f
+                val compressed = 26000f + 6767f * Math.tanh(excess.toDouble()).toFloat()
+                isolated = sign * compressed
             }
 
             val outShort = isolated.toInt().coerceIn(-32768, 32767)
@@ -3531,6 +3536,8 @@ object VoiceCallManager {
         synchronized(audioRelayLock) {
             audioRelayBuffer.reset()
             lastRelaySendTimeMs = 0L
+            jitterAudioQueue.clear()
+            wasLastFrameUnderrun = true
         }
 
         scope.launch(Dispatchers.IO) {
@@ -3662,32 +3669,84 @@ object VoiceCallManager {
     }
 
     private fun playAudioChunk(base64Audio: String, sampleRate: Int = SAMPLE_RATE) {
-        // Strict low-latency queue limit: Max 5 chunks (~100ms total backlog).
-        // If jitter queue backs up beyond 100ms, drop older/excess packets to snap back to real-time.
-        if (pendingAudioChunksCount.get() > 5) {
-            return
+        if (base64Audio.isEmpty()) return
+        try {
+            val bytes = Base64.decode(base64Audio, Base64.NO_WRAP)
+            if (bytes.isEmpty()) return
+
+            // Bound jitter queue: Keep max 4 chunks (~80ms) to guarantee low latency under bursty network conditions
+            while (jitterAudioQueue.size >= 4) {
+                jitterAudioQueue.poll()
+            }
+            jitterAudioQueue.offer(bytes)
+
+            audioPlayExecutor.execute {
+                drainJitterQueue(sampleRate)
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error enqueuing incoming audio chunk: ${t.message}")
         }
-        pendingAudioChunksCount.incrementAndGet()
-        audioPlayExecutor.execute {
-            try {
-                val bytes = Base64.decode(base64Audio, Base64.NO_WRAP)
-                if (bytes.isNotEmpty()) {
-                    val effectiveRate = if (sampleRate in 8000..48000) sampleRate else SAMPLE_RATE
-                    val track = synchronized(audioHardwareLock) {
-                        if (audioTrack == null || audioTrack?.state != AudioTrack.STATE_INITIALIZED || currentTrackSampleRate != effectiveRate) {
-                            initAudioTrack(effectiveRate)
-                        }
-                        audioTrack
-                    }
-                    if (track != null && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
-                        track.write(bytes, 0, bytes.size, AudioTrack.WRITE_NON_BLOCKING)
+    }
+
+    private fun drainJitterQueue(sampleRate: Int) {
+        try {
+            val effectiveRate = if (sampleRate in 8000..48000) sampleRate else SAMPLE_RATE
+            val track = synchronized(audioHardwareLock) {
+                if (audioTrack == null || audioTrack?.state != AudioTrack.STATE_INITIALIZED || currentTrackSampleRate != effectiveRate) {
+                    initAudioTrack(effectiveRate)
+                }
+                audioTrack
+            } ?: return
+
+            if (track.playState != AudioTrack.PLAYSTATE_PLAYING) return
+
+            // Pre-roll safety cushion: when recovering from underrun/silence gap, wait for 2 chunks (~40ms)
+            // to absorb mobile network jitter, ensuring smooth, non-choppy playout
+            if (wasLastFrameUnderrun && jitterAudioQueue.size < 2) {
+                return
+            }
+
+            while (true) {
+                val chunk = jitterAudioQueue.poll() ?: run {
+                    wasLastFrameUnderrun = true
+                    break
+                }
+
+                val shortsCount = chunk.size / 2
+
+                // Micro-crossfade: Smooth 2ms (32 samples) fade-in if resuming after underrun/gap (eliminates sharp clicks)
+                if (wasLastFrameUnderrun && shortsCount >= 32) {
+                    for (i in 0 until 32) {
+                        val fade = i / 32.0f
+                        val low = chunk[i * 2].toInt() and 0xFF
+                        val high = chunk[i * 2 + 1].toInt()
+                        val s = ((high shl 8) or low).toFloat()
+                        val smoothed = (s * fade).toInt().coerceIn(-32768, 32767)
+                        chunk[i * 2] = (smoothed and 0xFF).toByte()
+                        chunk[i * 2 + 1] = ((smoothed shr 8) and 0xFF).toByte()
                     }
                 }
-            } catch (t: Throwable) {
-                Log.e(TAG, "Error playing audio chunk: ${t.message}")
-            } finally {
-                pendingAudioChunksCount.decrementAndGet()
+                wasLastFrameUnderrun = false
+
+                // Micro-crossfade: Smooth 2ms fade-out if queue is now empty (prevents abrupt cutoff clicks)
+                if (jitterAudioQueue.isEmpty() && shortsCount >= 32) {
+                    val startIdx = shortsCount - 32
+                    for (i in 0 until 32) {
+                        val fade = (32 - i) / 32.0f
+                        val idx = startIdx + i
+                        val low = chunk[idx * 2].toInt() and 0xFF
+                        val high = chunk[idx * 2 + 1].toInt()
+                        val s = ((high shl 8) or low).toFloat()
+                        val smoothed = (s * fade).toInt().coerceIn(-32768, 32767)
+                        chunk[idx * 2] = (smoothed and 0xFF).toByte()
+                        chunk[idx * 2 + 1] = ((smoothed shr 8) and 0xFF).toByte()
+                    }
+                }
+
+                track.write(chunk, 0, chunk.size, AudioTrack.WRITE_NON_BLOCKING)
             }
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error draining jitter audio queue: ${t.message}")
         }
     }
 
@@ -3701,7 +3760,8 @@ object VoiceCallManager {
             Log.e(TAG, "Invalid AudioRecord minBufferSize: $minBuf")
             return
         }
-        val bufSize = maxOf(minBuf, CHUNK_SIZE_BYTES * 2)
+        // 160ms capture buffer prevents hardware overruns/dropped frames during Android OS scheduling pauses
+        val bufSize = maxOf(minBuf * 2, (SAMPLE_RATE * 2 * 160) / 1000)
 
         try {
             val record = AudioRecord(
@@ -3766,7 +3826,7 @@ object VoiceCallManager {
             if (AcousticEchoCanceler.isAvailable()) {
                 try {
                     hardwareEchoCanceler = AcousticEchoCanceler.create(sessionId)?.apply {
-                        this.enabled = _isVoiceIsolationEnabled.value
+                        this.enabled = true // Echo cancellation MUST stay active during calls to prevent acoustic feedback loop
                     }
                     Log.d(TAG, "Hardware AcousticEchoCanceler attached to AudioRecord (enabled=${hardwareEchoCanceler?.enabled})")
                 } catch (t: Throwable) {
@@ -3776,7 +3836,7 @@ object VoiceCallManager {
             if (AutomaticGainControl.isAvailable()) {
                 try {
                     hardwareGainControl = AutomaticGainControl.create(sessionId)?.apply {
-                        this.enabled = _isVoiceIsolationEnabled.value
+                        this.enabled = true // AGC automatically normalizes soft whispers and loud voices to optimal volume
                     }
                     Log.d(TAG, "Hardware AutomaticGainControl attached to AudioRecord (enabled=${hardwareGainControl?.enabled})")
                 } catch (t: Throwable) {
