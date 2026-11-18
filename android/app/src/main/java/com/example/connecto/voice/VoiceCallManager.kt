@@ -553,43 +553,7 @@ object VoiceCallManager {
 
                             // Play back locally if echo test
                             if (_activeCallTitle.value.contains("Echo", ignoreCase = true)) {
-                                audioTrack?.write(data, 0, data.size, AudioTrack.WRITE_BLOCKING)
-                            }
-
-                            // Relay voice_data over WebSocket if P2P peer connections are not in CONNECTED/COMPLETED state
-                            val roomId = _activeRoomId.value
-                            val hasConnectedPeer = peerConnections.values.any { pc ->
-                                try {
-                                    val s = pc.iceConnectionState()
-                                    s == PeerConnection.IceConnectionState.CONNECTED || s == PeerConnection.IceConnectionState.COMPLETED
-                                } catch (_: Throwable) { false }
-                            }
-                            if (_callState.value == CallState.CONNECTED && !roomId.isNullOrBlank() && !hasConnectedPeer) {
-                                synchronized(audioRelayLock) {
-                                    audioRelayBuffer.write(data, 0, data.size)
-                                    val now = System.currentTimeMillis()
-                                    val minBatchBytes = (samples.sampleRate * 2 * 40) / 1000 // 40ms buffer
-                                    if (audioRelayBuffer.size() >= minBatchBytes || (now - lastRelaySendTimeMs >= 40L && audioRelayBuffer.size() > 0)) {
-                                        val chunk = audioRelayBuffer.toByteArray()
-                                        audioRelayBuffer.reset()
-                                        lastRelaySendTimeMs = now
-                                        val base64Str = Base64.encodeToString(chunk, 0, chunk.size, Base64.NO_WRAP)
-                                        val partner = _activeCallPartnerUsername.value ?: _activeCallPartner.value
-                                        val packet = JSONObject().apply {
-                                            put("action", "voice_data")
-                                            put("type", "voice_data")
-                                            put("room_id", roomId)
-                                            put("channel_id", roomId)
-                                            put("audio", base64Str)
-                                            put("sample_rate", samples.sampleRate)
-                                            if (!partner.isNullOrBlank()) {
-                                                put("target", partner)
-                                                put("target_user", partner)
-                                            }
-                                        }
-                                        sendWsMessage(packet)
-                                    }
-                                }
+                                audioTrack?.write(data, 0, data.size, AudioTrack.WRITE_NON_BLOCKING)
                             }
                         } else {
                             _liveAudioAmplitude.value = 0f
@@ -695,7 +659,8 @@ object VoiceCallManager {
                         startStatsPolling(peerId)
                         if (!_activeCallTitle.value.contains("Echo", ignoreCase = true)) {
                             stopFallbackAudioRecordOnly()
-                            stopFallbackAudioTrackOnly()
+                            // Note: AudioTrack is kept active in PLAYSTATE_PLAYING so any fallback audio packets
+                            // remain immediately playable without reinitialization latency or dropped speech.
                         }
                     } else if (newState == PeerConnection.IceConnectionState.DISCONNECTED ||
                         newState == PeerConnection.IceConnectionState.FAILED) {
@@ -1978,8 +1943,20 @@ object VoiceCallManager {
                 "voice_data" -> {
                     val base64Audio = json.optString("audio")
                     val sampleRate = json.optInt("sample_rate", SAMPLE_RATE)
-                    if (base64Audio.isNotEmpty() && _callState.value == CallState.CONNECTED) {
-                        playAudioChunk(base64Audio, sampleRate)
+                    if (base64Audio.isNotEmpty()) {
+                        // If voice_data arrives while we are in OUTGOING_RINGING, the peer answered immediately.
+                        // Flip to CONNECTED so the user does not miss the first words of the conversation.
+                        if (_callState.value == CallState.OUTGOING_RINGING) {
+                            Log.d(TAG, "Received voice_data while OUTGOING_RINGING; remote party answered! Transitioning to CONNECTED")
+                            _isRemoteRinging.value = false
+                            _callState.value = CallState.CONNECTED
+                            CallRingtoneManager.stopRingtoneAndVibration()
+                            startAudioHardware()
+                            startDurationTimer()
+                        }
+                        if (_callState.value == CallState.CONNECTED) {
+                            playAudioChunk(base64Audio, sampleRate)
+                        }
                     }
                 }
 
@@ -3685,8 +3662,9 @@ object VoiceCallManager {
     }
 
     private fun playAudioChunk(base64Audio: String, sampleRate: Int = SAMPLE_RATE) {
-        // Jitter buffer queue tolerance up to 15 chunks (~300ms) to absorb mobile packet jitter without dropping voice
-        if (pendingAudioChunksCount.get() > 15) {
+        // Strict low-latency queue limit: Max 5 chunks (~100ms total backlog).
+        // If jitter queue backs up beyond 100ms, drop older/excess packets to snap back to real-time.
+        if (pendingAudioChunksCount.get() > 5) {
             return
         }
         pendingAudioChunksCount.incrementAndGet()
@@ -3695,19 +3673,14 @@ object VoiceCallManager {
                 val bytes = Base64.decode(base64Audio, Base64.NO_WRAP)
                 if (bytes.isNotEmpty()) {
                     val effectiveRate = if (sampleRate in 8000..48000) sampleRate else SAMPLE_RATE
-                    synchronized(audioHardwareLock) {
-                        if (audioTrack == null || audioTrack?.playState != AudioTrack.PLAYSTATE_PLAYING || currentTrackSampleRate != effectiveRate) {
+                    val track = synchronized(audioHardwareLock) {
+                        if (audioTrack == null || audioTrack?.state != AudioTrack.STATE_INITIALIZED || currentTrackSampleRate != effectiveRate) {
                             initAudioTrack(effectiveRate)
                         }
+                        audioTrack
                     }
-                    var offset = 0
-                    while (offset < bytes.size && audioTrack?.playState == AudioTrack.PLAYSTATE_PLAYING) {
-                        val written = audioTrack?.write(bytes, offset, bytes.size - offset, AudioTrack.WRITE_BLOCKING) ?: -1
-                        if (written > 0) {
-                            offset += written
-                        } else {
-                            break
-                        }
+                    if (track != null && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
+                        track.write(bytes, 0, bytes.size, AudioTrack.WRITE_NON_BLOCKING)
                     }
                 }
             } catch (t: Throwable) {
@@ -3846,7 +3819,13 @@ object VoiceCallManager {
                                     }
                                     audioTrack?.write(buffer, 0, read, AudioTrack.WRITE_NON_BLOCKING)
                                 }
-                                if (!roomId.isNullOrBlank()) {
+                                val hasConnectedPeer = peerConnections.values.any { pc ->
+                                    try {
+                                        val s = pc.iceConnectionState()
+                                        s == PeerConnection.IceConnectionState.CONNECTED || s == PeerConnection.IceConnectionState.COMPLETED
+                                    } catch (_: Throwable) { false }
+                                }
+                                if (!hasConnectedPeer && !roomId.isNullOrBlank()) {
                                     val base64Str = Base64.encodeToString(buffer, 0, read, Base64.NO_WRAP)
                                     val partner = _activeCallPartnerUsername.value ?: _activeCallPartner.value
                                     val packet = JSONObject().apply {
