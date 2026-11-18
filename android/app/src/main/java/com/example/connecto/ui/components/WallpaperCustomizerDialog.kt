@@ -298,8 +298,8 @@ fun WallpaperCustomizerDialog(
                                                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                                                 )
                                                 .border(
-                                                    width = if (isSelected) 2.dp else 1.dp,
-                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.20f),
+                                                    width = if (isSelected) 1.5.dp else 1.dp,
+                                                    color = if (isSelected) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.20f),
                                                     shape = RoundedCornerShape(12.dp)
                                                 )
                                                 .clickable {
@@ -322,16 +322,16 @@ fun WallpaperCustomizerDialog(
                                                         Box(
                                                             modifier = Modifier
                                                                 .padding(4.dp)
-                                                                .size(18.dp)
+                                                                .size(22.dp)
                                                                 .clip(CircleShape)
-                                                                .background(MaterialTheme.colorScheme.primary),
+                                                                .background(Color.White),
                                                             contentAlignment = Alignment.Center
                                                         ) {
                                                             Icon(
                                                                 imageVector = Icons.Default.Check,
                                                                 contentDescription = null,
-                                                                tint = MaterialTheme.colorScheme.onPrimary,
-                                                                modifier = Modifier.size(12.dp)
+                                                                tint = Color(0xFF0A0B0E),
+                                                                modifier = Modifier.size(14.dp)
                                                             )
                                                         }
                                                     }
@@ -888,16 +888,13 @@ private fun WallpaperLivePreview(
                 modifier = Modifier
                     .align(Alignment.End)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (isDarkTheme) Color.White
-                        else Color(0xFF0F172A)
-                    )
+                    .background(Color(0xFF47526B))
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "Clean & responsive 🚀",
+                    text = "Looks clean and responsive! 🚀",
                     fontSize = 11.sp,
-                    color = if (isDarkTheme) Color(0xFF0F172A) else Color.White,
+                    color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
             }

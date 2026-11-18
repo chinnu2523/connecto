@@ -13,6 +13,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.zIndex
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedVisibility
@@ -2641,6 +2642,9 @@ fun CustomizedChatScreen(
                 }
             }
 
+            // Ensure persistent WebSocket connection is active
+            VoiceCallManager.connectWebSocket()
+
             // Immediately subscribe to channel over WebSocket
             VoiceCallManager.subscribeChannel(if (friend.isGroup) friend.id else canonicalName)
 
@@ -3775,8 +3779,8 @@ fun CustomizedChatScreen(
                                                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
                                                 )
                                                 .border(
-                                                    width = if (isSelected) 2.dp else 1.dp,
-                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                                    width = if (isSelected) 1.5.dp else 1.dp,
+                                                    color = if (isSelected) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
                                                     shape = RoundedCornerShape(12.dp)
                                                 )
                                                 .clickable {
@@ -3831,13 +3835,13 @@ fun CustomizedChatScreen(
                                                         modifier = Modifier
                                                             .size(22.dp)
                                                             .clip(CircleShape)
-                                                            .background(MaterialTheme.colorScheme.primary),
+                                                            .background(Color.White),
                                                         contentAlignment = Alignment.Center
                                                     ) {
                                                         Icon(
                                                             imageVector = Icons.Default.Check,
                                                             contentDescription = "Active Wallpaper",
-                                                            tint = contentOnGradient,
+                                                            tint = Color(0xFF0A0B0E),
                                                             modifier = Modifier.size(14.dp)
                                                         )
                                                     }
@@ -3851,32 +3855,6 @@ fun CustomizedChatScreen(
                     }
 
                     } // end Scrollable Tab Body
-
-                    // FOOTER IN CHAT & LOCK TAB: ONLY UNFRIEND BUTTON (Voice Call removed per user preference)
-                    if (friendProfileSelectedTab == "settings") {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 10.dp)
-                                .height(46.dp)
-                                .pressScaleEffect(
-                                    onClick = {
-                                        showUnfriendConfirmDialog = true
-                                    },
-                                    targetScale = 0.96f
-                                )
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Color(0xFFDC2626).copy(alpha = 0.12f))
-                                .border(1.dp, Color(0xFFDC2626).copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.PersonRemove, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("UNFRIEND", color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -6566,7 +6544,8 @@ fun CustomizedChatScreen(
                                             (if (msg.isMe) true else nextMsg.senderName.equals(msg.senderName, ignoreCase = true)) &&
                                             kotlin.math.abs(nextMsg.timestampMillis - msg.timestampMillis) < 3 * 60 * 1000L
 
-                                        val showSenderName = !isSameUserAsPrev
+                                        val isDirectChat = selectedFriend?.isGroup != true
+                                        val showSenderName = !isDirectChat && !isSameUserAsPrev
                                         val showAvatar = !isSameUserAsNext
 
                                         var dragOffsetX by remember(msg.id) { mutableStateOf(0f) }
@@ -6578,10 +6557,12 @@ fun CustomizedChatScreen(
                                         )
                                         val hapticFeedback = LocalHapticFeedback.current
                                         val clipboardManager = LocalClipboardManager.current
+                                        val isSelectedMsg = selectedMessageForAction?.id == msg.id
 
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
+                                                .zIndex(if (isSelectedMsg) 10f else 0f)
                                                 .padding(top = if (isSameUserAsPrev) 3.dp else 10.dp)
                                                 .pointerInput(msg.id) {
                                                     detectHorizontalDragGestures(
@@ -6814,13 +6795,36 @@ fun CustomizedChatScreen(
                                 } // end DisableSelection
                             }
 
-                            // Floating "Scroll to Bottom" FAB (Centered above input dock with realistic spring transition)
+                            // Long-Press Backdrop Dimming: Translucent dark backdrop overlay behind selected message & floating menus
+                            androidx.compose.animation.AnimatedVisibility(
+                                visible = selectedMessageForAction != null,
+                                enter = fadeIn(animationSpec = tween(180)),
+                                exit = fadeOut(animationSpec = tween(150)),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .zIndex(5f)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.55f))
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            selectedMessageForAction = null
+                                        }
+                                )
+                            }
+
+                            // Floating "Scroll to Bottom" FAB (Bottom-Right corner: right 16px, 12px above chips/input dock)
                             if (friendMessages.isNotEmpty()) {
                                 Column(
                                     modifier = Modifier
-                                        .align(Alignment.BottomCenter)
-                                        .padding(bottom = 12.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                        .align(Alignment.BottomEnd)
+                                        .padding(end = 16.dp, bottom = 12.dp)
+                                        .zIndex(6f),
+                                    horizontalAlignment = Alignment.End
                                 ) {
                                     AnimatedVisibility(
                                         visible = canScrollDown,
@@ -6834,7 +6838,7 @@ fun CustomizedChatScreen(
                                         val haptic = LocalHapticFeedback.current
                                         Box(
                                             modifier = Modifier
-                                                .size(42.dp)
+                                                .size(38.dp)
                                                 .pressScaleEffect(
                                                     onClick = {
                                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -6854,18 +6858,18 @@ fun CustomizedChatScreen(
                                                 .clip(CircleShape)
                                                 .background(MaterialTheme.colorScheme.surface)
                                                 .border(
-                                                    width = 1.2.dp,
-                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                                    width = 1.dp,
+                                                    color = Color.White.copy(alpha = 0.12f),
                                                     shape = CircleShape
                                                 )
-                                                .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color.Black.copy(alpha = 0.35f)),
+                                                .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color.Black.copy(alpha = 0.35f)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.KeyboardArrowDown,
                                                 contentDescription = "Scroll to latest message",
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(24.dp)
+                                                tint = MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.size(20.dp)
                                             )
                                         }
                                     }
@@ -7688,17 +7692,19 @@ fun CustomChatBubble(
         }
 
         if (!message.isMe) {
+            val effectiveAvatar = message.avatarUrl?.takeIf { it.isNotBlank() } ?: recipientAvatarUrl?.takeIf { it.isNotBlank() }
+            val effectiveName = if (message.senderName.isNotBlank() && !message.senderName.equals("gamer", ignoreCase = true)) message.senderName else recipientName
             if (showAvatar) {
                 ConnectoAvatar(
-                    name = message.senderName,
-                    avatarUrl = message.avatarUrl,
-                    customSizeDp = 32.dp,
-                    customFontSizeSp = 13,
+                    name = effectiveName,
+                    avatarUrl = effectiveAvatar,
+                    customSizeDp = 28.dp,
+                    customFontSizeSp = 12,
                     borderWidth = 1.dp,
-                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
                 )
             } else {
-                Spacer(modifier = Modifier.width(32.dp))
+                Spacer(modifier = Modifier.size(28.dp))
             }
             Spacer(modifier = Modifier.width(8.dp))
         }

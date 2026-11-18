@@ -219,6 +219,8 @@ fun ConnectoAvatar(
     borderWidth: Dp = 1.dp,
     borderColor: Color? = null,
     borderBrush: Brush? = null,
+    statusBorderWidth: Dp = 1.5.dp,
+    statusBorderColor: Color? = null,
     onClick: (() -> Unit)? = null
 ) {
     val colors = LocalConnectoColors.current
@@ -284,7 +286,7 @@ fun ConnectoAvatar(
                     .size(dotSize)
                     .clip(CircleShape)
                     .background(statusColor)
-                    .border(1.5.dp, colors.surface, CircleShape)
+                    .border(statusBorderWidth, statusBorderColor ?: colors.surface, CircleShape)
             )
         }
     }

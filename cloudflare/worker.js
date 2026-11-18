@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.7.0",
-        version_name: "v5.7.0",
-        version_code: 177,
-        build: 177,
-        sha256: "ec02952060aecfce095f1ab24bf99c58286872fe3e459883c368127bc777a992",
+        version: "5.7.1",
+        version_name: "v5.7.1",
+        version_code: 178,
+        build: 178,
+        sha256: "01ec75c20979d28844ef9152ade7d6a58a84cb70b758492acf910cb055ad0f93",
         filename: "connecto-fun.apk",
-        size_bytes: 38123166,
+        size_bytes: 38122734,
         size_display: "36.4 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -218,6 +218,7 @@ Sitemap: https://connecto.fun/sitemap.xml
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Direct Chat Alignment, Long-Press Dimming & Profile Cleanup (v5.7.1): Fixed contact avatar glitch and horizontal alignment across 1-on-1 direct messages with strict 52px left margin, clustering avatars on the bottom-most message of a consecutive series and transparent spacing on earlier bubbles. Suppressed sender name label in 1-on-1 chats while retaining it in group channels. Implemented translucent dark backdrop overlay (rgba(0,0,0,0.55)) with z-indexing during message long-press reaction HUD. Repositioned scroll-to-bottom FAB to bottom-right corner (38px, subtle 0.12 white border). Pre-warmed persistent WebSocket connection on chat launch. Fixed theme wallpaper preview outgoing bubble token (#47526B) with crisp white text. Refined preset selection indicator to 22px checkmark with 1.5px border. Removed duplicate unfriend button from Chat & Lock screen, removed duplicate top-right chat icon on Friend Profile, and refined 80px avatar with 4px #0A0B0E border overlapping banner cleanly by 50% with 3px status dot cutout.",
           "Production-Grade WebRTC Group Voice Calls & Pure OLED Black Calls UI (v5.7.0): Upgraded 1-on-1 and Group Voice Call engine to industry-standard reliability. Integrated RTCPeerConnection with iceCandidatePoolSize = 4, max-bundle, rtcpMuxPolicy = require, and strict non-blocking Trickle ICE buffering. Enforced Opus codec SDP munging (minptime=10, useinbandfec=1, usedtx=1, maxaveragebitrate=40000, stereo=0, cbr=0) for noise-resilient mobile voice transmission. Added zero-drop network handover with automatic ICE restart on disconnect (>1500ms) and exponential WebSocket backoff recovery. Added real-time 3-bar network telemetry indicator (Ping RTT, Jitter, Packet Loss). Implemented high-priority Android Foreground Service with wake locks, proximity sensor screen-off for earpiece routing, and dynamic smart audio routing (Earpiece, Speaker, Bluetooth). 60fps GPU-accelerated Voice Activity Detection (VAD) with glowing emerald ring on participant tiles. Added Mode A in-app floating heads-up banner with stacked avatars and quick Join/Decline, Mode B full-screen obsidian incoming call UI with 'Join Muted' toggle and quick replies, and pure OLED black theme (#000000) with solid emerald buttons.",
           "Swipe-to-Reply, Quoted Replies & Quick Emoji Reactions HUD (v5.6.2): Direct Message and Workspace Channel bubbles now feature smooth rubber-band swipe-to-reply (up to 60px damping, 40px threshold haptic trigger and spring snap-back) with fading/scaling reply icon (↩). Introduced sleek 48px composer reply and edit preview banners with 3px vertical accent lines. Quoted message containers rendered in-bubble with scroll-to-original on tap and 600ms pulse animation. Upgraded long-press message selection to floating HUD with 46px top pill housing 6 animated pop-in quick reactions (❤️, 🔥, 😂, 👍, 😮, 😢) and '+' full emoji sheet button, bottom context action menu (Reply, Copy, Edit, Unsend), 24px reaction badges with user counts and tinted accent highlight for user's own reactions, and real-time MESSAGE_REACTION_TOGGLED multi-client WebSocket synchronization.",
           "WebRTC Audio Engine, TURN Server Fallback, AudioManager Routing & Dynamic Voice Isolation (v5.6.1): Implemented thread-safe remote ICE candidate queueing to buffer incoming candidates until setRemoteDescription completes, eliminating silent call dropouts. Added authenticated TURN servers (UDP, TCP, TLS) with iceTransportsType = ALL for carrier NAT traversal across mobile 4G/5G networks. Guaranteed local AudioTrack creation, enablement, and attachment prior to Offer/Answer SDP generation. Request audio focus with USAGE_VOICE_COMMUNICATION & CONTENT_TYPE_SPEECH and AudioManager.MODE_IN_COMMUNICATION before starting or answering calls, cleanly resetting to MODE_NORMAL and releasing audio focus on call termination. Built JavaAudioDeviceModule with hardware AEC and NS enabled. Implemented dynamic setVoiceIsolationEnabled live toggling attaching native NoiseSuppressor and AcousticEchoCanceler to active audioSessionId and simultaneously rebuilding local AudioSource constraints and swapping tracks on active RtpSenders without dropping PeerConnection.",
@@ -601,18 +602,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.0/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.6.2/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.1/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.0/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.0-b177-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.1-b178-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.7.0");
-          res.headers.set("X-Connecto-Build", "177");
+          res.headers.set("X-Connecto-Version", "v5.7.1");
+          res.headers.set("X-Connecto-Build", "178");
           return res;
         }
 
@@ -648,8 +649,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.7.0");
-              downloadHeaders.set("X-Connecto-Build", "177");
+              downloadHeaders.set("X-Connecto-Version", "v5.7.1");
+              downloadHeaders.set("X-Connecto-Build", "178");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2037,14 +2038,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.7.0",
-        version_code: 177,
-        size_bytes: 38123166,
+        version_name: "5.7.1",
+        version_code: 178,
+        size_bytes: 38122734,
         size_formatted: "36.4 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Direct Chat Alignment, Long-Press Dimming & Profile Cleanup (v5.7.1): Fixed contact avatar glitch and horizontal alignment across 1-on-1 direct messages with strict 52px left margin, clustering avatars on the bottom-most message of a consecutive series and transparent spacing on earlier bubbles. Suppressed sender name label in 1-on-1 chats while retaining it in group channels. Implemented translucent dark backdrop overlay (rgba(0,0,0,0.55)) with z-indexing during message long-press reaction HUD. Repositioned scroll-to-bottom FAB to bottom-right corner (38px, subtle 0.12 white border). Pre-warmed persistent WebSocket connection on chat launch. Fixed theme wallpaper preview outgoing bubble token (#47526B) with crisp white text. Refined preset selection indicator to 22px checkmark with 1.5px border. Removed duplicate unfriend button from Chat & Lock screen, removed duplicate top-right chat icon on Friend Profile, and refined 80px avatar with 4px #0A0B0E border overlapping banner cleanly by 50% with 3px status dot cutout.",
           "Production-Grade WebRTC Group Voice Calls & Pure OLED Black Calls UI (v5.7.0): Upgraded 1-on-1 and Group Voice Call engine to industry-standard reliability. Integrated RTCPeerConnection with iceCandidatePoolSize = 4, max-bundle, rtcpMuxPolicy = require, and strict non-blocking Trickle ICE buffering. Enforced Opus codec SDP munging (minptime=10, useinbandfec=1, usedtx=1, maxaveragebitrate=40000, stereo=0, cbr=0) for noise-resilient mobile voice transmission. Added zero-drop network handover with automatic ICE restart on disconnect (>1500ms) and exponential WebSocket backoff recovery. Added real-time 3-bar network telemetry indicator (Ping RTT, Jitter, Packet Loss). Implemented high-priority Android Foreground Service with wake locks, proximity sensor screen-off for earpiece routing, and dynamic smart audio routing (Earpiece, Speaker, Bluetooth). 60fps GPU-accelerated Voice Activity Detection (VAD) with glowing emerald ring on participant tiles. Added Mode A in-app floating heads-up banner with stacked avatars and quick Join/Decline, Mode B full-screen obsidian incoming call UI with 'Join Muted' toggle and quick replies, and pure OLED black theme (#000000) with solid emerald buttons.",
           "Swipe-to-Reply, Quoted Replies & Quick Emoji Reactions HUD (v5.6.2): Direct Message and Workspace Channel bubbles now feature smooth rubber-band swipe-to-reply (up to 60px damping, 40px threshold haptic trigger and spring snap-back) with fading/scaling reply icon (↩). Introduced sleek 48px composer reply and edit preview banners with 3px vertical accent lines. Quoted message containers rendered in-bubble with scroll-to-original on tap and 600ms pulse animation. Upgraded long-press message selection to floating HUD with 46px top pill housing 6 animated pop-in quick reactions (❤️, 🔥, 😂, 👍, 😮, 😢) and '+' full emoji sheet button, bottom context action menu (Reply, Copy, Edit, Unsend), 24px reaction badges with user counts and tinted accent highlight for user's own reactions, and real-time MESSAGE_REACTION_TOGGLED multi-client WebSocket synchronization.",
           "WebRTC Audio Engine, TURN Server Fallback, AudioManager Routing & Dynamic Voice Isolation (v5.6.1): Implemented thread-safe remote ICE candidate queueing to buffer incoming candidates until setRemoteDescription completes, eliminating silent call dropouts. Added authenticated TURN servers (UDP, TCP, TLS) with iceTransportsType = ALL for carrier NAT traversal across mobile 4G/5G networks. Guaranteed local AudioTrack creation, enablement, and attachment prior to Offer/Answer SDP generation. Request audio focus with USAGE_VOICE_COMMUNICATION & CONTENT_TYPE_SPEECH and AudioManager.MODE_IN_COMMUNICATION before starting or answering calls, cleanly resetting to MODE_NORMAL and releasing audio focus on call termination. Built JavaAudioDeviceModule with hardware AEC and NS enabled. Implemented dynamic setVoiceIsolationEnabled live toggling attaching native NoiseSuppressor and AcousticEchoCanceler to active audioSessionId and simultaneously rebuilding local AudioSource constraints and swapping tracks on active RtpSenders without dropping PeerConnection.",
@@ -7330,13 +7332,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.7.0",
-      version_name: "v5.7.0",
-      version_code: 177,
-      build: 177,
-      sha256: "ec02952060aecfce095f1ab24bf99c58286872fe3e459883c368127bc777a992",
+      version: "5.7.1",
+      version_name: "v5.7.1",
+      version_code: 178,
+      build: 178,
+      sha256: "01ec75c20979d28844ef9152ade7d6a58a84cb70b758492acf910cb055ad0f93",
       filename: "connecto-fun.apk",
-      size_bytes: 38123166,
+      size_bytes: 38122734,
       size_display: "36.4 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7350,10 +7352,29 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v5.7.0",
+          version: "v5.7.1",
           date: "Nov 18, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v5.7.1: Direct Chat Alignment, Long-Press Dimming & Profile Cleanup",
+          summary: "Refined 1-on-1 direct chat layout with 52px left margin, clustering contact avatar to the bottom message of consecutive sequences, hiding sender names in 1-on-1 chats, dimmed backdrop for message long-press HUD, bottom-right 38px scroll FAB, persistent WebSocket pre-warming, fixed theme wallpaper outgoing bubble token, and friend profile avatar/banner alignment.",
+          highlights: [
+            "Direct Chat Alignment: Enforced strict 52px left margin on incoming message clusters, rendering contact avatar exclusively on the last message and transparent spacing on earlier ones.",
+            "DM Sender Name Cleanup: Suppressed redundant sender name label above incoming bubbles in 1-on-1 chats while keeping it in group channels.",
+            "Long-Press Backdrop Dimming: Applied translucent dark backdrop overlay (rgba(0,0,0,0.55)) with z-indexing behind active message and reaction HUD.",
+            "Repositioned Scroll-to-Bottom FAB: Moved down-arrow button to bottom-right (right: 16px, bottom: 12px), resized to 38px with subtle 0.12 white border.",
+            "Optimistic Latency & WebSocket: Pre-warmed persistent WebSocket connection on chat launch with instant 0ms optimistic message delivery.",
+            "Theme Preview & Preset Checkmark: Fixed LIVE CHAT PREVIEW outgoing bubble (#47526B) with crisp white text, and refined preset selector to 22px checkmark.",
+            "Friend Profile Polish: Cleaned duplicate unfriend button from Chat & Lock, removed duplicate top-right chat icon, and aligned 80px avatar with 4px dark border overlapping banner by 50% with 3px status dot cutout.",
+            "Android Native App v5.7.1 (Build 178 • 36.4 MB): SHA-256 01ec75c20979d28844ef9152ade7d6a58a84cb70b758492acf910cb055ad0f93."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
+          version: "v5.7.0",
+          date: "Nov 18, 2026",
+          category: "feature",
+          tag: "Stable",
           title: "Connecto v5.7.0: Production WebRTC Group Voice Calls & Pure OLED Black Calls UI",
           summary: "Overhauled 1-on-1 and Group Voice Call implementation to an uncompromising production-grade standard: RTCPeerConnection with iceCandidatePoolSize=4, non-blocking Trickle ICE buffering, Opus codec SDP munging (useinbandfec=1, usedtx=1), zero-drop network handover with automatic ICE restart and WebSocket recovery, 3-bar real-time telemetry indicator (Ping, Jitter, Packet Loss), Android Foreground Service with wake/wifi locks, proximity sensor screen-off, dynamic audio routing, 60fps GPU-accelerated VAD with emerald ring, Mode A floating heads-up banner, Mode B obsidian incoming group call UI, and pure OLED black theme.",
           highlights: [

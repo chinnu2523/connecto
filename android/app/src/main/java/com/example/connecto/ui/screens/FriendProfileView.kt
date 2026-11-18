@@ -518,36 +518,6 @@ fun FriendProfileScreen(
                             }
                         }
 
-                        // 4. UNFRIEND ACTION
-                        item(key = "setting_unfriend_button") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(Color(0xFFDC2626).copy(alpha = 0.10f))
-                                    .border(1.dp, Color(0xFFDC2626).copy(alpha = 0.35f), RoundedCornerShape(14.dp))
-                                    .clickable(onClick = onUnfriend),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.PersonRemove,
-                                        contentDescription = null,
-                                        tint = Color(0xFFEF4444),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "UNFRIEND @$friendHandleClean",
-                                        color = Color(0xFFEF4444),
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.5.sp
-                                    )
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -750,11 +720,11 @@ fun FriendProfileScreen(
                                             modifier = Modifier
                                                 .align(Alignment.End)
                                                 .clip(RoundedCornerShape(14.dp))
-                                                .background(MaterialTheme.colorScheme.primary)
+                                                .background(Color(0xFF47526B))
                                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                                         ) {
                                             Text(
-                                                text = "Looks super sleek and aesthetic!",
+                                                text = "Looks clean and responsive! 🚀",
                                                 fontSize = 12.sp,
                                                 color = Color.White,
                                                 fontWeight = FontWeight.Medium
@@ -883,8 +853,8 @@ fun FriendProfileScreen(
                                         else MaterialTheme.colorScheme.surface
                                     )
                                     .border(
-                                        width = if (isSelected) 2.dp else 1.dp,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                        width = if (isSelected) 1.5.dp else 1.dp,
+                                        color = if (isSelected) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
                                         shape = RoundedCornerShape(14.dp)
                                     )
                                     .clickable {
@@ -936,16 +906,16 @@ fun FriendProfileScreen(
                                     if (isSelected) {
                                         Box(
                                             modifier = Modifier
-                                                .size(24.dp)
+                                                .size(22.dp)
                                                 .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primary),
+                                                .background(Color.White),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Check,
                                                 contentDescription = "Active",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(16.dp)
+                                                tint = Color(0xFF0A0B0E),
+                                                modifier = Modifier.size(14.dp)
                                             )
                                         }
                                     }
@@ -1007,24 +977,6 @@ fun FriendProfileScreen(
                                 )
                             }
                         }
-
-                        // Right Action: Direct Message Shortcut
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape)
-                                .clickable(onClick = onOpenDirectChat),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Chat,
-                                contentDescription = "Chat",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(19.dp)
-                            )
-                        }
                     }
 
                     LazyColumn(
@@ -1080,20 +1032,22 @@ fun FriendProfileScreen(
                                     }
                                 }
 
-                                // Avatar overlapping bottom-left
+                                // Avatar overlapping bottom-left: 50% overlap of banner bottom (125 - 40 = 85dp)
                                 Box(
                                     modifier = Modifier
-                                        .offset(x = 16.dp, y = 78.dp)
+                                        .offset(x = 16.dp, y = 85.dp)
                                         .clickable(onClick = onViewPhoto)
                                 ) {
                                     ConnectoAvatar(
                                         name = friend.name,
                                         avatarUrl = friend.avatarUrl ?: validatedProf?.avatarUrl,
-                                        customSizeDp = 76.dp,
+                                        customSizeDp = 80.dp,
                                         customFontSizeSp = 28,
                                         status = if (friend.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE,
-                                        borderWidth = 3.dp,
-                                        borderColor = MaterialTheme.colorScheme.background
+                                        borderWidth = 4.dp,
+                                        borderColor = Color(0xFF0A0B0E),
+                                        statusBorderWidth = 3.dp,
+                                        statusBorderColor = Color(0xFF0A0B0E)
                                     )
                                 }
                             }
