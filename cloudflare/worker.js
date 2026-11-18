@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.7.3",
-        version_name: "v5.7.3",
-        version_code: 180,
-        build: 180,
-        sha256: "3ad57dc6a5665d80654996a161b07280f14485543e72375217c63e7c0553e1b2",
+        version: "5.7.4",
+        version_name: "v5.7.4",
+        version_code: 181,
+        build: 181,
+        sha256: "1a23cb6c6e4d06210df1b53a95c947cf3ba3c3d8ddb1ce25f5cd0ef146ea05c6",
         filename: "connecto-fun.apk",
-        size_bytes: 38132335,
+        size_bytes: 38134072,
         size_display: "36.4 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -218,6 +218,7 @@ Sitemap: https://connecto.fun/sitemap.xml
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Mathematical Layout, Swipe-to-Delete zIndex, Concentric Radii & Spring Physics (v5.7.4): Implemented strict mathematical layout and spring physics across DMs, Wallpaper customizer, Friend Profile, and Chat & Lock. Fixed swipe-to-delete bleed-through bug with zIndex(0f) compact red delete zone (#DC2626, 88px) and zIndex(1f) solid opaque #0A0B0E foreground clipping cleanly. Trash icon scales from 0.6 to 1.0 with spring bounce. Restored real decrypted lastMessage subtitles, 12px presence dots with 2px cutout border, 56px high-contrast FAB (#4F46E5), concentric wallpaper cards (R_outer = R_inner + Padding), sliding background pills on segmented controls, and soft sunken encryption card.",
           "Post-Login Crash Prevention & Defensive Startup Initialization (v5.7.3): Completely eliminated app force-closes on login. Deferred WebRTC PeerConnectionFactory initialization and audio hardware configuration (AudioRecord/AudioTrack/AudioManager mode changes) until an actual voice call begins, preventing security exceptions on Android 12+/14+ prior to permission grant. Replaced all unsafe non-null assertions (!!) across MainActivity, CustomizedChatScreen, ChannelsWorkspaceScreen, and ProfileScreen with safe let-blocks and fallbacks. Added null-safe default fallbacks for all message and user fields (reactions, seenBy, readAt, replyToMessageId, lastSeen) to safely deserialize older backend database records. Wrapped Foreground Service starts in RECORD_AUDIO checks with defensive try/catches. Dispatched presence updates safely to Dispatchers.Main and protected SQLite column reading against null data.",
           "Carrier-Grade Phone Notification System (v5.7.2): Implemented carrier-grade Android notification architecture across DMs, Channels, and Incoming/Ongoing Calls. Registered 4 distinct Android Notification Channels on app init (connecto_direct_messages, connecto_channels_groups, connecto_incoming_calls with CATEGORY_CALL and DND bypass, and connecto_active_call_service). Upgraded messages to rich NotificationCompat.MessagingStyle with Person.Builder() async circular avatars and thread grouping by conversationId (last 5 messages per stack). Added direct notification shade inline reply (RemoteInput key_text_reply) and 1-tap Mark as Read background action. Strict foreground suppression suppresses notifications when viewing the active chat. Integrated Chat & Lock biometric privacy redaction (VISIBILITY_PRIVATE, '🔒 Locked chat • New encrypted message', disabled inline reply) and mute checks. Real-time tray sync deletes unsent/revoked messages and edits unread messages in place. Incoming calls feature NotificationCompat.CallStyle with FullScreenIntent directly over lock screen, and ongoing calls run foreground CallStyle with chronometer and notification shade Mute/Unmute action.",
           "Direct Chat Alignment, Long-Press Dimming & Profile Cleanup (v5.7.1): Fixed contact avatar glitch and horizontal alignment across 1-on-1 direct messages with strict 52px left margin, clustering avatars on the bottom-most message of a consecutive series and transparent spacing on earlier bubbles. Suppressed sender name label in 1-on-1 chats while retaining it in group channels. Implemented translucent dark backdrop overlay (rgba(0,0,0,0.55)) with z-indexing during message long-press reaction HUD. Repositioned scroll-to-bottom FAB to bottom-right corner (38px, subtle 0.12 white border). Pre-warmed persistent WebSocket connection on chat launch. Fixed theme wallpaper preview outgoing bubble token (#47526B) with crisp white text. Refined preset selection indicator to 22px checkmark with 1.5px border. Removed duplicate unfriend button from Chat & Lock screen, removed duplicate top-right chat icon on Friend Profile, and refined 80px avatar with 4px #0A0B0E border overlapping banner cleanly by 50% with 3px status dot cutout.",
@@ -604,18 +605,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.3/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.2/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.4/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.3/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.3-b180-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.4-b181-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.7.3");
-          res.headers.set("X-Connecto-Build", "180");
+          res.headers.set("X-Connecto-Version", "v5.7.4");
+          res.headers.set("X-Connecto-Build", "181");
           return res;
         }
 
@@ -651,8 +652,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.7.3");
-              downloadHeaders.set("X-Connecto-Build", "180");
+              downloadHeaders.set("X-Connecto-Version", "v5.7.4");
+              downloadHeaders.set("X-Connecto-Build", "181");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2040,14 +2041,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.7.3",
-        version_code: 180,
-        size_bytes: 38132335,
+        version_name: "5.7.4",
+        version_code: 181,
+        size_bytes: 38134072,
         size_formatted: "36.4 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Mathematical Layout, Swipe-to-Delete zIndex, Concentric Radii & Spring Physics (v5.7.4): Implemented strict mathematical layout and spring physics across DMs, Wallpaper customizer, Friend Profile, and Chat & Lock. Fixed swipe-to-delete bleed-through bug with zIndex(0f) compact red delete zone (#DC2626, 88px) and zIndex(1f) solid opaque #0A0B0E foreground clipping cleanly. Trash icon scales from 0.6 to 1.0 with spring bounce. Restored real decrypted lastMessage subtitles, 12px presence dots with 2px cutout border, 56px high-contrast FAB (#4F46E5), concentric wallpaper cards (R_outer = R_inner + Padding), sliding background pills on segmented controls, and soft sunken encryption card.",
           "Post-Login Crash Prevention & Defensive Startup Initialization (v5.7.3): Completely eliminated app force-closes on login. Deferred WebRTC PeerConnectionFactory initialization and audio hardware configuration (AudioRecord/AudioTrack/AudioManager mode changes) until an actual voice call begins, preventing security exceptions on Android 12+/14+ prior to permission grant. Replaced all unsafe non-null assertions (!!) across MainActivity, CustomizedChatScreen, ChannelsWorkspaceScreen, and ProfileScreen with safe let-blocks and fallbacks. Added null-safe default fallbacks for all message and user fields (reactions, seenBy, readAt, replyToMessageId, lastSeen) to safely deserialize older backend database records. Wrapped Foreground Service starts in RECORD_AUDIO checks with defensive try/catches. Dispatched presence updates safely to Dispatchers.Main and protected SQLite column reading against null data.",
           "Carrier-Grade Phone Notification System (v5.7.2): Implemented carrier-grade Android notification architecture across DMs, Channels, and Incoming/Ongoing Calls. Registered 4 distinct Android Notification Channels on app init (connecto_direct_messages, connecto_channels_groups, connecto_incoming_calls with CATEGORY_CALL and DND bypass, and connecto_active_call_service). Upgraded messages to rich NotificationCompat.MessagingStyle with Person.Builder() async circular avatars and thread grouping by conversationId (last 5 messages per stack). Added direct notification shade inline reply (RemoteInput key_text_reply) and 1-tap Mark as Read background action. Strict foreground suppression suppresses notifications when viewing the active chat. Integrated Chat & Lock biometric privacy redaction (VISIBILITY_PRIVATE, '🔒 Locked chat • New encrypted message', disabled inline reply) and mute checks. Real-time tray sync deletes unsent/revoked messages and edits unread messages in place. Incoming calls feature NotificationCompat.CallStyle with FullScreenIntent directly over lock screen, and ongoing calls run foreground CallStyle with chronometer and notification shade Mute/Unmute action.",
           "Direct Chat Alignment, Long-Press Dimming & Profile Cleanup (v5.7.1): Fixed contact avatar glitch and horizontal alignment across 1-on-1 direct messages with strict 52px left margin, clustering avatars on the bottom-most message of a consecutive series and transparent spacing on earlier bubbles. Suppressed sender name label in 1-on-1 chats while retaining it in group channels. Implemented translucent dark backdrop overlay (rgba(0,0,0,0.55)) with z-indexing during message long-press reaction HUD. Repositioned scroll-to-bottom FAB to bottom-right corner (38px, subtle 0.12 white border). Pre-warmed persistent WebSocket connection on chat launch. Fixed theme wallpaper preview outgoing bubble token (#47526B) with crisp white text. Refined preset selection indicator to 22px checkmark with 1.5px border. Removed duplicate unfriend button from Chat & Lock screen, removed duplicate top-right chat icon on Friend Profile, and refined 80px avatar with 4px #0A0B0E border overlapping banner cleanly by 50% with 3px status dot cutout.",
@@ -7336,13 +7338,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.7.3",
-      version_name: "v5.7.3",
-      version_code: 180,
-      build: 180,
-      sha256: "3ad57dc6a5665d80654996a161b07280f14485543e72375217c63e7c0553e1b2",
+      version: "5.7.4",
+      version_name: "v5.7.4",
+      version_code: 181,
+      build: 181,
+      sha256: "1a23cb6c6e4d06210df1b53a95c947cf3ba3c3d8ddb1ce25f5cd0ef146ea05c6",
       filename: "connecto-fun.apk",
-      size_bytes: 38132335,
+      size_bytes: 38134072,
       size_display: "36.4 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7355,6 +7357,25 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v5.7.4",
+          date: "Nov 18, 2026",
+          category: "ui-ux",
+          tag: "Latest Release",
+          title: "Connecto v5.7.4: Mathematical Layout, Swipe-to-Delete zIndex, Concentric Radii & Spring Physics",
+          summary: "Implemented strict mathematical layout and spring physics across DMs, Wallpaper customizer, Friend Profile, and Chat & Lock. Fixed swipe-to-delete bleed-through bug with zIndex(0f) compact red delete zone (#DC2626, 88px) and zIndex(1f) solid opaque #0A0B0E foreground clipping cleanly. Trash icon scales from 0.6 to 1.0 with spring bounce. Restored real decrypted lastMessage subtitles, 12px presence dots with 2px cutout border, 56px high-contrast FAB (#4F46E5), concentric wallpaper cards (R_outer = R_inner + Padding), sliding background pills on segmented controls, and soft sunken encryption card.",
+          highlights: [
+            "Swipe-to-Delete Bleed-Through Elimination: Layered compact right-aligned red delete zone (#DC2626, width: 88px) on background (zIndex: 0) and solid opaque #0A0B0E foreground card (zIndex: 1) clipped cleanly via RoundedCornerShape(16.dp).",
+            "Spring Bounce Trash Scaling: Trash icon smoothly scales from 0.6 to 1.0 with spring bounce as drag crosses -64px.",
+            "Real Last Messages & Presence Cutout: Removed preview wiping regression; subtitles bind to decrypted lastMessage and formatted timestamps (fallback 'Tap to start chatting' only when 0 messages). Avatar 12px presence dot (#10B981 online, #475569 offline) restored with 2px #0A0B0E cutout border.",
+            "High-Contrast FAB Redesign: Replaced washed-out light-blue gradient with sleek 56px circular button (#4F46E5 solid fill, pure white + icon, elevation shadow 0 8px 20px rgba(37, 99, 235, 0.35)).",
+            "Concentric Wallpaper Preset Grid: Outer card 18px radius, 8px padding, 10px inner swatch with zero border (R_outer = R_inner + Padding), 20px checkmark badge at top: 14px, right: 14px, 13px title.",
+            "Sliding Pill Indicator & Spring Micro-Animations: Single animated sliding background indicator (spring stiffness = 400f, dampingRatio = 0.8f) on segmented tabs, 0.97 pressIn / 1.0 spring pressOut touch scale feedback on cards and buttons.",
+            "Standardized Profile & Chat & Lock Geometry: Sunken 256-bit encryption card (rgba(16, 185, 129, 0.06), 1px solid rgba(16, 185, 129, 0.18), 20px radius, 18px padding), 20px settings rows with #131620 fill and 16x18px padding, 20px cover banner with rich mesh gradient fallback.",
+            "Android Native App v5.7.4 (Build 181 • 36.4 MB): SHA-256 1a23cb6c6e4d06210df1b53a95c947cf3ba3c3d8ddb1ce25f5cd0ef146ea05c6."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
         {
           version: "v5.7.3",
           date: "Nov 18, 2026",

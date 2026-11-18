@@ -32,6 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import com.example.connecto.ui.designsystem.ConnectoTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -76,8 +78,8 @@ fun SwipeableConversationRow(
 
     val pinThresholdPx = with(density) { 85.dp.toPx() }
     val maxRightDragPx = with(density) { 130.dp.toPx() }
-    val deleteThresholdPx = with(density) { 95.dp.toPx() }
-    val maxLeftDragPx = with(density) { 160.dp.toPx() }
+    val deleteThresholdPx = with(density) { 64.dp.toPx() }
+    val maxLeftDragPx = with(density) { 108.dp.toPx() }
 
     val offsetX = remember(chatId) { Animatable(0f) }
     var hasHapticFiredForPin by remember(chatId) { mutableStateOf(false) }
@@ -148,92 +150,103 @@ fun SwipeableConversationRow(
         Box(
             modifier = modifier
                 .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
                 .graphicsLayer {
                     alpha = liquidCollapseAlpha.value
                 }
         ) {
-            // Background Action Layer (Revealed during swipe)
+            // Background Action Layer (zIndex: 0f, Revealed cleanly under sliding foreground)
             val currentOffset = offsetX.value
+            val isLight = !ConnectoTheme.colors.isDark
 
-            if (currentOffset > 10f) {
-                // RIGHT SWIPE: Pin / Unpin Action (Amber Gradient)
-                val dragRatio = (currentOffset / pinThresholdPx).coerceIn(0f, 1.5f)
-                val pinBgColor = if (isPinned) Color(0xFF3B82F6) else Color(0xFFF59E0B)
-                val pinBgEnd = if (isPinned) Color(0xFF1D4ED8) else Color(0xFFD97706)
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .zIndex(0f)
+            ) {
+                if (currentOffset > 10f) {
+                    // RIGHT SWIPE: Pin / Unpin Action (Amber Gradient)
+                    val dragRatio = (currentOffset / pinThresholdPx).coerceIn(0f, 1.5f)
+                    val pinBgColor = if (isPinned) Color(0xFF3B82F6) else Color(0xFFF59E0B)
+                    val pinBgEnd = if (isPinned) Color(0xFF1D4ED8) else Color(0xFFD97706)
 
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.horizontalGradient(listOf(pinBgColor, pinBgEnd)))
-                        .padding(start = 20.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(Brush.horizontalGradient(listOf(pinBgColor, pinBgEnd)))
+                            .padding(start = 20.dp),
+                        contentAlignment = Alignment.CenterStart
                     ) {
-                        // Micro-scaling icon peek hint
-                        val iconScale = (0.7f + dragRatio * 0.45f).coerceIn(0.7f, 1.25f)
-                        Icon(
-                            imageVector = if (isPinned) Icons.Outlined.PushPin else Icons.Filled.PushPin,
-                            contentDescription = if (isPinned) "Unpin" else "Pin",
-                            tint = Color.White,
-                            modifier = Modifier
-                                .size(24.dp)
-                                .scale(iconScale)
-                        )
-                        Text(
-                            text = if (isPinned) "Unpin" else "Pin",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            val iconScale = (0.7f + dragRatio * 0.45f).coerceIn(0.7f, 1.25f)
+                            Icon(
+                                imageVector = if (isPinned) Icons.Outlined.PushPin else Icons.Filled.PushPin,
+                                contentDescription = if (isPinned) "Unpin" else "Pin",
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .scale(iconScale)
+                            )
+                            Text(
+                                text = if (isPinned) "Unpin" else "Pin",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White
+                            )
+                        }
                     }
-                }
-            } else if (currentOffset < -10f) {
-                // LEFT SWIPE: Delete Action (Crimson Gradient)
-                val dragRatio = (abs(currentOffset) / deleteThresholdPx).coerceIn(0f, 1.5f)
-                val deleteBgStart = Color(0xFFEF4444)
-                val deleteBgEnd = Color(0xFFDC2626)
+                } else if (currentOffset < -5f) {
+                    // LEFT SWIPE: Compact Red Action Zone (#DC2626, width: 88px, right-aligned)
+                    val dragRatio = (abs(currentOffset) / deleteThresholdPx).coerceIn(0f, 1f)
+                    // Animate trash icon scale from 0.6 to 1.0 with a spring bounce as swipe crosses -64px
+                    val isPastThreshold = abs(currentOffset) >= deleteThresholdPx
+                    val bounceBonus = if (isPastThreshold) 0.08f else 0f
+                    val iconScale = (0.6f + dragRatio * 0.4f + bounceBonus).coerceIn(0.6f, 1.15f)
 
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.horizontalGradient(listOf(deleteBgStart, deleteBgEnd)))
-                        .padding(end = 20.dp),
-                    contentAlignment = Alignment.CenterEnd
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .width(88.dp)
+                            .fillMaxHeight()
+                            .background(Color(0xFFDC2626)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "Delete",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White
-                        )
-                        // Micro-scaling trash icon peek hint
-                        val iconScale = (0.7f + dragRatio * 0.45f).coerceIn(0.7f, 1.25f)
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = Color.White,
-                            modifier = Modifier
-                                .size(24.dp)
-                                .scale(iconScale)
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .scale(iconScale)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Delete",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }
 
-            // Foreground Chat Card (Draggable surface)
+            // Foreground Chat Card (Draggable surface, zIndex: 1f with solid opaque background)
+            val foregroundBg = if (isLight) Color.White else Color(0xFF0A0B0E)
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .zIndex(1f)
                     .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                    .background(foregroundBg)
                     .pointerInput(chatId, isPinned) {
                         detectHorizontalDragGestures(
                             onDragStart = {

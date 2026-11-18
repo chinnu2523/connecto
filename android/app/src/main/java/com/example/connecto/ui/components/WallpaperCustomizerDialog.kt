@@ -2,14 +2,22 @@ package com.example.connecto.ui.components
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -230,50 +239,83 @@ fun WallpaperCustomizerDialog(
                     )
 
                     // ================= 2. SEGMENTED TABS =================
-                    Row(
+                    val tabs = listOf(
+                        Triple(0, "Presets", Icons.Default.Wallpaper),
+                        Triple(1, "Photos", Icons.Default.AddPhotoAlternate),
+                        Triple(2, "Adjust", Icons.Default.Tune)
+                    )
+
+                    BoxWithConstraints(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f))
-                            .padding(3.dp),
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            .padding(3.dp)
                     ) {
-                        val tabs = listOf(
-                            Triple(0, "Presets", Icons.Default.Wallpaper),
-                            Triple(1, "Photos", Icons.Default.AddPhotoAlternate),
-                            Triple(2, "Adjust", Icons.Default.Tune)
+                        val tabWidth = maxWidth / tabs.size
+                        val animatedPillOffset by animateDpAsState(
+                            targetValue = tabWidth * activeTab,
+                            animationSpec = spring(
+                                dampingRatio = 0.8f,
+                                stiffness = 400f
+                            ),
+                            label = "wallpaperTabSlidingPill"
                         )
-                        tabs.forEach { (index, label, icon) ->
-                            val isSelected = activeTab == index
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(9.dp))
-                                    .background(
-                                        if (isSelected) MaterialTheme.colorScheme.surface
-                                        else Color.Transparent
-                                    )
-                                    .clickable { activeTab = index }
-                                    .padding(vertical = 7.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
+
+                        // Sliding background pill indicator
+                        Box(
+                            modifier = Modifier
+                                .offset(x = animatedPillOffset)
+                                .width(tabWidth)
+                                .height(34.dp)
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(MaterialTheme.colorScheme.surface)
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            tabs.forEach { (index, label, icon) ->
+                                val isSelected = activeTab == index
+                                val textColor by animateColorAsState(
+                                    targetValue = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    animationSpec = tween(200),
+                                    label = "wpTabTextColor"
+                                )
+                                val iconColor by animateColorAsState(
+                                    targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    animationSpec = tween(200),
+                                    label = "wpTabIconColor"
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(34.dp)
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) { activeTab = index },
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = null,
-                                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(5.dp))
-                                    Text(
-                                        text = label,
-                                        fontSize = 12.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = null,
+                                            tint = iconColor,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = label,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = textColor
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -281,70 +323,84 @@ fun WallpaperCustomizerDialog(
 
                     // ================= TAB 0: PRESET WALLPAPERS =================
                     if (activeTab == 0) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             AVAILABLE_CHAT_WALLPAPERS.chunked(2).forEach { rowPair ->
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     rowPair.forEach { wallpaper ->
                                         val isSelected = selectedWallpaperId == wallpaper.id
+                                        val cardInteraction = remember { MutableInteractionSource() }
+                                        val isCardPressed by cardInteraction.collectIsPressedAsState()
+                                        val cardScale by animateFloatAsState(
+                                            targetValue = if (isCardPressed) 0.97f else 1.0f,
+                                            animationSpec = spring(stiffness = 400f, dampingRatio = 0.8f),
+                                            label = "wpPresetCardScale"
+                                        )
+
                                         Box(
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(
-                                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                                                )
+                                                .graphicsLayer {
+                                                    scaleX = cardScale
+                                                    scaleY = cardScale
+                                                }
+                                                .clip(RoundedCornerShape(18.dp))
+                                                .background(Color(0xFF12151E))
                                                 .border(
                                                     width = if (isSelected) 1.5.dp else 1.dp,
-                                                    color = if (isSelected) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.20f),
-                                                    shape = RoundedCornerShape(12.dp)
+                                                    color = if (isSelected) Color.White else Color(0x0FFFFFFF),
+                                                    shape = RoundedCornerShape(18.dp)
                                                 )
-                                                .clickable {
+                                                .clickable(
+                                                    interactionSource = cardInteraction,
+                                                    indication = null
+                                                ) {
                                                     selectedWallpaperId = wallpaper.id
                                                     selectedCustomUri = null
                                                 }
-                                                .padding(6.dp)
+                                                .padding(8.dp)
                                         ) {
-                                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Column {
+                                                // Concentric swatch: R_outer (18) - Padding (8) = R_inner (10)
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .height(58.dp)
-                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .height(68.dp)
+                                                        .clip(RoundedCornerShape(10.dp))
                                                         .background(if (!isDarkTheme) wallpaper.lightBrush else wallpaper.darkBrush)
-                                                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(8.dp)),
-                                                    contentAlignment = Alignment.TopEnd
-                                                ) {
-                                                    if (isSelected) {
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .padding(4.dp)
-                                                                .size(22.dp)
-                                                                .clip(CircleShape)
-                                                                .background(Color.White),
-                                                            contentAlignment = Alignment.Center
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.Check,
-                                                                contentDescription = null,
-                                                                tint = Color(0xFF0A0B0E),
-                                                                modifier = Modifier.size(14.dp)
-                                                            )
-                                                        }
-                                                    }
-                                                }
+                                                )
 
                                                 Text(
                                                     text = wallpaper.name,
-                                                    fontSize = 11.5.sp,
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.SemiBold,
                                                     color = MaterialTheme.colorScheme.onSurface,
                                                     maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.padding(top = 10.dp, start = 6.dp, bottom = 4.dp, end = 6.dp)
                                                 )
+                                            }
+
+                                            // 20px checkmark badge anchored at top: 14px, right: 14px
+                                            if (isSelected) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .align(Alignment.TopEnd)
+                                                        .padding(top = 6.dp, end = 6.dp)
+                                                        .size(20.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color.White),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Check,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF0A0B0E),
+                                                        modifier = Modifier.size(12.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }

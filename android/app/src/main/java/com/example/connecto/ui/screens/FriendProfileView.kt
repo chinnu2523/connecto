@@ -3,6 +3,8 @@ package com.example.connecto.ui.screens
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -12,6 +14,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,7 +64,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -96,23 +100,32 @@ fun FriendProfileNavButton(
     modifier: Modifier = Modifier
 ) {
     val isLiquidGlass = ConnectoTheme.isLiquidGlass
-    val cardShape = RoundedCornerShape(18.dp)
+    val isDark = ConnectoTheme.colors.isDark
+    val cardShape = RoundedCornerShape(20.dp)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1.0f,
+        animationSpec = spring(stiffness = 400f, dampingRatio = 0.8f),
+        label = "friendNavBtnScale"
+    )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(cardShape)
-            .clickable(onClick = onClick)
-            .liquidGlassCard(
-                shape = cardShape,
-                backgroundColor = if (isLiquidGlass) Color.Transparent
-                else MaterialTheme.colorScheme.surface.copy(
-                    alpha = if (ConnectoTheme.colors.isDark) 0.82f else 0.94f
-                ),
-                borderColor = if (isLiquidGlass) Color.White.copy(alpha = 0.35f)
-                else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
             )
-            .padding(horizontal = 16.dp, vertical = 15.dp)
+            .background(if (isDark) Color(0xFF131620) else MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (isDark) Color(0x0DFFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), cardShape)
+            .padding(horizontal = 18.dp, vertical = 16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -327,13 +340,14 @@ fun FriendProfileScreen(
                     ) {
                         // 1. BIOMETRIC CHAT LOCK
                         item(key = "setting_lock_chat") {
+                            val isDark = ConnectoTheme.colors.isDark
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-                                    .padding(16.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(if (isDark) Color(0xFF131620) else MaterialTheme.colorScheme.surface)
+                                    .border(1.dp, if (isDark) Color(0x0DFFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
+                                    .padding(horizontal = 18.dp, vertical = 16.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -395,13 +409,14 @@ fun FriendProfileScreen(
 
                         // 2. MUTE NOTIFICATIONS
                         item(key = "setting_mute_notifs") {
+                            val isDark = ConnectoTheme.colors.isDark
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-                                    .padding(16.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(if (isDark) Color(0xFF131620) else MaterialTheme.colorScheme.surface)
+                                    .border(1.dp, if (isDark) Color(0x0DFFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
+                                    .padding(horizontal = 18.dp, vertical = 16.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -461,15 +476,15 @@ fun FriendProfileScreen(
                             }
                         }
 
-                        // 3. E2E ENCRYPTION INFO
+                        // 3. E2E ENCRYPTION INFO (Soft sunken fill & subtle emerald border)
                         item(key = "setting_encryption_card") {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                                    .padding(16.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(Color(0x0F10B981))
+                                    .border(1.dp, Color(0x2E10B981), RoundedCornerShape(20.dp))
+                                    .padding(18.dp)
                             ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Row(
@@ -998,12 +1013,13 @@ fun FriendProfileScreen(
                                     .height(170.dp)
                             ) {
                                 // Cover Banner
+                                val isDark = ConnectoTheme.colors.isDark
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(125.dp)
-                                        .clip(RoundedCornerShape(18.dp))
-                                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .border(1.dp, if (isDark) Color(0x0DFFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
                                 ) {
                                     if (isPreset && presetObj != null) {
                                         Box(
@@ -1025,7 +1041,7 @@ fun FriendProfileScreen(
                                                 .fillMaxSize()
                                                 .background(
                                                     Brush.linearGradient(
-                                                        listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), MaterialTheme.colorScheme.tertiary.copy(alpha = 0.6f))
+                                                        listOf(Color(0xFF1E1B4B), Color(0xFF312E81), Color(0xFF0F172A))
                                                     )
                                                 )
                                         )
@@ -1148,6 +1164,23 @@ fun FriendProfileScreen(
 
                         // 3. QUICK ACTION BUTTONS ROW (Chat & Voice Call)
                         item(key = "friend_quick_actions") {
+                            val isDark = ConnectoTheme.colors.isDark
+                            val chatInteraction = remember { MutableInteractionSource() }
+                            val isChatPressed by chatInteraction.collectIsPressedAsState()
+                            val chatScale by animateFloatAsState(
+                                targetValue = if (isChatPressed) 0.97f else 1.0f,
+                                animationSpec = spring(stiffness = 400f, dampingRatio = 0.8f),
+                                label = "quickChatScale"
+                            )
+
+                            val callInteraction = remember { MutableInteractionSource() }
+                            val isCallPressed by callInteraction.collectIsPressedAsState()
+                            val callScale by animateFloatAsState(
+                                targetValue = if (isCallPressed) 0.97f else 1.0f,
+                                animationSpec = spring(stiffness = 400f, dampingRatio = 0.8f),
+                                label = "quickCallScale"
+                            )
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1159,10 +1192,18 @@ fun FriendProfileScreen(
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(46.dp)
+                                        .graphicsLayer {
+                                            scaleX = chatScale
+                                            scaleY = chatScale
+                                        }
                                         .clip(RoundedCornerShape(14.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
-                                        .clickable(onClick = onOpenDirectChat),
+                                        .background(if (isDark) Color(0xFF131620) else MaterialTheme.colorScheme.surfaceVariant)
+                                        .border(1.dp, if (isDark) Color(0x0DFFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                                        .clickable(
+                                            interactionSource = chatInteraction,
+                                            indication = null,
+                                            onClick = onOpenDirectChat
+                                        ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1187,10 +1228,18 @@ fun FriendProfileScreen(
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(46.dp)
+                                        .graphicsLayer {
+                                            scaleX = callScale
+                                            scaleY = callScale
+                                        }
                                         .clip(RoundedCornerShape(14.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
-                                        .clickable(onClick = onInitiateVoiceCall),
+                                        .background(if (isDark) Color(0xFF131620) else MaterialTheme.colorScheme.surfaceVariant)
+                                        .border(1.dp, if (isDark) Color(0x0DFFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                                        .clickable(
+                                            interactionSource = callInteraction,
+                                            indication = null,
+                                            onClick = onInitiateVoiceCall
+                                        ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {

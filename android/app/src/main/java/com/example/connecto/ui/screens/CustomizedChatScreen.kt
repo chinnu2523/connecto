@@ -1405,27 +1405,29 @@ fun CustomizedChatScreen(
                 val mappedFriends = list.map { f ->
                     val cleanHandle = f.handle.removePrefix("@").trim().lowercase()
                     val latest = if (effUser.isNotBlank()) dbHelper.getLatestMessageInfoForFriend(effUser, cleanHandle) else null
+                    val prefMsg = readPrefs.getString("last_msg_${f.id}", null) ?: readPrefs.getString("last_msg_${cleanHandle}", null)
+                    val prefTime = readPrefs.getString("last_time_${f.id}", null) ?: readPrefs.getString("last_time_${cleanHandle}", null)
+                    val prefTs = maxOf(readPrefs.getLong("last_timestamp_${f.id}", 0L), readPrefs.getLong("last_timestamp_${cleanHandle}", 0L))
+
                     val cleanMsg = if (latest != null && latest.first.isNotBlank() && latest.first != "null" && latest.first != "None") {
                         latest.first
-                    } else if (f.lastMessage.isNotBlank() && f.lastMessage != "null" && f.lastMessage != "None" && latest != null) {
+                    } else if (!prefMsg.isNullOrBlank() && prefMsg != "null" && prefMsg != "None" && prefMsg != "Direct chat active • Tap to message") {
+                        prefMsg
+                    } else if (f.lastMessage.isNotBlank() && f.lastMessage != "null" && f.lastMessage != "None" && f.lastMessage != "Direct chat active • Tap to message") {
                         f.lastMessage
                     } else {
-                        // Stale preview cleanup: if no direct messages exist, clean SharedPreferences and state
-                        readPrefs.edit()
-                            .remove("last_msg_${f.id}")
-                            .remove("last_msg_${cleanHandle}")
-                            .remove("last_time_${f.id}")
-                            .remove("last_time_${cleanHandle}")
-                            .remove("last_timestamp_${f.id}")
-                            .remove("last_timestamp_${cleanHandle}")
-                            .apply()
-                        "Direct chat active • Tap to message"
+                        "Tap to start chatting"
                     }
-                    val ts = if (latest != null && latest.second > 0L) latest.second else 0L
-                    val time = if (latest != null && latest.second > 0L) {
-                        SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(latest.second))
+
+                    val ts = if (latest != null && latest.second > 0L) latest.second else if (prefTs > 0L) prefTs else f.lastMessageTimestamp
+                    val time = if (ts > 0L) {
+                        SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(ts))
+                    } else if (!prefTime.isNullOrBlank() && prefTime != "Active" && prefTime != "null") {
+                        formatIsoTime(prefTime)
+                    } else if (f.timeAgo.isNotBlank() && f.timeAgo != "Active" && f.timeAgo != "null" && f.timeAgo != "None") {
+                        formatIsoTime(f.timeAgo)
                     } else {
-                        if (cleanMsg == "Direct chat active • Tap to message") "Active" else f.timeAgo
+                        ""
                     }
                     f.copy(lastMessage = cleanMsg, timeAgo = time, lastMessageTimestamp = ts)
                 }
@@ -1698,20 +1700,23 @@ fun CustomizedChatScreen(
                     val (lastMsg, time, lastTs) = if (latest != null && latest.first.isNotBlank() && latest.first != "null" && latest.first != "None") {
                         val formattedTime = if (latest.second > 0L) SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(latest.second)) else "Just now"
                         Triple(latest.first, formattedTime, latest.second)
-                    } else if (!sanitizedPrefMsg.isNullOrBlank() && sanitizedPrefMsg != "Direct chat active • Tap to message" && latest != null) {
+                    } else if (!sanitizedPrefMsg.isNullOrBlank() && sanitizedPrefMsg != "Direct chat active • Tap to message") {
                         val rawPrefTime = readPrefs.getString("last_time_${f.friendId}", null) ?: readPrefs.getString("last_time_${cleanUsername.lowercase()}", null)
-                        Triple(sanitizedPrefMsg, formatIsoTime(if (!rawPrefTime.isNullOrBlank()) rawPrefTime else "Active"), maxOf(readPrefs.getLong("last_timestamp_${f.friendId}", 0L), readPrefs.getLong("last_timestamp_${cleanUsername.lowercase()}", 0L)))
+                        val prefTs = maxOf(readPrefs.getLong("last_timestamp_${f.friendId}", 0L), readPrefs.getLong("last_timestamp_${cleanUsername.lowercase()}", 0L))
+                        val formattedTime = if (prefTs > 0L) {
+                            SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(prefTs))
+                        } else if (!rawPrefTime.isNullOrBlank() && rawPrefTime != "Active") {
+                            formatIsoTime(rawPrefTime)
+                        } else "Just now"
+                        Triple(sanitizedPrefMsg, formattedTime, prefTs)
+                    } else if (cachedFriend != null && cachedFriend.lastMessage.isNotBlank() && cachedFriend.lastMessage != "null" && cachedFriend.lastMessage != "None" && cachedFriend.lastMessage != "Direct chat active • Tap to message") {
+                        val ts = cachedFriend.lastMessageTimestamp
+                        val formattedTime = if (ts > 0L) {
+                            SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(ts))
+                        } else formatIsoTime(cachedFriend.timeAgo)
+                        Triple(cachedFriend.lastMessage, formattedTime, ts)
                     } else {
-                        // Purge any stale preview keys for friend with 0 messages
-                        readPrefs.edit()
-                            .remove("last_msg_${f.friendId}")
-                            .remove("last_msg_${cleanUsername.lowercase()}")
-                            .remove("last_time_${f.friendId}")
-                            .remove("last_time_${cleanUsername.lowercase()}")
-                            .remove("last_timestamp_${f.friendId}")
-                            .remove("last_timestamp_${cleanUsername.lowercase()}")
-                            .apply()
-                        Triple("Direct chat active • Tap to message", "Active", 0L)
+                        Triple("Tap to start chatting", "", 0L)
                     }
                     val isFriendOnline = f.isOnline && !f.isStealth
                     FriendItem(
@@ -5514,15 +5519,19 @@ fun CustomizedChatScreen(
                                     }
                                 }
 
-                                val displayTime = remember(friend.timeAgo) {
-                                    if (friend.timeAgo.isBlank() || friend.timeAgo == "null" || friend.timeAgo == "None") {
-                                        "Active"
-                                    } else formatIsoTime(friend.timeAgo)
+                                val displayTime = remember(friend.lastMessageTimestamp, friend.timeAgo) {
+                                    if (friend.lastMessageTimestamp > 0L) {
+                                        SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(friend.lastMessageTimestamp))
+                                    } else if (friend.timeAgo.isNotBlank() && friend.timeAgo != "null" && friend.timeAgo != "None" && friend.timeAgo != "Active") {
+                                        formatIsoTime(friend.timeAgo)
+                                    } else {
+                                        ""
+                                    }
                                 }
 
                                 val displayMsg = remember(friend.id, friend.lastMessage) {
-                                    if (friend.lastMessage.isBlank() || friend.lastMessage == "null" || friend.lastMessage == "None") {
-                                        "Direct chat active • Tap to message"
+                                    if (friend.lastMessage.isBlank() || friend.lastMessage == "null" || friend.lastMessage == "None" || friend.lastMessage == "Direct chat active • Tap to message") {
+                                        "Tap to start chatting"
                                     } else if (ConnectoE2EEncryption.isEncrypted(friend.lastMessage)) {
                                         val cacheKey = "${friend.id}_${friend.lastMessage.hashCode()}"
                                         decryptedPreviewCache.getOrPut(cacheKey) {
@@ -5532,27 +5541,28 @@ fun CustomizedChatScreen(
                                                 val key = ConnectoE2EEncryption.deriveConversationKey(myUsername, cleanTarget, e2eSecret)
                                                 val fallbackKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, cleanTarget, null)
                                                 val dec = ConnectoE2EEncryption.decryptMessage(friend.lastMessage, key, fallbackKey)
-                                                cleanMessageContentForDisplay(dec, "Direct chat active • Tap to message")
+                                                cleanMessageContentForDisplay(dec, "Tap to start chatting")
                                             } catch (_: Exception) {
-                                                cleanMessageContentForDisplay(friend.lastMessage, "Direct chat active • Tap to message")
+                                                cleanMessageContentForDisplay(friend.lastMessage, "Tap to start chatting")
                                             }
                                         }
                                     } else {
-                                        cleanMessageContentForDisplay(friend.lastMessage, "Direct chat active • Tap to message")
+                                        cleanMessageContentForDisplay(friend.lastMessage, "Tap to start chatting")
                                     }
                                 }
 
                                 val rowInteraction = remember { MutableInteractionSource() }
                                 val isRowPressed by rowInteraction.collectIsPressedAsState()
                                 val rowScale by animateFloatAsState(
-                                    targetValue = if (isRowPressed) 0.98f else 1.0f,
-                                    animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                                    targetValue = if (isRowPressed) 0.97f else 1.0f,
+                                    animationSpec = spring(stiffness = 400f, dampingRatio = 0.8f),
                                     label = "chatRowScale"
                                 )
 
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .background(if (isLight) Color.White else Color(0xFF0A0B0E))
                                         .graphicsLayer {
                                             scaleX = rowScale
                                             scaleY = rowScale
@@ -5611,18 +5621,17 @@ fun CustomizedChatScreen(
                                                     friends = friendsList,
                                                     fallbackFriend = friend
                                                 )
-                                                if (isFriendOnline) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .align(Alignment.BottomEnd)
-                                                            .size(12.dp)
-                                                            .clip(CircleShape)
-                                                            .background(if (isLight) Color(0xFFFFFFFF) else Color(0xFF0A0B0E))
-                                                            .padding(2.dp)
-                                                            .clip(CircleShape)
-                                                            .background(Color(0xFF10B981))
-                                                    )
-                                                }
+                                                val presenceDotColor = if (isFriendOnline) Color(0xFF10B981) else Color(0xFF475569)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .align(Alignment.BottomEnd)
+                                                        .size(12.dp)
+                                                        .clip(CircleShape)
+                                                        .background(if (isLight) Color(0xFFFFFFFF) else Color(0xFF0A0B0E))
+                                                        .padding(2.dp)
+                                                        .clip(CircleShape)
+                                                        .background(presenceDotColor)
+                                                )
                                             }
                                         }
 
@@ -5664,15 +5673,17 @@ fun CustomizedChatScreen(
                                                         modifier = Modifier.size(12.dp)
                                                     )
                                                 }
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                // Top-aligned timestamp (12px, #686C78)
-                                                Text(
-                                                    text = displayTime,
-                                                    fontSize = 12.sp,
-                                                    fontWeight = if (friend.unreadCount > 0) FontWeight.SemiBold else FontWeight.Normal,
-                                                    color = if (friend.unreadCount > 0) (if (isLight) Color(0xFF0F172A) else Color.White) else (if (isLight) Color(0xFF64748B) else Color(0xFF686C78)),
-                                                    maxLines = 1
-                                                )
+                                                if (displayTime.isNotBlank()) {
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    // Top-aligned timestamp (12px, #686C78)
+                                                    Text(
+                                                        text = displayTime,
+                                                        fontSize = 12.sp,
+                                                        fontWeight = if (friend.unreadCount > 0) FontWeight.SemiBold else FontWeight.Normal,
+                                                        color = if (friend.unreadCount > 0) (if (isLight) Color(0xFF0F172A) else Color.White) else (if (isLight) Color(0xFF64748B) else Color(0xFF686C78)),
+                                                        maxLines = 1
+                                                    )
+                                                }
                                             }
 
                                             Spacer(modifier = Modifier.height(3.dp))
@@ -5973,8 +5984,8 @@ fun CustomizedChatScreen(
                     val fabInteraction = remember { MutableInteractionSource() }
                     val isFabPressed by fabInteraction.collectIsPressedAsState()
                     val fabScale by animateFloatAsState(
-                        targetValue = if (isFabPressed) 0.90f else 1.0f,
-                        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                        targetValue = if (isFabPressed) 0.97f else 1.0f,
+                        animationSpec = spring(stiffness = 400f, dampingRatio = 0.8f),
                         label = "fabScale"
                     )
                     val fabRotation by animateFloatAsState(
@@ -5992,18 +6003,15 @@ fun CustomizedChatScreen(
                                 scaleY = fabScale
                             }
                             .size(56.dp)
-                            .shadow(elevation = 8.dp, shape = CircleShape)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-                                        if (isPureBlack) Color(0xFF38BDF8) else MaterialTheme.colorScheme.primary
-                                    )
-                                )
+                            .shadow(
+                                elevation = 10.dp,
+                                shape = CircleShape,
+                                ambientColor = Color(0x592563EB),
+                                spotColor = Color(0x592563EB)
                             )
-                            .border(1.2.dp, Color.White.copy(alpha = 0.35f), CircleShape)
+                            .clip(CircleShape)
+                            .background(Color(0xFF4F46E5))
+                            .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
                             .clickable(
                                 interactionSource = fabInteraction,
                                 indication = null
@@ -6016,7 +6024,7 @@ fun CustomizedChatScreen(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = if (isFabExpanded) "Close options" else "Start conversation",
-                            tint = contentOnGradient,
+                            tint = Color.White,
                             modifier = Modifier
                                 .size(26.dp)
                                 .graphicsLayer {
