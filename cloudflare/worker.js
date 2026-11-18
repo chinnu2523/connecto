@@ -383,14 +383,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.6.2/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.1.8-b67-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.1.9-b68-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.1.8");
-          res.headers.set("X-Connecto-Store-Build", "67");
+          res.headers.set("X-Connecto-Store-Version", "v2.1.9");
+          res.headers.set("X-Connecto-Store-Build", "68");
           return res;
         }
 
@@ -428,8 +428,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.1.8");
-              downloadHeaders.set("X-Connecto-Store-Build", "67");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.1.9");
+              downloadHeaders.set("X-Connecto-Store-Build", "68");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1969,14 +1969,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.1.8",
-        version_code: 67,
+        version_name: "2.1.9",
+        version_code: 68,
         size_bytes: 18977848,
         size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Our Store Self-Update Engine Architecture (v2.1.9): Fixed in-app self-update failure. Routed self-updates through Android PackageInstaller.Session with USER_ACTION_REQUIRED per OS security guidelines, resolving background activity launch (BAL) restrictions. Eliminated SecurityException by removing persistable URI permission flag on FileProvider URIs. Added high-priority system notification and direct activity re-open prompt so the installation confirmation dialog is always accessible even if dismissed or minimized. Unhidden Our Store updates from the Updates tab and search.",
           "Ecosystem Sync & Production Release Pipeline (v2.1.8): Synchronized Our Store package catalog with Connecto v5.7.0 (Build 177) featuring production WebRTC group call engine and pure OLED black theme.",
           "Tier-1 Google Play / App Store UI Refactor: Clean obsidian dark (#0A0B0E) surfaces, borderless elevated cards, flat translucent 64dp bottom navigation bar, single compact status header with installed apps list, streamlined single-line support rows, and interactive auto-update preferences",
           "Resolved Connecto In-Store Update IPC: Fixed background activity launch (BAL) restriction in PackageInstaller session receiver by enforcing foreground confirmation activity routing, installer-of-record checks for silent updates, and seamless system intent fallback",

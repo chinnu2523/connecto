@@ -619,7 +619,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
 
                     // Launch watchdog timer to auto-clear stuck isInstalling if OS never reports status
                     viewModelScope.launch {
-                        kotlinx.coroutines.delay(45_000L)
+                        kotlinx.coroutines.delay(20_000L)
                         val s = (_uiState.value as? StoreUiState.Success)?.apps?.find { it.app.packageName == app.packageName }
                         if (s?.isInstalling == true) {
                             refreshInstallStates(resetInstallingIfStillPending = true)
@@ -756,7 +756,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
                 }
-                val selfUpdate = refreshed.find { (it.app.packageName == "com.connecto.store" || it.app.id == "ourstore") && it.installState == StoreApp.InstallState.UPDATE_AVAILABLE }
+                val selfUpdate = refreshed.find { (it.app.packageName == "com.connecto.store" || it.app.id == "ourstore") && (it.installState == StoreApp.InstallState.UPDATE_AVAILABLE || it.isDownloading || it.isInstalling) }
                 _uiState.value = current.copy(apps = refreshed, storeSelfUpdate = selfUpdate)
                 StoreNotificationHelper.checkAndNotifyUpdates(ctx, refreshed)
             }
@@ -916,9 +916,9 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Autonomous package installer, background updater & security vault",
             description = "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
             category = "Services",
-            versionName = "1.9.9",
-            versionCode = 48,
-            sizeFormatted = "18.2 MB",
+            versionName = "2.1.9",
+            versionCode = 68,
+            sizeFormatted = "18.1 MB",
             downloadUrl = "https://connecto.fun/downloads/our-store.apk",
             accentColor = "#2563EB",
             changelog = listOf(

@@ -410,8 +410,8 @@ fun StoreApp(
                                                 appState.app.category.equals(selectedCategory, ignoreCase = true)
 
                                             val matchesSection = when (selectedSection) {
-                                                StoreNavSection.OVERVIEW -> !isSelfStore
-                                                StoreNavSection.UPDATES -> !isSelfStore && (appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE || appState.isDownloading || appState.isInstalling)
+                                                StoreNavSection.OVERVIEW -> !isSelfStore || searchQuery.isNotBlank()
+                                                StoreNavSection.UPDATES -> appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE || appState.isDownloading || appState.isInstalling
                                                 StoreNavSection.LOGIN -> true
                                             }
 
@@ -847,8 +847,7 @@ private fun ClassicCatalogBody(
     val updateCount = state.apps.count { it.installState == StoreApp.InstallState.UPDATE_AVAILABLE }
     val installedApps = remember(state.apps) {
         state.apps.filter {
-            val isSelf = it.app.packageName == "com.connecto.store" || it.app.id == "ourstore"
-            !isSelf && (it.installState == StoreApp.InstallState.UP_TO_DATE || it.installState == StoreApp.InstallState.UPDATE_AVAILABLE)
+            it.installState == StoreApp.InstallState.UP_TO_DATE || it.installState == StoreApp.InstallState.UPDATE_AVAILABLE
         }
     }
 
@@ -3639,6 +3638,22 @@ fun ClassicLoginAccountView(
                                     color = ElectricBlueUpdateLight,
                                     trackColor = theme.cardElevated
                                 )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 4.dp),
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "Didn't see prompt? Tap to re-open installer",
+                                        color = ElectricBlueUpdateLight,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier
+                                            .tactilePress(pressedScale = 0.96f) { onUpdateOurStore() }
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
                             } else {
                                 val animatedSelfProgress by animateFloatAsState(
                                     targetValue = (storeSelfUpdate.downloadProgress / 100f).coerceIn(0.01f, 1f),

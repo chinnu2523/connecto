@@ -161,7 +161,12 @@ object StoreNotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
         )
 
-        val appName = if (packageName.contains("connecto")) "Connecto" else packageName
+        val appName = when {
+            packageName == "com.connecto.store" || packageName == context.packageName -> "Our Store"
+            packageName.contains("pdfstudio", ignoreCase = true) -> "PDF Studio"
+            packageName.contains("connecto", ignoreCase = true) -> "Connecto"
+            else -> packageName
+        }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
             .setContentTitle("$appName Update Ready")

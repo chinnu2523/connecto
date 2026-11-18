@@ -10,6 +10,7 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.core.content.FileProvider
+import com.connecto.store.notifications.StoreNotificationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -279,18 +280,8 @@ object ApkInstaller {
         val targetPackage = packageName ?: archiveInfo.packageName
         Log.i(TAG, "Pre-flight verified valid APK: package=${archiveInfo.packageName}, versionCode=${archiveInfo.versionCode}, target=$targetPackage")
 
-        // Priority 1: Self-Update of Our Store MUST ALWAYS use the Foreground System PackageInstaller Intent!
-        // Android prevents any running app from silently replacing itself via PackageInstaller session,
-        // and background activity prompts are strictly blocked on Android 14+ (BAL restrictions).
-        val isSelfUpdate = targetPackage == context.packageName
-        if (isSelfUpdate) {
-            Log.i(TAG, "Self-update of Our Store detected: launching system package installer intent directly from foreground")
-            return@withContext installViaSystemIntent(context, apkFile)
-        }
-
-        // Priority 2: Direct Play Store-style PackageInstaller Session.
-        // Directly streams and installs/updates packages into Android OS without triggering
-        // third-party OEM antivirus scanners or intermediate verification popups.
+        // Priority 1: Direct Play Store-style PackageInstaller Session.
+        // Works for all apps including self-updates of Our Store (Android generates STATUS_PENDING_USER_ACTION).
         if (targetPackage.isNotBlank()) {
             val sessionSuccess = installViaPackageInstaller(context, apkFile, targetPackage)
             if (sessionSuccess) {
@@ -299,7 +290,7 @@ object ApkInstaller {
             }
         }
 
-        // Priority 3: Fallback system package installer intent
+        // Priority 2: Fallback system package installer intent
         Log.i(TAG, "PackageInstaller session unavailable, falling back to system intent for $targetPackage")
         return@withContext installViaSystemIntent(context, apkFile)
     }
@@ -308,6 +299,7 @@ object ApkInstaller {
         var openSession: PackageInstaller.Session? = null
         return try {
             val packageInstaller = context.packageManager.packageInstaller
+            val isSelfUpdate = packageName == context.packageName
             val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
                 setAppPackageName(packageName)
                 setSize(apkFile.length())
@@ -316,9 +308,10 @@ object ApkInstaller {
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     // Direct Play Store-like installation: require user action ONLY if Our Store is not yet installer-of-record
+                    // Note: Self-updates of the installer app itself MUST require user action per Android OS security policy
                     val isAlreadyInstalled = getInstalledVersionCode(context, packageName) >= 0
                     val isInstaller = isInstallerOfRecord(context, packageName)
-                    if (isAlreadyInstalled && isInstaller) {
+                    if (!isSelfUpdate && isAlreadyInstalled && isInstaller) {
                         setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
                     } else {
                         setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_REQUIRED)
@@ -375,8 +368,7 @@ object ApkInstaller {
                 setDataAndType(uri, "application/vnd.android.package-archive")
                 clipData = android.content.ClipData.newRawUri("package", uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
             }
 
@@ -398,6 +390,18 @@ object ApkInstaller {
                 } catch (_: Exception) {}
             }
 
+            // Also grant read permission to whichever package handles package-archive intents
+            try {
+                val resolvedActivities = context.packageManager.queryIntentActivities(intent, 0)
+                for (info in resolvedActivities) {
+                    val pkg = info.activityInfo?.packageName ?: continue
+                    context.grantUriPermission(pkg, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            } catch (_: Exception) {}
+
+            // Post notification fallback so user has a fresh tap gesture token if BAL restricts direct launch
+            StoreNotificationHelper.notifyInstallPending(context, context.packageName, intent)
+
             context.startActivity(intent)
             Log.i(TAG, "Successfully started system installer activity for ${apkFile.name}")
             true
@@ -409,9 +413,10 @@ object ApkInstaller {
                     setDataAndType(fallbackUri, "application/vnd.android.package-archive")
                     clipData = android.content.ClipData.newRawUri("package", fallbackUri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
                 }
+                StoreNotificationHelper.notifyInstallPending(context, context.packageName, fallbackIntent)
                 context.startActivity(fallbackIntent)
                 true
             } catch (fallbackErr: Exception) {
