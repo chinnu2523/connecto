@@ -46,15 +46,15 @@ val BorderColor = StitchRim
 
 val CyberCyan = StitchCyan
 val NeonPurple = StitchAccent
-val NeonMagenta = Color(0xFF818CF8)
+val NeonMagenta = Color(0xFFE4E4E7)
 val OnlineGreen = StitchEmerald
 
 val TextPrimaryColor = DarkConnectoColors.textPrimary
 val TextSecondaryColor = DarkConnectoColors.textSecondary
 val TextDisabledColor = DarkConnectoColors.textDisabled
 
-// Accent Gradients (Stitch Obsidian Electric Indigo & Parchment Slate)
-val DarkAccentGradientColors = listOf(Color(0xFF6366F1), Color(0xFF4F46E5))
+// Accent Gradients (Pure OLED Monochrome & Parchment Slate)
+val DarkAccentGradientColors = listOf(Color(0xFFFFFFFF), Color(0xFFA1A1AA))
 val LightAccentGradientColors = listOf(Color(0xFF0F172A), Color(0xFF334155))
 
 val AccentGradientColors = DarkAccentGradientColors
@@ -81,11 +81,10 @@ val FramerMotionSpring = androidx.compose.animation.core.spring<Float>(
 @Composable
 fun getDynamicAccentGradientColors(): List<Color> {
     val primaryColor = com.example.connecto.ui.designsystem.ConnectoTheme.colors.primary
-    val infoColor = com.example.connecto.ui.designsystem.ConnectoTheme.colors.info
     return if (isAppInLightTheme()) {
         listOf(primaryColor, Color(0xFF292524))
     } else {
-        listOf(primaryColor, infoColor)
+        listOf(primaryColor, Color(0xFFA1A1AA))
     }
 }
 
@@ -97,5 +96,5 @@ fun isAppInLightTheme(): Boolean {
 
 @Composable
 fun getContentColorOnAccentGradient(): Color {
-    return com.example.connecto.ui.designsystem.ConnectoTheme.colors.onPrimary
+    return if (isAppInLightTheme()) Color.White else Color(0xFF09090B)
 }

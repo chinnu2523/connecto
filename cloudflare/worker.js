@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.4.3",
-        version_name: "v5.4.3",
-        version_code: 157,
-        build: 157,
-        sha256: "4895bb909c9572941a7c142293e8265669d4236ffec45fa2cfe5959cf8542671",
+        version: "5.4.4",
+        version_name: "v5.4.4",
+        version_code: 158,
+        build: 158,
+        sha256: "3843765fada1cd1c6a76665717a88af7a081b9b064de5a22efc3557c0ed87469",
         filename: "connecto-fun.apk",
-        size_bytes: 38066174,
+        size_bytes: 38066335,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -595,18 +595,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.3/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.2/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.4.4/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.4.3/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.4.3-b157-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.4.4-b158-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.4.3");
-          res.headers.set("X-Connecto-Build", "157");
+          res.headers.set("X-Connecto-Version", "v5.4.4");
+          res.headers.set("X-Connecto-Build", "158");
           return res;
         }
 
@@ -642,8 +642,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.4.3");
-              downloadHeaders.set("X-Connecto-Build", "157");
+              downloadHeaders.set("X-Connecto-Version", "v5.4.4");
+              downloadHeaders.set("X-Connecto-Build", "158");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -658,7 +658,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.4.3/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.4.4/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2028,14 +2028,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.4.3",
-        version_code: 157,
-        size_bytes: 38066174,
+        version_name: "5.4.4",
+        version_code: 158,
+        size_bytes: 38066335,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
-        accent_color: "#6366F1",
+        accent_color: "#FAFAFA",
         changelog: [
+          "Pure OLED Black Theme Restoration: Eliminated purple gradient color cast across black theme by restoring 0-nit pitch black canvas (#000000), crisp monochrome platinum white/silver accents, and suppressing background ambient indigo orbs",
           "Stitch Obsidian Precision UI Overhaul: Applied official Stitch Obsidian Precision design system tokens (#0A0B0E canvas, #181B24 cards, #6366F1 electric indigo accent, #10B981 emerald presence, and 1px hairline borders rgba(255,255,255,0.06))",
           "120fps Zero-Jank Rendering: Eliminated per-item continuous spring animations (incomingScale, incomingAlpha, incomingTranslateY) and hardware shadow tessellation from Direct Message and Channel timeline rows for instantaneous, buttery smooth 120fps scrolling",
           "LazyList Recomposition Optimization: Replaced pixel-level layoutInfo inspection in the scroll-to-bottom FAB with stateful canScrollForward snapshots and removed idle breathingPulse infinite transitions",
@@ -7285,13 +7286,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.4.3",
-      version_name: "v5.4.3",
-      version_code: 157,
-      build: 157,
-      sha256: "4895bb909c9572941a7c142293e8265669d4236ffec45fa2cfe5959cf8542671",
+      version: "5.4.4",
+      version_name: "v5.4.4",
+      version_code: 158,
+      build: 158,
+      sha256: "3843765fada1cd1c6a76665717a88af7a081b9b064de5a22efc3557c0ed87469",
       filename: "connecto-fun.apk",
-      size_bytes: 38066174,
+      size_bytes: 38066335,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",

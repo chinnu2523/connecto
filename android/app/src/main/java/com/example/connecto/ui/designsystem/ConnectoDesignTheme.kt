@@ -45,7 +45,7 @@ object ConnectoTheme {
 
     val isPureBlack: Boolean
         @Composable
-        get() = LocalConnectoColors.current.background == Color(0xFF000000)
+        get() = LocalConnectoColors.current.background == Color(0xFF000000) || (!LocalConnectoColors.current.isGlass && LocalConnectoColors.current.isDark)
 
     val glassAlpha: Float
         @Composable

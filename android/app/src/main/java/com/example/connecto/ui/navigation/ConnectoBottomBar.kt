@@ -138,7 +138,7 @@ fun ConnectoBottomBar(
         if (rawUserAvatar == "null" || rawUserAvatar.isNullOrBlank()) null else rawUserAvatar
     }
 
-    val isPureBlack = colors.background == Color(0xFF000000)
+    val isPureBlack = colors.background == Color(0xFF000000) || (!colors.isGlass && colors.isDark)
     val isLiquidGlass = colors.isLiquidGlass
     val glassAlpha = colors.glassAlpha
 

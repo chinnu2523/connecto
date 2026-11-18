@@ -332,7 +332,7 @@ fun Modifier.glassCanvasMesh(
 ): Modifier {
     if (!enabled) return this
     val colors = ConnectoTheme.colors
-    if (colors.background == Color(0xFF000000)) {
+    if (colors.background == Color(0xFF000000) || (!colors.isGlass && colors.isDark)) {
         return this.background(Color(0xFF000000))
     }
 
@@ -670,9 +670,9 @@ fun Modifier.glassBubble(
                         colors = listOf(
                             colors.primary.copy(alpha = (0.80f + alpha * 0.15f).coerceIn(0.75f, 0.95f)),
                             Color(
-                                red = (colors.primary.red * 0.82f).coerceIn(0f, 1f),
-                                green = (colors.primary.green * 0.82f).coerceIn(0f, 1f),
-                                blue = (colors.primary.blue * 0.92f).coerceIn(0f, 1f),
+                                red = (colors.primary.red * 0.85f).coerceIn(0f, 1f),
+                                green = (colors.primary.green * 0.85f).coerceIn(0f, 1f),
+                                blue = (colors.primary.blue * 0.85f).coerceIn(0f, 1f),
                                 alpha = (0.70f + alpha * 0.15f).coerceIn(0.65f, 0.90f)
                             )
                         ),
@@ -689,9 +689,9 @@ fun Modifier.glassBubble(
                 } else {
                     Brush.verticalGradient(
                         colors = listOf(
-                            if (isDark) Color(0xFF1E2235).copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f))
+                            if (isDark) Color(0xFF18181B).copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f))
                             else colors.surfaceVariant.copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f)),
-                            if (isDark) Color(0xFF141724).copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f))
+                            if (isDark) Color(0xFF101012).copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f))
                             else colors.surfaceVariant.copy(alpha = (0.60f + alpha * 0.20f).coerceIn(0.50f, 0.85f))
                         )
                     )
