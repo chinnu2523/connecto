@@ -269,6 +269,51 @@ object VoiceCallManager {
     )
     val editedMessages: SharedFlow<MessageEditEvent> = _editedMessages.asSharedFlow()
 
+    // Real-time emoji reaction toggle events
+    data class MessageReactionEvent(
+        val messageId: String,
+        val emoji: String,
+        val userId: String,
+        val channelId: String? = null
+    )
+    private val _reactionEvents = MutableSharedFlow<MessageReactionEvent>(
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val reactionEvents: SharedFlow<MessageReactionEvent> = _reactionEvents.asSharedFlow()
+
+    fun sendReactionToggled(
+        messageId: String,
+        emoji: String,
+        userId: String,
+        channelId: String? = null,
+        recipientUsername: String? = null
+    ) {
+        try {
+            val payload = JSONObject().apply {
+                put("type", "MESSAGE_REACTION_TOGGLED")
+                put("action", "message:react")
+                put("message_id", messageId)
+                put("messageId", messageId)
+                put("emoji", emoji)
+                put("user_id", userId)
+                put("userId", userId)
+                if (!channelId.isNullOrBlank()) {
+                    put("channel_id", channelId)
+                    put("channel", channelId)
+                }
+                if (!recipientUsername.isNullOrBlank()) {
+                    val targetU = recipientUsername.trim().removePrefix("@")
+                    put("recipient", targetU)
+                    put("target", targetU)
+                }
+            }
+            sendWsMessage(payload)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error sending reaction toggled WS event: ${e.message}")
+        }
+    }
+
     // Typing indicator events: Pair(username, isTyping)
     data class TypingEvent(val username: String, val displayName: String, val channelId: String, val isTyping: Boolean)
     private val _typingEvents = MutableSharedFlow<TypingEvent>(
@@ -1554,6 +1599,17 @@ object VoiceCallManager {
                         Log.d(TAG, "Real-time message edited event received via WebSocket: $msgId -> $newContent")
                     }
                 }
+                "MESSAGE_REACTION_TOGGLED", "message_reaction_toggled", "reaction_toggled", "message_reaction", "react_message" -> {
+                    val data = json.optJSONObject("data") ?: json.optJSONObject("payload") ?: json
+                    val msgId = data.optString("message_id").ifEmpty { data.optString("messageId").ifEmpty { json.optString("message_id").ifEmpty { json.optString("messageId") } } }
+                    val emoji = data.optString("emoji").ifEmpty { json.optString("emoji") }
+                    val userId = data.optString("user_id").ifEmpty { data.optString("userId").ifEmpty { data.optString("username").ifEmpty { json.optString("user_id").ifEmpty { json.optString("userId") } } } }
+                    val channelId = data.optString("channel_id").ifEmpty { json.optString("channel_id") }
+                    if (msgId.isNotBlank() && emoji.isNotBlank() && userId.isNotBlank()) {
+                        _reactionEvents.tryEmit(MessageReactionEvent(msgId, emoji, userId, channelId.ifBlank { null }))
+                        Log.d(TAG, "Real-time message reaction toggled received via WebSocket: $msgId -> $emoji by $userId")
+                    }
+                }
                 "message_created", "new_message", "dm_message", "new_dm_alert", "channel_message", "chat_message", "message" -> {
                     val data = json.optJSONObject("data") ?: json.optJSONObject("message") ?: json.optJSONObject("payload") ?: json
                     val rawChId = json.optString("channel_id").ifEmpty { json.optString("channel").ifEmpty { data.optString("channel_id").ifEmpty { data.optString("channel") } } }
@@ -1604,9 +1660,9 @@ object VoiceCallManager {
 
                     val timerSeconds = if (data.has("timer_seconds")) data.optInt("timer_seconds", 0).let { if (it > 0) it else null } else null
                     val expiresAt = data.optString("expires_at").ifEmpty { null }
-                    val replyToId = if (data.has("reply_to_id") && !data.isNull("reply_to_id")) data.optString("reply_to_id") else null
-                    val replyToContent = if (data.has("reply_to_content") && !data.isNull("reply_to_content")) data.optString("reply_to_content") else null
-                    val replyToAuthor = if (data.has("reply_to_author") && !data.isNull("reply_to_author")) data.optString("reply_to_author") else null
+                    val replyToId = (data.optString("replyToMessageId").ifEmpty { data.optString("replyToId").ifEmpty { data.optString("reply_to_id") } }).ifEmpty { null }
+                    val replyToContent = (data.optString("replyToText").ifEmpty { data.optString("replyToContent").ifEmpty { data.optString("reply_to_content") } }).ifEmpty { null }
+                    val replyToAuthor = (data.optString("replyToSenderName").ifEmpty { data.optString("replyToAuthor").ifEmpty { data.optString("reply_to_author") } }).ifEmpty { null }
 
                     if (chId.isNotBlank() && content.isNotBlank()) {
                         val msgDto = MessageDto(

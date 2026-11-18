@@ -2374,12 +2374,18 @@ object ConnectoApiClient {
                 }
                 if (!replyToId.isNullOrBlank()) {
                     put("reply_to_id", replyToId)
+                    put("replyToId", replyToId)
+                    put("replyToMessageId", replyToId)
                 }
                 if (!replyToContent.isNullOrBlank()) {
                     put("reply_to_content", replyToContent)
+                    put("replyToContent", replyToContent)
+                    put("replyToText", replyToContent)
                 }
                 if (!replyToAuthor.isNullOrBlank()) {
                     put("reply_to_author", replyToAuthor)
+                    put("replyToAuthor", replyToAuthor)
+                    put("replyToSenderName", replyToAuthor)
                 }
             }
             var response = executeRequest(
@@ -2402,12 +2408,18 @@ object ConnectoApiClient {
                     }
                     if (!replyToId.isNullOrBlank()) {
                         put("reply_to_id", replyToId)
+                        put("replyToId", replyToId)
+                        put("replyToMessageId", replyToId)
                     }
                     if (!replyToContent.isNullOrBlank()) {
                         put("reply_to_content", replyToContent)
+                        put("replyToContent", replyToContent)
+                        put("replyToText", replyToContent)
                     }
                     if (!replyToAuthor.isNullOrBlank()) {
                         put("reply_to_author", replyToAuthor)
+                        put("replyToAuthor", replyToAuthor)
+                        put("replyToSenderName", replyToAuthor)
                     }
                 }
                 response = executeRequest(

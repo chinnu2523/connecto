@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.6.1",
-        version_name: "v5.6.1",
-        version_code: 175,
-        build: 175,
-        sha256: "3cb683fc382b54f09bb5b91394ee865058de7834fbc0c3b5403e23b869ec415e",
+        version: "5.6.2",
+        version_name: "v5.6.2",
+        version_code: 176,
+        build: 176,
+        sha256: "763985998ffd0bd3e51571b0f98976d6011a9e67acbaad9c6c191ab2028b4acc",
         filename: "connecto-fun.apk",
-        size_bytes: 38061634,
+        size_bytes: 38079779,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -218,6 +218,7 @@ Sitemap: https://connecto.fun/sitemap.xml
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Swipe-to-Reply, Quoted Replies & Quick Emoji Reactions HUD (v5.6.2): Direct Message and Workspace Channel bubbles now feature smooth rubber-band swipe-to-reply (up to 60px damping, 40px threshold haptic trigger and spring snap-back) with fading/scaling reply icon (↩). Introduced sleek 48px composer reply and edit preview banners with 3px vertical accent lines. Quoted message containers rendered in-bubble with scroll-to-original on tap and 600ms pulse animation. Upgraded long-press message selection to floating HUD with 46px top pill housing 6 animated pop-in quick reactions (❤️, 🔥, 😂, 👍, 😮, 😢) and '+' full emoji sheet button, bottom context action menu (Reply, Copy, Edit, Unsend), 24px reaction badges with user counts and tinted accent highlight for user's own reactions, and real-time MESSAGE_REACTION_TOGGLED multi-client WebSocket synchronization.",
           "WebRTC Audio Engine, TURN Server Fallback, AudioManager Routing & Dynamic Voice Isolation (v5.6.1): Implemented thread-safe remote ICE candidate queueing to buffer incoming candidates until setRemoteDescription completes, eliminating silent call dropouts. Added authenticated TURN servers (UDP, TCP, TLS) with iceTransportsType = ALL for carrier NAT traversal across mobile 4G/5G networks. Guaranteed local AudioTrack creation, enablement, and attachment prior to Offer/Answer SDP generation. Request audio focus with USAGE_VOICE_COMMUNICATION & CONTENT_TYPE_SPEECH and AudioManager.MODE_IN_COMMUNICATION before starting or answering calls, cleanly resetting to MODE_NORMAL and releasing audio focus on call termination. Built JavaAudioDeviceModule with hardware AEC and NS enabled. Implemented dynamic setVoiceIsolationEnabled live toggling attaching native NoiseSuppressor and AcousticEchoCanceler to active audioSessionId and simultaneously rebuilding local AudioSource constraints and swapping tracks on active RtpSenders without dropping PeerConnection.",
           "Real-Time DM Header Presence & Signature Read Receipts (v5.6.0): Subscribed Direct Chat screen header to centralized WebSocket/Presence StateFlow (isUserOnline evaluated consistently across DM list and chat header, eliminating presence inversion bug where online contacts appeared offline). Replaced generic tick checkmarks with Connecto signature delivery receipts: 8dp pulsing ring for SENDING, 6dp solid dot for SENT, glowing double dots for DELIVERED, and recipient's mini circular avatar underneath the latest read message for SEEN.",
           "Fixed Unpin Gesture Delay (v5.5.9): Resolved stale pointerInput closures with rememberUpdatedState and live state evaluation.",
@@ -599,18 +600,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.6.1/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.6.0/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.6.2/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.6.1/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.6.1-b175-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.6.2-b176-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.6.1");
-          res.headers.set("X-Connecto-Build", "175");
+          res.headers.set("X-Connecto-Version", "v5.6.2");
+          res.headers.set("X-Connecto-Build", "176");
           return res;
         }
 
@@ -646,8 +647,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.6.1");
-              downloadHeaders.set("X-Connecto-Build", "175");
+              downloadHeaders.set("X-Connecto-Version", "v5.6.2");
+              downloadHeaders.set("X-Connecto-Build", "176");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2033,14 +2034,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.6.1",
-        version_code: 175,
-        size_bytes: 38061634,
+        version_name: "5.6.2",
+        version_code: 176,
+        size_bytes: 38079779,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Swipe-to-Reply, Quoted Replies & Quick Emoji Reactions HUD (v5.6.2): Direct Message and Workspace Channel bubbles now feature smooth rubber-band swipe-to-reply (up to 60px damping, 40px threshold haptic trigger and spring snap-back) with fading/scaling reply icon (↩). Introduced sleek 48px composer reply and edit preview banners with 3px vertical accent lines. Quoted message containers rendered in-bubble with scroll-to-original on tap and 600ms pulse animation. Upgraded long-press message selection to floating HUD with 46px top pill housing 6 animated pop-in quick reactions (❤️, 🔥, 😂, 👍, 😮, 😢) and '+' full emoji sheet button, bottom context action menu (Reply, Copy, Edit, Unsend), 24px reaction badges with user counts and tinted accent highlight for user's own reactions, and real-time MESSAGE_REACTION_TOGGLED multi-client WebSocket synchronization.",
           "WebRTC Audio Engine, TURN Server Fallback, AudioManager Routing & Dynamic Voice Isolation (v5.6.1): Implemented thread-safe remote ICE candidate queueing to buffer incoming candidates until setRemoteDescription completes, eliminating silent call dropouts. Added authenticated TURN servers (UDP, TCP, TLS) with iceTransportsType = ALL for carrier NAT traversal across mobile 4G/5G networks. Guaranteed local AudioTrack creation, enablement, and attachment prior to Offer/Answer SDP generation. Request audio focus with USAGE_VOICE_COMMUNICATION & CONTENT_TYPE_SPEECH and AudioManager.MODE_IN_COMMUNICATION before starting or answering calls, cleanly resetting to MODE_NORMAL and releasing audio focus on call termination. Built JavaAudioDeviceModule with hardware AEC and NS enabled. Implemented dynamic setVoiceIsolationEnabled live toggling attaching native NoiseSuppressor and AcousticEchoCanceler to active audioSessionId and simultaneously rebuilding local AudioSource constraints and swapping tracks on active RtpSenders without dropping PeerConnection.",
           "Real-Time DM Header Presence & Signature Read Receipts (v5.6.0): Subscribed Direct Chat screen header to centralized WebSocket/Presence StateFlow (isUserOnline evaluated consistently across DM list and chat header, eliminating presence inversion bug where online contacts appeared offline). Replaced generic tick checkmarks with Connecto signature delivery receipts: 8dp pulsing ring for SENDING, 6dp solid dot for SENT, glowing double dots for DELIVERED, and recipient's mini circular avatar underneath the latest read message for SEEN.",
           "Fixed Conversation Unpin Gesture Delay & Stale State (v5.5.9): Resolved root cause where swiping right to unpin a conversation failed to register immediately due to stale lambda closure capture in pointerInput without rememberUpdatedState. Added rememberUpdatedState for all swipe actions, keyed pointerInput on both chatId and isPinned, evaluated live state directly in onTogglePin, and added pre-reorder offset reset to eliminate placement glitches.",
@@ -7324,13 +7326,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.6.1",
-      version_name: "v5.6.1",
-      version_code: 175,
-      build: 175,
-      sha256: "3cb683fc382b54f09bb5b91394ee865058de7834fbc0c3b5403e23b869ec415e",
+      version: "5.6.2",
+      version_name: "v5.6.2",
+      version_code: 176,
+      build: 176,
+      sha256: "763985998ffd0bd3e51571b0f98976d6011a9e67acbaad9c6c191ab2028b4acc",
       filename: "connecto-fun.apk",
-      size_bytes: 38061634,
+      size_bytes: 38079779,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7344,10 +7346,27 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v5.6.1",
+          version: "v5.6.2",
           date: "Nov 18, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v5.6.2: Swipe-to-Reply, Quoted Replies & Quick Emoji Reactions HUD",
+          summary: "Upgraded Direct Message and Channel chat bubbles with rubber-band swipe-to-reply (60px max damping, 40px haptic trigger, spring snap-back), 48px composer preview banners with 3px accent line, in-bubble quoted replies with tap scroll-to-original and 600ms pulse animation, floating emoji reaction HUD with 6 quick reactions + full sheet, compact reaction badges with user counts, and real-time MESSAGE_REACTION_TOGGLED WebSocket sync.",
+          highlights: [
+            "Swipe-to-Reply Gesture & Haptics: Horizontal pan recognizer on incoming and outgoing bubbles with rubber-band damping up to 60px, scaling reply icon (↩), 40px haptic trigger, and spring snap-back.",
+            "Reply Composer & Edit Preview: Sleek 48px banner above message input with 3px vertical accent line, bold sender name, and truncated preview.",
+            "In-Bubble Quoted Messages: Clean quoted reply cards with 3px left border, tap-to-scroll to original message, and 600ms pulse highlight.",
+            "Floating Reaction HUD: Replaced full selection bar with 46px top pill containing 6 animated pop-in emojis + full emoji sheet button, and bottom context action menu (Reply, Copy, Edit, Unsend).",
+            "Reaction Badges & Real-Time Sync: Compact 24px badges with count and user-highlight, synchronizing instantly across clients via MESSAGE_REACTION_TOGGLED.",
+            "Android Native App v5.6.2 (Build 176 • 36.3 MB): SHA-256 763985998ffd0bd3e51571b0f98976d6011a9e67acbaad9c6c191ab2028b4acc."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
+          version: "v5.6.1",
+          date: "Nov 18, 2026",
+          category: "feature",
+          tag: "v5.6.1",
           title: "Connecto v5.6.1: WebRTC Audio Engine, TURN Fallback, AudioManager Routing & Dynamic Voice Isolation",
           summary: "Overhauled the WebRTC voice engine with thread-safe remote ICE candidate queueing, full STUN + authenticated TURN fallback (UDP/TCP/TLS) across carrier NATs, guaranteed local audio track attachment before Offer/Answer SDP generation, AudioManager communication mode and focus management, and dynamic live Voice Isolation track rebuilding with hardware NoiseSuppressor.",
           highlights: [
@@ -10418,6 +10437,42 @@ export class ConnectoRealtimeRoom {
           return;
         }
 
+        // 5b. Real-Time Emoji Reaction Toggle (<5ms Broadcast)
+        if (data.type === "MESSAGE_REACTION_TOGGLED" || data.type === "message_reaction_toggled" || data.action === "message:react" || data.action === "MESSAGE_REACTION_TOGGLED") {
+          const msgId = data.message_id || data.messageId || "";
+          const emoji = data.emoji || "";
+          const userId = data.user_id || data.userId || meta.username;
+          const targetCh = (data.channel_id || data.channelId || data.channel || "").toLowerCase().trim();
+          let targetUser = (data.recipient || data.target || "").toLowerCase().trim().replace(/^@/, "");
+
+          const reactionPayload = {
+            type: "MESSAGE_REACTION_TOGGLED",
+            action: "message:react",
+            message_id: msgId,
+            messageId: msgId,
+            emoji: emoji,
+            user_id: userId,
+            userId: userId,
+            username: meta.username,
+            channel_id: targetCh,
+            channel: targetCh
+          };
+
+          if (targetCh) {
+            this.broadcastToChannel(targetCh, reactionPayload, server);
+            if (!targetUser && (targetCh.startsWith("dm-") || targetCh.startsWith("dm_"))) {
+              targetUser = resolveDmRecipient(targetCh, meta.username, null);
+            }
+          }
+          if (targetUser) {
+            this.sendToUser(targetUser, reactionPayload);
+            const myUser = meta.username.toLowerCase();
+            this.broadcastToChannel(`dm-${targetUser}-${myUser}`, reactionPayload, server);
+            this.broadcastToChannel(`dm-${myUser}-${targetUser}`, reactionPayload, server);
+          }
+          return;
+        }
+
         // 6. Real-Time Chat Messages (<5ms Latency Mesh)
         if (data.type === "message" || data.type === "chat_message" || data.content || data.text) {
           const rawContent = data.content || data.text || "";
@@ -10436,6 +10491,10 @@ export class ConnectoRealtimeRoom {
 
           const msgId = "msg_rt_" + Math.random().toString(36).substring(2, 10);
           const nowIso = new Date().toISOString();
+
+          const rId = data.replyToId || data.replyToMessageId || data.reply_to_id || null;
+          const rAuthor = data.replyToAuthor || data.replyToSenderName || data.reply_to_author || null;
+          const rContent = data.replyToContent || data.replyToText || data.reply_to_content || null;
 
           const msgObj = {
             id: msgId,
@@ -10460,7 +10519,16 @@ export class ConnectoRealtimeRoom {
             created_at: nowIso,
             timestamp: nowIso,
             type: "text",
-            reactions: {}
+            reactions: {},
+            replyToId: rId,
+            replyToMessageId: rId,
+            reply_to_id: rId,
+            replyToAuthor: rAuthor,
+            replyToSenderName: rAuthor,
+            reply_to_author: rAuthor,
+            replyToContent: rContent,
+            replyToText: rContent,
+            reply_to_content: rContent
           };
 
           // Asynchronously persist to D1 without delaying WebSocket delivery

@@ -21,8 +21,10 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -36,6 +38,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -138,6 +141,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -424,8 +431,34 @@ fun ChannelsWorkspaceScreen(
         }
     }
 
-    // Local reactions storage: messageId -> list of emoji strings
-    val channelReactions = remember { mutableStateMapOf<String, List<String>>() }
+    // Local reactions storage: messageId -> map of emoji to list of userIds
+    val channelReactions = remember { mutableStateMapOf<String, Map<String, List<String>>>() }
+    var highlightedMessageId by remember { mutableStateOf<String?>(null) }
+    val messageInputFocusRequester = remember { FocusRequester() }
+    var showFullEmojiDialogForMessage by remember { mutableStateOf<MessageDto?>(null) }
+
+    // Real-Time Reaction Observer via WebSocket
+    LaunchedEffect(Unit) {
+        VoiceCallManager.reactionEvents.collect { event ->
+            val msgId = event.messageId
+            val emoji = event.emoji
+            val uId = event.userId
+            val prevMap = channelReactions[msgId] ?: emptyMap()
+            val currentMap = prevMap.toMutableMap()
+            val users = (currentMap[emoji] ?: emptyList()).toMutableList()
+            if (users.any { it.equals(uId, ignoreCase = true) }) {
+                users.removeAll { it.equals(uId, ignoreCase = true) }
+            } else {
+                users.add(uId)
+            }
+            if (users.isEmpty()) {
+                currentMap.remove(emoji)
+            } else {
+                currentMap[emoji] = users
+            }
+            channelReactions[msgId] = currentMap
+        }
+    }
 
     val initialScrollIndex = remember(cleanSelectedChannel) {
         if (initialCached.isNotEmpty()) initialCached.size else 0
@@ -1825,14 +1858,16 @@ fun ChannelsWorkspaceScreen(
                                     val isMe = msg.authorId.equals(currentUsername, ignoreCase = true) ||
                                                msg.authorName.equals(currentUsername, ignoreCase = true)
 
-                                    val msgReactions = channelReactions[msg.id] ?: emptyList()
+                                    val msgReactionsMap = channelReactions[msg.id] ?: emptyMap()
 
                                     var itemSwipeOffset by remember(msg.id) { mutableFloatStateOf(0f) }
+                                    var hasTriggeredHaptic by remember(msg.id) { mutableStateOf(false) }
                                     val animatedItemSwipeOffset by animateFloatAsState(
                                         targetValue = itemSwipeOffset,
                                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioLowBouncy),
                                         label = "msgSwipe"
                                     )
+                                    val clipboardManager = LocalClipboardManager.current
 
                                     Box(
                                         modifier = Modifier
@@ -1840,45 +1875,61 @@ fun ChannelsWorkspaceScreen(
                                             .pointerInput(msg.id) {
                                                 detectHorizontalDragGestures(
                                                     onDragEnd = {
-                                                        if (itemSwipeOffset >= 60f) {
-                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        if (kotlin.math.abs(itemSwipeOffset) >= 40f) {
                                                             replyingTo = msg
+                                                            try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
                                                         }
                                                         itemSwipeOffset = 0f
+                                                        hasTriggeredHaptic = false
                                                     },
                                                     onDragCancel = {
                                                         itemSwipeOffset = 0f
+                                                        hasTriggeredHaptic = false
                                                     },
                                                     onHorizontalDrag = { change, dragAmount ->
-                                                        if (dragAmount > 0 || itemSwipeOffset > 0f) {
-                                                            itemSwipeOffset = (itemSwipeOffset + dragAmount).coerceIn(0f, 110f)
-                                                            change.consume()
+                                                        if (isMe) {
+                                                            itemSwipeOffset = (itemSwipeOffset + dragAmount * 0.5f).coerceIn(-60f, 60f)
+                                                        } else {
+                                                            if (dragAmount > 0 || itemSwipeOffset > 0f) {
+                                                                itemSwipeOffset = (itemSwipeOffset + dragAmount * 0.5f).coerceIn(0f, 60f)
+                                                            }
+                                                        }
+                                                        change.consume()
+                                                        val dist = kotlin.math.abs(itemSwipeOffset)
+                                                        if (dist >= 40f && !hasTriggeredHaptic) {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            hasTriggeredHaptic = true
+                                                        } else if (dist < 40f) {
+                                                            hasTriggeredHaptic = false
                                                         }
                                                     }
                                                 )
                                             }
                                     ) {
-                                        if (animatedItemSwipeOffset > 5f) {
-                                            val swipeProgress = (animatedItemSwipeOffset / 60f).coerceIn(0f, 1f)
+                                        val dragDist = kotlin.math.abs(animatedItemSwipeOffset)
+                                        if (dragDist > 3f) {
+                                            val isSwipeRight = animatedItemSwipeOffset > 0
+                                            val progress = (dragDist / 40f).coerceIn(0f, 1f)
+                                            val isActivated = dragDist >= 40f
                                             Box(
                                                 modifier = Modifier
-                                                    .align(Alignment.CenterStart)
-                                                    .padding(start = 8.dp)
-                                                    .size(34.dp)
+                                                    .align(if (isSwipeRight) Alignment.CenterStart else Alignment.CenterEnd)
+                                                    .padding(if (isSwipeRight) PaddingValues(start = 8.dp) else PaddingValues(end = 8.dp))
+                                                    .size(36.dp)
                                                     .graphicsLayer {
-                                                        alpha = swipeProgress
-                                                        scaleX = 0.6f + 0.4f * swipeProgress
-                                                        scaleY = 0.6f + 0.4f * swipeProgress
+                                                        alpha = progress
+                                                        scaleX = 0.4f + 0.6f * progress
+                                                        scaleY = 0.4f + 0.6f * progress
                                                     }
                                                     .clip(CircleShape)
-                                                    .background(colors.primary.copy(alpha = 0.22f))
-                                                    .border(1.dp, colors.primary.copy(alpha = 0.4f), CircleShape),
+                                                    .background(if (isActivated) colors.primary else colors.surfaceVariant)
+                                                    .border(1.dp, if (isActivated) colors.primary else colors.borderSubtle, CircleShape),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(
                                                     imageVector = Icons.AutoMirrored.Filled.Reply,
                                                     contentDescription = "Reply",
-                                                    tint = colors.primary,
+                                                    tint = if (isActivated) Color.White else colors.primary,
                                                     modifier = Modifier.size(18.dp)
                                                 )
                                             }
@@ -1893,18 +1944,90 @@ fun ChannelsWorkspaceScreen(
                                                 message = msg,
                                                 isMe = isMe,
                                                 gradientColors = gradientColors,
-                                                reactions = msgReactions,
+                                                reactionsMap = msgReactionsMap,
                                                 onToggleReaction = { emoji ->
-                                                    val currentList = msgReactions.toMutableList()
-                                                    if (currentList.contains(emoji)) {
-                                                        currentList.remove(emoji)
-                                                    } else {
-                                                        currentList.add(emoji)
+                                                    val myUid = (ConnectoApiClient.currentUserId ?: currentUsername).trim().lowercase()
+                                                    val myUname = currentUsername.trim().lowercase()
+                                                    val curMap = (channelReactions[msg.id] ?: emptyMap()).toMutableMap()
+                                                    val uList = (curMap[emoji] ?: emptyList()).toMutableList()
+                                                    val hadReacted = uList.any {
+                                                        val cu = it.trim().lowercase()
+                                                        cu == myUname || (myUid.isNotBlank() && cu == myUid)
                                                     }
-                                                    channelReactions[msg.id] = currentList
+                                                    if (hadReacted) {
+                                                        uList.removeAll {
+                                                            val cu = it.trim().lowercase()
+                                                            cu == myUname || (myUid.isNotBlank() && cu == myUid)
+                                                        }
+                                                    } else {
+                                                        uList.add(if (myUid.isNotBlank()) myUid else myUname)
+                                                    }
+                                                    if (uList.isEmpty()) {
+                                                        curMap.remove(emoji)
+                                                    } else {
+                                                        curMap[emoji] = uList
+                                                    }
+                                                    channelReactions[msg.id] = curMap
+                                                    selectedMessageForAction = null
+
+                                                    val cleanCh = cleanSelectedChannel
+                                                    VoiceCallManager.sendReactionToggled(
+                                                        messageId = msg.id,
+                                                        emoji = emoji,
+                                                        userId = if (myUid.isNotBlank()) myUid else myUname,
+                                                        channelId = cleanCh
+                                                    )
+                                                    coroutineScope.launch {
+                                                        try {
+                                                            ConnectoApiClient.reactToMessage(
+                                                                messageId = msg.id,
+                                                                emoji = emoji,
+                                                                channelId = cleanCh
+                                                            )
+                                                        } catch (_: Exception) {}
+                                                    }
                                                 },
-                                                onReply = { replyingTo = msg },
                                                 isSelected = selectedMessageForAction?.id == msg.id,
+                                                isHighlighted = msg.id == highlightedMessageId,
+                                                onReply = {
+                                                    replyingTo = msg
+                                                    selectedMessageForAction = null
+                                                    try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
+                                                },
+                                                onCopy = {
+                                                    clipboardManager.setText(AnnotatedString(msg.content))
+                                                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                                                    selectedMessageForAction = null
+                                                },
+                                                onUnsend = {
+                                                    val msgId = msg.id
+                                                    messages.removeAll { it.id == msgId }
+                                                    selectedMessageForAction = null
+                                                    val cleanCh = cleanSelectedChannel
+                                                    coroutineScope.launch {
+                                                        ConnectoApiClient.deleteMessage(msgId, cleanCh)
+                                                    }
+                                                    Toast.makeText(context, "Message deleted", Toast.LENGTH_SHORT).show()
+                                                },
+                                                onQuotedMessageClick = { quotedId ->
+                                                    val targetIdx = displayMessages.indexOfFirst { it.id == quotedId }
+                                                    if (targetIdx >= 0) {
+                                                        coroutineScope.launch {
+                                                            val offset = if (channelSearchQuery.isBlank()) 1 else 0
+                                                            listState.animateScrollToItem(targetIdx + offset)
+                                                        }
+                                                        highlightedMessageId = quotedId
+                                                        coroutineScope.launch {
+                                                            delay(600)
+                                                            if (highlightedMessageId == quotedId) {
+                                                                highlightedMessageId = null
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                onOpenFullEmojiSheet = { targetMsg ->
+                                                    showFullEmojiDialogForMessage = targetMsg
+                                                },
                                                 onMessageClick = {
                                                     if (selectedMessageForAction != null) {
                                                         selectedMessageForAction = if (selectedMessageForAction?.id == msg.id) null else msg
@@ -2153,7 +2276,7 @@ fun ChannelsWorkspaceScreen(
                         }
                     }
 
-                    // Active Reply Preview Banner
+                    // Active Reply Preview Banner (Compact 48px height)
                     AnimatedVisibility(
                         visible = replyingTo != null,
                         enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(tween(180)) + expandVertically(),
@@ -2167,8 +2290,9 @@ fun ChannelsWorkspaceScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(bottom = 6.dp)
-                                    .clip(RoundedCornerShape(16.dp))
+                                    .height(48.dp)
+                                    .padding(bottom = 4.dp)
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(
                                         if (isPrivate) (if (colors.isDark) Color(0xFF1E1B4B) else Color(0xFFEEF2FF))
                                         else if (colors.isGlass) Color(0xD91E293B)
@@ -2178,79 +2302,49 @@ fun ChannelsWorkspaceScreen(
                                     .border(
                                         width = if (isPrivate) 1.5.dp else 1.dp,
                                         color = if (isPrivate) Color(0xFF6366F1)
-                                        else if (colors.isDark) Color(0xFF27272A)
+                                        else if (colors.isDark) Color(0x1FFFFFFF)
                                         else colors.primary.copy(alpha = 0.35f),
-                                        shape = RoundedCornerShape(16.dp)
+                                        shape = RoundedCornerShape(12.dp)
                                     )
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    .padding(horizontal = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (isPrivate) Color(0xFF6366F1).copy(alpha = 0.25f)
-                                            else if (colors.isDark) Color(0xFF27272A)
-                                            else colors.primary.copy(alpha = 0.2f)
-                                        ),
-                                    contentAlignment = Alignment.Center
+                                        .width(3.dp)
+                                        .height(28.dp)
+                                        .clip(RoundedCornerShape(2.dp))
+                                        .background(if (isPrivate) Color(0xFF818CF8) else colors.primary)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.Center
                                 ) {
-                                    Icon(
-                                        imageVector = if (isPrivate) Icons.Default.Lock else Icons.AutoMirrored.Filled.Reply,
-                                        contentDescription = if (isPrivate) "Private DM Reply" else "Replying to",
-                                        tint = if (isPrivate) Color(0xFF818CF8) else if (colors.isDark) Color.White else colors.primary,
-                                        modifier = Modifier.size(16.dp)
+                                    Text(
+                                        text = if (isPrivate) "🔒 Private Reply to @$targetU"
+                                               else "Replying to ${replyTarget.authorName.ifBlank { replyTarget.authorId }}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isPrivate) Color(0xFF818CF8) else if (colors.isDark) Color.White else colors.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            text = if (isPrivate) "🔒 Private Reply to @$targetU"
-                                                   else "Replying to ${replyTarget.authorName.ifBlank { replyTarget.authorId }}",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isPrivate) Color(0xFF818CF8) else if (colors.isDark) Color.White else colors.primary,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.weight(1f, fill = false)
-                                        )
-                                        if (targetFriend != null && !isPrivate) {
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = Color(0xFF6366F1).copy(alpha = 0.15f),
-                                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF6366F1).copy(alpha = 0.3f)),
-                                                modifier = Modifier.clickable {
-                                                    typedMessage = "@$targetU "
-                                                }
-                                            ) {
-                                                Text(
-                                                    text = "🔒 DM @$targetU",
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = Color(0xFF818CF8),
-                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                )
-                                            }
-                                        }
-                                    }
                                     Text(
                                         text = if (isPrivate) "Will be sent directly to @$targetU's private chat"
                                                else replyTarget.content,
-                                        fontSize = 11.5.sp,
+                                        fontSize = 13.sp,
                                         color = if (isPrivate) Color(0xFFA5B4FC) else colors.textSecondary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
-                                IconButton(
-                                    onClick = { replyingTo = null },
-                                    modifier = Modifier.size(26.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .clickable { replyingTo = null },
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
@@ -2366,6 +2460,7 @@ fun ChannelsWorkspaceScreen(
                                     singleLine = true,
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .focusRequester(messageInputFocusRequester)
                                         .onFocusChanged { isInputFocused = it.isFocused },
                                     textStyle = TextStyle(
                                         color = if (colors.isDark) Color.White else Color(0xFF0F172A),
@@ -2443,6 +2538,101 @@ fun ChannelsWorkspaceScreen(
                 )
             }
 
+            // Full Emoji Sheet Dialog for Reaction Pill "+" Button
+            if (showFullEmojiDialogForMessage != null) {
+                val targetMsg = showFullEmojiDialogForMessage!!
+                AlertDialog(
+                    onDismissRequest = { showFullEmojiDialogForMessage = null },
+                    title = {
+                        Text(
+                            text = "React to message",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            val extendedRows = listOf(
+                                listOf("❤️", "🔥", "😂", "👍", "😮", "😢"),
+                                listOf("🎉", "👏", "🚀", "✨", "💯", "🙏"),
+                                listOf("🤩", "😍", "🥳", "🤔", "👀", "💡"),
+                                listOf("🙌", "💪", "⚡", "🤝", "😎", "🫡")
+                            )
+                            extendedRows.forEach { rowEmojis ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    rowEmojis.forEach { em ->
+                                        Box(
+                                            modifier = Modifier
+                                                .size(38.dp)
+                                                .clip(CircleShape)
+                                                .clickable {
+                                                    val msgToReact = targetMsg
+                                                    showFullEmojiDialogForMessage = null
+                                                    val myUid = (ConnectoApiClient.currentUserId ?: currentUsername).trim().lowercase()
+                                                    val myUname = currentUsername.trim().lowercase()
+                                                    val curMap = (channelReactions[msgToReact.id] ?: emptyMap()).toMutableMap()
+                                                    val uList = (curMap[em] ?: emptyList()).toMutableList()
+                                                    val hadReacted = uList.any {
+                                                        val cu = it.trim().lowercase()
+                                                        cu == myUname || (myUid.isNotBlank() && cu == myUid)
+                                                    }
+                                                    if (hadReacted) {
+                                                        uList.removeAll {
+                                                            val cu = it.trim().lowercase()
+                                                            cu == myUname || (myUid.isNotBlank() && cu == myUid)
+                                                        }
+                                                    } else {
+                                                        uList.add(if (myUid.isNotBlank()) myUid else myUname)
+                                                    }
+                                                    if (uList.isEmpty()) {
+                                                        curMap.remove(em)
+                                                    } else {
+                                                        curMap[em] = uList
+                                                    }
+                                                    channelReactions[msgToReact.id] = curMap
+                                                    selectedMessageForAction = null
+
+                                                    val cleanCh = cleanSelectedChannel
+                                                    VoiceCallManager.sendReactionToggled(
+                                                        messageId = msgToReact.id,
+                                                        emoji = em,
+                                                        userId = if (myUid.isNotBlank()) myUid else myUname,
+                                                        channelId = cleanCh
+                                                    )
+                                                    coroutineScope.launch {
+                                                        try {
+                                                            ConnectoApiClient.reactToMessage(
+                                                                messageId = msgToReact.id,
+                                                                emoji = em,
+                                                                channelId = cleanCh
+                                                            )
+                                                        } catch (_: Exception) {}
+                                                    }
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(text = em, fontSize = 20.sp)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showFullEmojiDialogForMessage = null }) {
+                            Text("Close", color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                )
+            }
+
         }
     }
 }
@@ -2456,18 +2646,22 @@ private fun ChannelMessageCard(
     message: MessageDto,
     isMe: Boolean,
     gradientColors: List<Color>,
-    reactions: List<String>,
+    reactionsMap: Map<String, List<String>>,
     onToggleReaction: (String) -> Unit,
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
+    isHighlighted: Boolean = false,
     onReply: (() -> Unit)? = null,
+    onCopy: (() -> Unit)? = null,
+    onUnsend: (() -> Unit)? = null,
+    onQuotedMessageClick: ((String) -> Unit)? = null,
+    onOpenFullEmojiSheet: ((MessageDto) -> Unit)? = null,
     onMessageClick: (() -> Unit)? = null,
     onMessageLongPress: (MessageDto) -> Unit = {}
 ) {
     val colors = LocalConnectoColors.current
-    val contentOnGradient = getContentColorOnAccentGradient()
     val haptic = LocalHapticFeedback.current
-    var showReactionPicker by remember { mutableStateOf(false) }
+    val isLight = !colors.isDark
 
     // Formatted time — handles ISO-T and space-separated timestamps
     val formattedTime = remember(message.createdAt) {
@@ -2501,6 +2695,13 @@ private fun ChannelMessageCard(
             )
         )
     }
+
+    // 600ms Subtle Background Pulse Animation for Scroll-to-Original
+    val pulseAlpha by animateFloatAsState(
+        targetValue = if (isHighlighted) 0.35f else 0f,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "channelPulseAlpha"
+    )
 
     Column(
         modifier = modifier
@@ -2577,13 +2778,115 @@ private fun ChannelMessageCard(
                 horizontalAlignment = if (isMe) Alignment.End else Alignment.Start,
                 modifier = Modifier.widthIn(min = 80.dp, max = 310.dp)
             ) {
+                // Header row (Author Name + Timestamp for other members)
+                if (!isMe) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = message.authorName,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (colors.isDark) Color.White else colors.primary
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Text(
+                            text = formattedTime,
+                            fontSize = 10.sp,
+                            color = if (colors.isDark) Color(0xFFA1A1AA) else colors.textSecondary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
+                // ========== TOP FLOATING PILL (ABOVE BUBBLE) ==========
+                AnimatedVisibility(
+                    visible = isSelected,
+                    enter = scaleIn(animationSpec = spring(dampingRatio = 0.65f, stiffness = 420f), initialScale = 0.7f) + fadeIn(animationSpec = tween(140)),
+                    exit = scaleOut(targetScale = 0.7f) + fadeOut(animationSpec = tween(120))
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .padding(bottom = 6.dp)
+                            .height(46.dp)
+                            .shadow(8.dp, RoundedCornerShape(24.dp))
+                            .clip(RoundedCornerShape(24.dp)),
+                        color = if (isLight) Color(0xFFFFFFFF) else Color(0xFF181B24),
+                        shape = RoundedCornerShape(24.dp),
+                        border = BorderStroke(1.dp, if (isLight) Color(0x14000000) else Color(0x1FFFFFFF))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 8.dp)
+                                .fillMaxHeight(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            val quickEmojis = listOf("❤️", "🔥", "😂", "👍", "😮", "😢")
+                            quickEmojis.forEachIndexed { idx, emoji ->
+                                var visible by remember { mutableStateOf(false) }
+                                LaunchedEffect(Unit) {
+                                    delay(idx * 28L)
+                                    visible = true
+                                }
+                                val scale by animateFloatAsState(
+                                    targetValue = if (visible) 1f else 0.4f,
+                                    animationSpec = spring(dampingRatio = 0.6f, stiffness = 450f),
+                                    label = "popScale"
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .graphicsLayer {
+                                            scaleX = scale
+                                            scaleY = scale
+                                        }
+                                        .clip(CircleShape)
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            onToggleReaction(emoji)
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = emoji, fontSize = 17.sp)
+                                }
+                            }
+
+                            // Trailing '+' icon button to open full emoji sheet
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isLight) Color(0x0D000000) else Color(0x1FFFFFFF))
+                                    .clickable {
+                                        onOpenFullEmojiSheet?.invoke(message)
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "All reactions",
+                                    tint = if (isLight) Color(0xFF475569) else Color(0xFFCBD5E1),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 val bubbleShape = if (isMe) {
                     RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 4.dp)
                 } else {
                     RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 4.dp)
                 }
 
-                val isWhiteBubble = false
                 val ownBubbleBg = if (colors.isDark) Color(0xFF3B4254) else Color(0xFF4F46E5)
                 val ownBubbleText = Color(0xFFFFFFFF)
                 val friendBubbleBg = if (colors.isDark) Color(0xFF18181B) else Color(0xFFFFFFFF)
@@ -2594,41 +2897,33 @@ private fun ChannelMessageCard(
                     Modifier.glassBubble(isMe = isMe, shape = bubbleShape, isLiquid = colors.isLiquidGlass)
                 } else {
                     val bgBrush = if (isMe) {
-                        if (isWhiteBubble) {
-                            SolidColor(Color.White)
-                        } else {
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    ownBubbleBg,
-                                    Color(
-                                        red = (ownBubbleBg.red * 0.85f).coerceIn(0f, 1f),
-                                        green = (ownBubbleBg.green * 0.85f).coerceIn(0f, 1f),
-                                        blue = (ownBubbleBg.blue * 0.95f).coerceIn(0f, 1f),
-                                        alpha = 1f
-                                    )
-                                ),
-                                start = Offset.Zero,
-                                end = Offset(300f, 300f)
-                            )
-                        }
+                        Brush.linearGradient(
+                            colors = listOf(
+                                ownBubbleBg,
+                                Color(
+                                    red = (ownBubbleBg.red * 0.85f).coerceIn(0f, 1f),
+                                    green = (ownBubbleBg.green * 0.85f).coerceIn(0f, 1f),
+                                    blue = (ownBubbleBg.blue * 0.95f).coerceIn(0f, 1f),
+                                    alpha = 1f
+                                )
+                            ),
+                            start = Offset.Zero,
+                            end = Offset(300f, 300f)
+                        )
                     } else {
                         SolidColor(friendBubbleBg)
                     }
 
                     val borderBrush = if (isMe) {
-                        if (isWhiteBubble) {
-                            SolidColor(Color(0x1F000000))
-                        } else {
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.45f),
-                                    ownBubbleBg.copy(alpha = 0.60f),
-                                    Color.Transparent
-                                ),
-                                start = Offset.Zero,
-                                end = Offset(220f, 220f)
-                            )
-                        }
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.45f),
+                                ownBubbleBg.copy(alpha = 0.60f),
+                                Color.Transparent
+                            ),
+                            start = Offset.Zero,
+                            end = Offset(220f, 220f)
+                        )
                     } else {
                         SolidColor(friendBorder)
                     }
@@ -2649,21 +2944,20 @@ private fun ChannelMessageCard(
                         .background(colors.primary.copy(alpha = 0.22f), bubbleShape)
                 } else Modifier
 
+                val pulseModifier = if (pulseAlpha > 0f) {
+                    Modifier.background(colors.primary.copy(alpha = pulseAlpha), bubbleShape)
+                } else Modifier
+
                 Box(
                     modifier = bubbleModifier
                         .then(selectionBorder)
+                        .then(pulseModifier)
                         .pointerInput(message.id, isSelected) {
                             detectTapGestures(
                                 onTap = {
                                     if (onMessageClick != null) {
                                         onMessageClick()
-                                    } else if (showReactionPicker) {
-                                        showReactionPicker = false
                                     }
-                                },
-                                onDoubleTap = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    showReactionPicker = true
                                 },
                                 onLongPress = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -2674,83 +2968,49 @@ private fun ChannelMessageCard(
                         .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
                     Column {
-                        // Header row (Author Name + Timestamp for other members)
-                        if (!isMe) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = message.authorName,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (colors.isDark) Color.White else colors.primary
-                                )
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                Text(
-                                    text = formattedTime,
-                                    fontSize = 10.sp,
-                                    color = if (colors.isDark) Color(0xFFA1A1AA) else colors.textSecondary
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                        }
-
                         // Quoted Reply Preview inside bubble
                         if (!message.replyToContent.isNullOrBlank()) {
-                            Surface(
-                                color = if (isMe) {
-                                    if (isWhiteBubble) Color(0x0F000000) else Color.Black.copy(alpha = 0.22f)
-                                } else {
-                                    if (colors.isDark) Color(0x1AFFFFFF) else colors.surfaceVariant.copy(alpha = 0.55f)
-                                },
-                                shape = RoundedCornerShape(8.dp),
+                            val accentColor = colors.primary
+                            val quoteBg = if (colors.isDark) Color(0x2E000000) else Color(0x0F0F172A)
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(bottom = 6.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .border(
-                                            width = 2.5.dp,
-                                            color = if (isMe) {
-                                                if (isWhiteBubble) Color(0xCC000000) else Color.White.copy(alpha = 0.70f)
-                                            } else {
-                                                if (colors.isDark) Color.White else colors.primary
-                                            },
-                                            shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
-                                        )
-                                        .padding(horizontal = 8.dp, vertical = 5.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(
-                                            text = message.replyToAuthor?.ifBlank { "Reply" } ?: "Reply",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isMe) {
-                                                if (isWhiteBubble) Color(0xEE000000) else Color.White.copy(alpha = 0.95f)
-                                            } else {
-                                                if (colors.isDark) Color.White else colors.primary
-                                            },
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Text(
-                                            text = cleanMessageContentForDisplay(message.replyToContent, ""),
-                                            fontSize = 11.5.sp,
-                                            color = if (isMe) {
-                                                if (isWhiteBubble) Color(0xBB000000) else Color.White.copy(alpha = 0.80f)
-                                            } else {
-                                                if (colors.isDark) Color(0xCCFFFFFF) else colors.textSecondary
-                                            },
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(quoteBg)
+                                    .clickable(enabled = !message.replyToId.isNullOrBlank()) {
+                                        message.replyToId?.let { targetId ->
+                                            onQuotedMessageClick?.invoke(targetId)
+                                        }
                                     }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(3.dp)
+                                        .height(28.dp)
+                                        .clip(RoundedCornerShape(2.dp))
+                                        .background(accentColor)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    val authorName = message.replyToAuthor?.ifBlank { "Reply" } ?: "Reply"
+                                    Text(
+                                        text = authorName,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = accentColor,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = cleanMessageContentForDisplay(message.replyToContent, ""),
+                                        fontSize = 12.sp,
+                                        color = if (isMe) ownBubbleText.copy(alpha = 0.8f) else friendBubbleText.copy(alpha = 0.75f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                             }
                         }
@@ -2785,7 +3045,7 @@ private fun ChannelMessageCard(
                                 Text(
                                     text = formattedTime,
                                     fontSize = 10.sp,
-                                    color = if (isWhiteBubble) Color(0x99000000) else Color.White.copy(alpha = 0.75f)
+                                    color = Color.White.copy(alpha = 0.75f)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 if (isPending) {
@@ -2798,170 +3058,114 @@ private fun ChannelMessageCard(
                     }
                 }
 
-                // Interactive Quick Emoji Reaction Bar (pops up on tap/long press)
-                AnimatedVisibility(
-                    visible = showReactionPicker,
-                    enter = scaleIn(
-                        animationSpec = spring(dampingRatio = 0.65f, stiffness = 420f),
-                        initialScale = 0.7f
-                    ) + fadeIn(animationSpec = tween(140)),
-                    exit = scaleOut(targetScale = 0.7f) + fadeOut(animationSpec = tween(120))
-                ) {
+                // ========== REACTION BADGES ON BUBBLE (COMPACT PILLS) ==========
+                if (reactionsMap.isNotEmpty()) {
                     Row(
                         modifier = Modifier
                             .padding(top = 4.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(colors.surface)
-                            .border(1.dp, colors.borderSubtle, RoundedCornerShape(16.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            .offset(y = (-4).dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val quickEmojis = listOf("👍", "❤️", "😂", "🔥", "🚀", "🎉")
-                        quickEmojis.forEach { emoji ->
-                            Text(
-                                text = emoji,
-                                fontSize = 16.sp,
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        onToggleReaction(emoji)
-                                        showReactionPicker = false
-                                    }
-                                    .padding(4.dp)
-                            )
-                        }
-                        if (onReply != null) {
+                        val currentUid = (ConnectoApiClient.currentUserId ?: "").trim().lowercase()
+                        val currentUname = (ConnectoApiClient.currentUsername ?: "").trim().removePrefix("@").lowercase()
+
+                        reactionsMap.forEach { (emoji, userList) ->
+                            val hasUserReacted = userList.any { u ->
+                                val cu = u.trim().removePrefix("@").lowercase()
+                                (currentUid.isNotBlank() && cu == currentUid) || (currentUname.isNotBlank() && cu == currentUname)
+                            }
+                            val count = userList.size
+
                             Box(
                                 modifier = Modifier
-                                    .size(26.dp)
-                                    .clip(CircleShape)
-                                    .background(colors.primary.copy(alpha = 0.18f))
-                                    .clickable {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        showReactionPicker = false
-                                        onReply()
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Reply,
-                                    contentDescription = "Reply",
-                                    tint = colors.primary,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Stack of the Emoji Section below Bubble
-                if (reactions.isNotEmpty()) {
-                    val uniqueEmojis = reactions.distinct()
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 4.dp)
-                    ) {
-                        // 1. Stacked Overlapping Emoji Discs Pill
-                        val topStack = uniqueEmojis.take(4)
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(colors.primary.copy(alpha = 0.12f))
-                                .border(1.dp, colors.primary.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) { showReactionPicker = !showReactionPicker }
-                                .padding(horizontal = 6.dp, vertical = 3.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                val stackWidth = ((topStack.size - 1) * 13 + 20).dp
-                                Box(
-                                    modifier = Modifier
-                                        .height(20.dp)
-                                        .width(stackWidth)
-                                ) {
-                                    topStack.forEachIndexed { index, em ->
-                                        Box(
-                                            modifier = Modifier
-                                                .offset(x = (index * 13).dp)
-                                                .size(20.dp)
-                                                .clip(CircleShape)
-                                                .background(if (colors.isDark) Color(0xFF141418) else Color.White)
-                                                .border(1.dp, colors.primary.copy(alpha = 0.3f), CircleShape),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(text = em, fontSize = 10.sp)
-                                        }
-                                    }
-                                }
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "${reactions.size}",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.primary
-                                )
-                            }
-                        }
-
-                        // 2. Interactive Individual Reaction Badges
-                        uniqueEmojis.forEach { emoji ->
-                            val count = reactions.count { it == emoji }
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(colors.surfaceVariant)
-                                    .border(1.dp, colors.borderSubtle, RoundedCornerShape(10.dp))
+                                    .height(24.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        if (hasUserReacted) colors.primary.copy(alpha = 0.20f)
+                                        else if (isLight) Color(0xFFF1F5F9)
+                                        else Color(0xFF161922)
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (hasUserReacted) colors.primary.copy(alpha = 0.65f)
+                                                else if (isLight) Color(0x14000000)
+                                                else Color(0x1FFFFFFF),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
                                     .clickable(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = null
                                     ) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         onToggleReaction(emoji)
                                     }
-                                    .padding(horizontal = 7.dp, vertical = 2.dp)
+                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(text = emoji, fontSize = 11.sp)
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Text(
-                                        text = count.toString(),
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textSecondary
-                                    )
+                                    Text(text = emoji, fontSize = 12.sp)
+                                    if (count > 1) {
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = count.toString(),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (hasUserReacted) colors.primary
+                                                    else if (isLight) Color(0xFF64748B)
+                                                    else Color(0xFF94A3B8)
+                                        )
+                                    }
                                 }
                             }
                         }
+                    }
+                }
 
-                        // 3. Quick '+' Add Reaction Pill Button
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(colors.surfaceVariant.copy(alpha = 0.7f))
-                                .border(1.dp, colors.borderSubtle, CircleShape)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    showReactionPicker = !showReactionPicker
-                                }
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                // ========== BOTTOM ACTION MENU (BELOW BUBBLE) ==========
+                AnimatedVisibility(
+                    visible = isSelected,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .shadow(8.dp, RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(14.dp)),
+                        color = if (isLight) Color(0xFFFFFFFF) else Color(0xFF181B24),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, if (isLight) Color(0x14000000) else Color(0x1FFFFFFF))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            Text(
-                                text = "+",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textSecondary
+                            ActionMenuItem(
+                                icon = Icons.AutoMirrored.Filled.Reply,
+                                label = "Reply",
+                                color = if (isLight) Color(0xFF0F172A) else Color.White,
+                                onClick = { onReply?.invoke() }
                             )
+                            ActionMenuItem(
+                                icon = Icons.Default.ContentCopy,
+                                label = "Copy",
+                                color = if (isLight) Color(0xFF0F172A) else Color.White,
+                                onClick = { onCopy?.invoke() }
+                            )
+                            if (isMe) {
+                                ActionMenuItem(
+                                    icon = Icons.Default.Delete,
+                                    label = "Unsend",
+                                    color = Color(0xFFEF4444),
+                                    onClick = { onUnsend?.invoke() }
+                                )
+                            }
                         }
                     }
                 }
             }
-
 
             if (!isMe) {
                 Box(
