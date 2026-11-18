@@ -415,6 +415,8 @@ object VoiceCallManager {
     private val webRtcTeardownLock = Any()
     private val isTeardownInProgress = java.util.concurrent.atomic.AtomicBoolean(false)
     private val disposedPcs: MutableSet<PeerConnection> = Collections.synchronizedSet(Collections.newSetFromMap(IdentityHashMap<PeerConnection, Boolean>()))
+    private val remoteDescriptionReadyPcs: MutableSet<PeerConnection> = Collections.synchronizedSet(Collections.newSetFromMap(IdentityHashMap<PeerConnection, Boolean>()))
+    private fun isRemoteDescriptionReady(pc: PeerConnection): Boolean = remoteDescriptionReadyPcs.contains(pc) && pc.remoteDescription != null
     private var peerConnectionFactory: PeerConnectionFactory? = null
     private var localAudioSource: AudioSource? = null
     private var localAudioTrack: RtcAudioTrack? = null
@@ -455,6 +457,14 @@ object VoiceCallManager {
             if (partnerU.isNotBlank()) queuedIceCandidates.remove(partnerU)?.let { candidatesToDrain.addAll(it) }
         }
 
+        // Drain any partial matching keys
+        val otherKeys = queuedIceCandidates.keys().toList().filter { key ->
+            key.contains(cleanId) || cleanId.contains(key)
+        }
+        for (k in otherKeys) {
+            queuedIceCandidates.remove(k)?.let { candidatesToDrain.addAll(it) }
+        }
+
         if (candidatesToDrain.isNotEmpty()) {
             Log.d(TAG, "Draining ${candidatesToDrain.size} queued ICE candidates for peer: $peerId ($username)")
             for (cand in candidatesToDrain) {
@@ -468,16 +478,34 @@ object VoiceCallManager {
         }
     }
 
-    // ICE servers: Resilient public STUN servers for NAT traversal.
-    // Removed unreachable connecto.fun:3478 which caused candidate gathering timeouts.
+    // ICE servers: Resilient public STUN servers and authenticated TURN servers (UDP/TCP/TLS) for NAT traversal across mobile carriers
     private val iceServers by lazy {
         listOf(
+            // STUN Servers
             PeerConnection.IceServer.builder("stun:stun.cloudflare.com:3478").createIceServer(),
             PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
             PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
             PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer(),
             PeerConnection.IceServer.builder("stun:stun3.l.google.com:19302").createIceServer(),
-            PeerConnection.IceServer.builder("stun:stun4.l.google.com:19302").createIceServer()
+            PeerConnection.IceServer.builder("stun:stun4.l.google.com:19302").createIceServer(),
+
+            // Authenticated TURN Servers (UDP, TCP, TLS) for mobile 4G/5G carrier symmetric NAT traversal
+            PeerConnection.IceServer.builder("turn:openrelay.metered.ca:80")
+                .setUsername("openrelay")
+                .setPassword("openrelay")
+                .createIceServer(),
+            PeerConnection.IceServer.builder("turn:openrelay.metered.ca:443")
+                .setUsername("openrelay")
+                .setPassword("openrelay")
+                .createIceServer(),
+            PeerConnection.IceServer.builder("turn:openrelay.metered.ca:443?transport=tcp")
+                .setUsername("openrelay")
+                .setPassword("openrelay")
+                .createIceServer(),
+            PeerConnection.IceServer.builder("turns:openrelay.metered.ca:443?transport=tcp")
+                .setUsername("openrelay")
+                .setPassword("openrelay")
+                .createIceServer()
         )
     }
 
@@ -489,6 +517,7 @@ object VoiceCallManager {
             rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE
             iceCandidatePoolSize = 10
             tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.ENABLED
+            iceTransportsType = PeerConnection.IceTransportsType.ALL
         }
     }
 
@@ -531,8 +560,8 @@ object VoiceCallManager {
             val hasNs = try { JavaAudioDeviceModule.isBuiltInNoiseSuppressorSupported() } catch (_: Throwable) { false }
 
             val admBuilder = JavaAudioDeviceModule.builder(context.applicationContext)
-                .setUseHardwareAcousticEchoCanceler(hasAec)
-                .setUseHardwareNoiseSuppressor(hasNs)
+                .setUseHardwareAcousticEchoCanceler(true)
+                .setUseHardwareNoiseSuppressor(true)
 
             admBuilder.setAudioRecordErrorCallback(object : JavaAudioDeviceModule.AudioRecordErrorCallback {
                 override fun onWebRtcAudioRecordInitError(errorMessage: String?) {
@@ -604,6 +633,24 @@ object VoiceCallManager {
         }
     }
 
+    private fun createAudioConstraints(voiceIsolationEnabled: Boolean = true): MediaConstraints {
+        return MediaConstraints().apply {
+            mandatory.add(MediaConstraints.KeyValuePair("googEchoCancellation", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("googEchoCancellation2", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("googAutoGainControl", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("googAutoGainControl2", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("googHighpassFilter", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("googNoiseSuppression", if (voiceIsolationEnabled) "true" else "false"))
+            mandatory.add(MediaConstraints.KeyValuePair("googNoiseSuppression2", if (voiceIsolationEnabled) "true" else "false"))
+            mandatory.add(MediaConstraints.KeyValuePair("googTypingNoiseDetection", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("googAudioMirroring", "false"))
+            mandatory.add(MediaConstraints.KeyValuePair("echoCancellation", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("noiseSuppression", if (voiceIsolationEnabled) "true" else "false"))
+            mandatory.add(MediaConstraints.KeyValuePair("autoGainControl", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("highpassFilter", "true"))
+        }
+    }
+
     private fun startLocalAudio() {
         val factory = peerConnectionFactory ?: return
         if (localAudioTrack != null) return
@@ -615,28 +662,29 @@ object VoiceCallManager {
         }
 
         try {
-            val audioConstraints = MediaConstraints().apply {
-                mandatory.add(MediaConstraints.KeyValuePair("googEchoCancellation", "true"))
-                mandatory.add(MediaConstraints.KeyValuePair("googEchoCancellation2", "true"))
-                mandatory.add(MediaConstraints.KeyValuePair("googAutoGainControl", "true"))
-                mandatory.add(MediaConstraints.KeyValuePair("googAutoGainControl2", "true"))
-                mandatory.add(MediaConstraints.KeyValuePair("googHighpassFilter", "true"))
-                mandatory.add(MediaConstraints.KeyValuePair("googNoiseSuppression", "true"))
-                mandatory.add(MediaConstraints.KeyValuePair("googNoiseSuppression2", "true"))
-                mandatory.add(MediaConstraints.KeyValuePair("googTypingNoiseDetection", "true"))
-                mandatory.add(MediaConstraints.KeyValuePair("googAudioMirroring", "false"))
-                mandatory.add(MediaConstraints.KeyValuePair("echoCancellation", "true"))
-                mandatory.add(MediaConstraints.KeyValuePair("noiseSuppression", "true"))
-                mandatory.add(MediaConstraints.KeyValuePair("autoGainControl", "true"))
-            }
+            val audioConstraints = createAudioConstraints(_isVoiceIsolationEnabled.value)
             val source = factory.createAudioSource(audioConstraints)
             localAudioSource = source
             val track = factory.createAudioTrack("ARDAMSa0", source)
             track.setEnabled(!_isMuted.value)
             localAudioTrack = track
-            Log.d(TAG, "WebRTC local audio track created (enabled=${!_isMuted.value})")
+            Log.d(TAG, "WebRTC local audio track created (enabled=${!_isMuted.value}, voiceIsolation=${_isVoiceIsolationEnabled.value})")
         } catch (t: Throwable) {
             Log.e(TAG, "Failed to create local WebRTC audio track: ${t.message}", t)
+        }
+    }
+
+    private fun ensureLocalAudioTrackAttached(pc: PeerConnection) {
+        if (localAudioTrack == null) {
+            startLocalAudio()
+        }
+        localAudioTrack?.let { track ->
+            track.setEnabled(!_isMuted.value)
+            val hasSender = pc.senders.any { it.track()?.id() == track.id() }
+            if (!hasSender) {
+                pc.addTrack(track, listOf("ARDAMS"))
+                Log.d(TAG, "Attached local audio track (${track.id()}) to PeerConnection (enabled=${track.enabled()})")
+            }
         }
     }
 
@@ -745,16 +793,8 @@ object VoiceCallManager {
                 }
             }
 
-            if (localAudioTrack == null) {
-                startLocalAudio()
-            }
             val pc = factory.createPeerConnection(rtcConfig, observer) ?: return null
-            if (localAudioTrack == null) {
-                startLocalAudio()
-            }
-            localAudioTrack?.let { track ->
-                pc.addTrack(track, listOf("ARDAMS"))
-            }
+            ensureLocalAudioTrackAttached(pc)
             peerConnections[peerId] = pc
             Log.d(TAG, "WebRTC PeerConnection registered for peer: $peerId")
             return pc
@@ -764,6 +804,7 @@ object VoiceCallManager {
     fun initiateWebRtcOffer(peerId: String) {
         scope.launch(Dispatchers.IO) {
             val pc = getOrCreatePeerConnection(peerId) ?: return@launch
+            ensureLocalAudioTrackAttached(pc)
             val constraints = MediaConstraints().apply {
                 mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
                 mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"))
@@ -811,9 +852,11 @@ object VoiceCallManager {
     fun handleWebRtcOffer(senderPeerId: String, sdpDescription: String) {
         scope.launch(Dispatchers.IO) {
             val pc = getOrCreatePeerConnection(senderPeerId) ?: return@launch
+            ensureLocalAudioTrackAttached(pc)
             val remoteDesc = SessionDescription(SessionDescription.Type.OFFER, sdpDescription)
             pc.setRemoteDescription(object : SdpObserver {
                 override fun onSetSuccess() {
+                    remoteDescriptionReadyPcs.add(pc)
                     drainQueuedCandidates(senderPeerId, pc)
                     val constraints = MediaConstraints().apply {
                         mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
@@ -926,6 +969,7 @@ object VoiceCallManager {
             pc.setRemoteDescription(object : SdpObserver {
                 override fun onSetSuccess() {
                     Log.d(TAG, "WebRTC setRemoteDescription for answer succeeded from: $senderPeerId ($senderUsername)")
+                    remoteDescriptionReadyPcs.add(pc)
                     drainQueuedCandidates(senderPeerId, pc, senderUsername)
                 }
 
@@ -949,7 +993,7 @@ object VoiceCallManager {
                 val iceCandidate = IceCandidate(sdpMid, sdpMLineIndex, candidateSdp)
 
                 val pc = getPeerConnectionForPeer(senderPeerId, senderUsername)
-                if (pc != null && pc.remoteDescription != null) {
+                if (pc != null && isRemoteDescriptionReady(pc)) {
                     drainQueuedCandidates(senderPeerId, pc, senderUsername)
                     pc.addIceCandidate(iceCandidate)
                     Log.d(TAG, "WebRTC added live ICE candidate from: $senderPeerId ($senderUsername)")
@@ -1025,6 +1069,7 @@ object VoiceCallManager {
         synchronized(webRtcTeardownLock) {
             pc = peerConnections.remove(peerId)
             if (pc != null) {
+                remoteDescriptionReadyPcs.remove(pc)
                 val aliasKeys = peerConnections.entries.filter { it.value === pc }.map { it.key }
                 aliasKeys.forEach { peerConnections.remove(it) }
             }
@@ -1055,6 +1100,7 @@ object VoiceCallManager {
     private fun stopWebRtc() {
         stopStatsPolling()
         queuedIceCandidates.clear()
+        remoteDescriptionReadyPcs.clear()
         try {
             // 1. Immediately disable local audio track to prevent audio processing threads
             // from pushing frames into closing peer connections.
@@ -2512,6 +2558,9 @@ object VoiceCallManager {
         _activeCallAvatar.value = resolvedAvatar
         _participantCount.value = 2
 
+        // Acquire audio focus and set AudioManager.MODE_IN_COMMUNICATION before starting the call
+        applyAudioSettingsForCall()
+
         // Activate EARPIECE by default for 1:1 voice calls (unless Bluetooth headset is connected)
         val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.EARPIECE
         setAudioRoute(initialRoute)
@@ -2616,6 +2665,9 @@ object VoiceCallManager {
         _callState.value = CallState.CONNECTED
         _participantCount.value = 2
 
+        // Acquire audio focus and set AudioManager.MODE_IN_COMMUNICATION before answering call
+        applyAudioSettingsForCall()
+
         // Activate EARPIECE by default for 1:1 voice calls (unless Bluetooth headset is connected)
         val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.EARPIECE
         setAudioRoute(initialRoute)
@@ -2713,6 +2765,7 @@ object VoiceCallManager {
         _activeCallPartnerUsername.value = null
         _activeCallRoomCode.value = roomCode
         _callState.value = CallState.CONNECTED
+        applyAudioSettingsForCall()
         appContext?.let {
             VoiceCallForegroundService.startService(it, roomName, null, _isMuted.value)
         }
@@ -3054,36 +3107,90 @@ object VoiceCallManager {
      */
     fun toggleVoiceIsolation(): Boolean {
         val newState = !_isVoiceIsolationEnabled.value
-        setVoiceIsolation(newState)
+        setVoiceIsolationEnabled(newState)
         Log.d(TAG, "Voice Isolation toggled to: $newState (${_voiceIsolationCapabilities.value.statusSummary})")
         return newState
     }
 
-    fun setVoiceIsolation(enabled: Boolean) {
+    fun setVoiceIsolationEnabled(enabled: Boolean) {
         _isVoiceIsolationEnabled.value = enabled
+
+        // 1. Attach/toggle native Android audiofx on active microphone audioSessionId
         try {
+            if (hardwareNoiseSuppressor == null && currentAudioSessionId != 0 && NoiseSuppressor.isAvailable()) {
+                hardwareNoiseSuppressor = NoiseSuppressor.create(currentAudioSessionId)
+            }
             hardwareNoiseSuppressor?.enabled = enabled
+            Log.d(TAG, "Hardware NoiseSuppressor enabled set to: $enabled")
         } catch (t: Throwable) {
-            Log.w(TAG, "Failed to set hardware noise suppressor: ${t.message}")
+            Log.w(TAG, "Failed to toggle hardware noise suppressor: ${t.message}")
         }
+
         try {
-            hardwareEchoCanceler?.enabled = true // Echo cancellation MUST remain permanently active during calls to prevent acoustic feedback loop
+            if (hardwareEchoCanceler == null && currentAudioSessionId != 0 && AcousticEchoCanceler.isAvailable()) {
+                hardwareEchoCanceler = AcousticEchoCanceler.create(currentAudioSessionId)
+            }
+            hardwareEchoCanceler?.enabled = true // Echo cancellation MUST remain permanently active
         } catch (t: Throwable) {
-            Log.w(TAG, "Failed to set hardware echo canceler: ${t.message}")
+            Log.w(TAG, "Failed to ensure hardware echo canceler: ${t.message}")
         }
+
         try {
-            hardwareGainControl?.enabled = true // AGC automatically balances whisper and loud speech volume
+            hardwareGainControl?.enabled = true
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to set hardware gain control: ${t.message}")
         }
+
         applyHardwareVoiceIsolationParams(enabled)
+
         try {
             appContext?.getSharedPreferences("connecto_audio_prefs", Context.MODE_PRIVATE)
                 ?.edit()
                 ?.putBoolean("connecto_voice_isolation_enabled", enabled)
                 ?.apply()
         } catch (_: Throwable) {}
+
+        // 2. Simultaneously rebuild local AudioSource with updated MediaConstraints and swap the track on active RtpSenders without dropping PeerConnection
+        val factory = peerConnectionFactory
+        if (factory != null) {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val newConstraints = createAudioConstraints(enabled)
+                    val newSource = factory.createAudioSource(newConstraints)
+                    val newTrack = factory.createAudioTrack("ARDAMSa0", newSource).apply {
+                        setEnabled(!_isMuted.value)
+                    }
+
+                    // Swap track on all active peer connection RtpSenders without dropping PeerConnection
+                    val activePcs = peerConnections.values.filter { !disposedPcs.contains(it) }.distinct()
+                    for (pc in activePcs) {
+                        try {
+                            val audioSender = pc.senders.firstOrNull { it.track()?.kind() == "audio" }
+                            if (audioSender != null) {
+                                audioSender.setTrack(newTrack, false)
+                                Log.d(TAG, "Swapped audio track on active PeerConnection RtpSender (voiceIsolation=$enabled)")
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed swapping track on PC sender: ${e.message}")
+                        }
+                    }
+
+                    val oldTrack = localAudioTrack
+                    val oldSource = localAudioSource
+                    localAudioTrack = newTrack
+                    localAudioSource = newSource
+
+                    try { oldTrack?.dispose() } catch (_: Throwable) {}
+                    try { oldSource?.dispose() } catch (_: Throwable) {}
+                    Log.d(TAG, "Rebuilt local WebRTC AudioSource with updated constraints (voiceIsolation=$enabled)")
+                } catch (t: Throwable) {
+                    Log.e(TAG, "Error rebuilding local audio track for voice isolation: ${t.message}", t)
+                }
+            }
+        }
     }
+
+    fun setVoiceIsolation(enabled: Boolean) = setVoiceIsolationEnabled(enabled)
 
     // Biquad filter state for 2nd-order Butterworth HPF (80Hz cutoff at 16kHz)
     private var hpX1 = 0f

@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.6.0",
-        version_name: "v5.6.0",
-        version_code: 174,
-        build: 174,
-        sha256: "4b0b7a3d69130a3f82c37d422cf09818f3f0ad5b0267b0cc67b59a36630f6440",
+        version: "5.6.1",
+        version_name: "v5.6.1",
+        version_code: 175,
+        build: 175,
+        sha256: "3cb683fc382b54f09bb5b91394ee865058de7834fbc0c3b5403e23b869ec415e",
         filename: "connecto-fun.apk",
-        size_bytes: 38059272,
+        size_bytes: 38061634,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -218,6 +218,7 @@ Sitemap: https://connecto.fun/sitemap.xml
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "WebRTC Audio Engine, TURN Server Fallback, AudioManager Routing & Dynamic Voice Isolation (v5.6.1): Implemented thread-safe remote ICE candidate queueing to buffer incoming candidates until setRemoteDescription completes, eliminating silent call dropouts. Added authenticated TURN servers (UDP, TCP, TLS) with iceTransportsType = ALL for carrier NAT traversal across mobile 4G/5G networks. Guaranteed local AudioTrack creation, enablement, and attachment prior to Offer/Answer SDP generation. Request audio focus with USAGE_VOICE_COMMUNICATION & CONTENT_TYPE_SPEECH and AudioManager.MODE_IN_COMMUNICATION before starting or answering calls, cleanly resetting to MODE_NORMAL and releasing audio focus on call termination. Built JavaAudioDeviceModule with hardware AEC and NS enabled. Implemented dynamic setVoiceIsolationEnabled live toggling attaching native NoiseSuppressor and AcousticEchoCanceler to active audioSessionId and simultaneously rebuilding local AudioSource constraints and swapping tracks on active RtpSenders without dropping PeerConnection.",
           "Real-Time DM Header Presence & Signature Read Receipts (v5.6.0): Subscribed Direct Chat screen header to centralized WebSocket/Presence StateFlow (isUserOnline evaluated consistently across DM list and chat header, eliminating presence inversion bug where online contacts appeared offline). Replaced generic tick checkmarks with Connecto signature delivery receipts: 8dp pulsing ring for SENDING, 6dp solid dot for SENT, glowing double dots for DELIVERED, and recipient's mini circular avatar underneath the latest read message for SEEN.",
           "Fixed Unpin Gesture Delay (v5.5.9): Resolved stale pointerInput closures with rememberUpdatedState and live state evaluation.",
           "Full Dark Theme & Stitch Search Bar (v5.5.8): Obsidian dark canvas (#0A0B0E) across Messages, dedicated Stitch search bar with count badge, and clean header without group/3-dots buttons.",
@@ -598,18 +599,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.6.0/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.5.9/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.6.1/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.6.0/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.6.0-b174-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.6.1-b175-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.6.0");
-          res.headers.set("X-Connecto-Build", "174");
+          res.headers.set("X-Connecto-Version", "v5.6.1");
+          res.headers.set("X-Connecto-Build", "175");
           return res;
         }
 
@@ -645,8 +646,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.6.0");
-              downloadHeaders.set("X-Connecto-Build", "174");
+              downloadHeaders.set("X-Connecto-Version", "v5.6.1");
+              downloadHeaders.set("X-Connecto-Build", "175");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2032,14 +2033,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.6.0",
-        version_code: 174,
-        size_bytes: 38059272,
+        version_name: "5.6.1",
+        version_code: 175,
+        size_bytes: 38061634,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "WebRTC Audio Engine, TURN Server Fallback, AudioManager Routing & Dynamic Voice Isolation (v5.6.1): Implemented thread-safe remote ICE candidate queueing to buffer incoming candidates until setRemoteDescription completes, eliminating silent call dropouts. Added authenticated TURN servers (UDP, TCP, TLS) with iceTransportsType = ALL for carrier NAT traversal across mobile 4G/5G networks. Guaranteed local AudioTrack creation, enablement, and attachment prior to Offer/Answer SDP generation. Request audio focus with USAGE_VOICE_COMMUNICATION & CONTENT_TYPE_SPEECH and AudioManager.MODE_IN_COMMUNICATION before starting or answering calls, cleanly resetting to MODE_NORMAL and releasing audio focus on call termination. Built JavaAudioDeviceModule with hardware AEC and NS enabled. Implemented dynamic setVoiceIsolationEnabled live toggling attaching native NoiseSuppressor and AcousticEchoCanceler to active audioSessionId and simultaneously rebuilding local AudioSource constraints and swapping tracks on active RtpSenders without dropping PeerConnection.",
           "Real-Time DM Header Presence & Signature Read Receipts (v5.6.0): Subscribed Direct Chat screen header to centralized WebSocket/Presence StateFlow (isUserOnline evaluated consistently across DM list and chat header, eliminating presence inversion bug where online contacts appeared offline). Replaced generic tick checkmarks with Connecto signature delivery receipts: 8dp pulsing ring for SENDING, 6dp solid dot for SENT, glowing double dots for DELIVERED, and recipient's mini circular avatar underneath the latest read message for SEEN.",
           "Fixed Conversation Unpin Gesture Delay & Stale State (v5.5.9): Resolved root cause where swiping right to unpin a conversation failed to register immediately due to stale lambda closure capture in pointerInput without rememberUpdatedState. Added rememberUpdatedState for all swipe actions, keyed pointerInput on both chatId and isPinned, evaluated live state directly in onTogglePin, and added pre-reorder offset reset to eliminate placement glitches.",
           "Tier-1 Messages & Channels Refactor (v5.5.8): Full rich obsidian dark black theme (#0A0B0E) in the Messages tab, removed top Group button and 3-dots menu from header, implemented permanent dedicated Stitch-styled Search Bar with instant filtering and match badges, and removed 'Connecto Workspace' brand header from the Channels left navigation drawer.",
@@ -7322,13 +7324,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.6.0",
-      version_name: "v5.6.0",
-      version_code: 174,
-      build: 174,
-      sha256: "4b0b7a3d69130a3f82c37d422cf09818f3f0ad5b0267b0cc67b59a36630f6440",
+      version: "5.6.1",
+      version_name: "v5.6.1",
+      version_code: 175,
+      build: 175,
+      sha256: "3cb683fc382b54f09bb5b91394ee865058de7834fbc0c3b5403e23b869ec415e",
       filename: "connecto-fun.apk",
-      size_bytes: 38059272,
+      size_bytes: 38061634,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7341,6 +7343,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v5.6.1",
+          date: "Nov 18, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v5.6.1: WebRTC Audio Engine, TURN Fallback, AudioManager Routing & Dynamic Voice Isolation",
+          summary: "Overhauled the WebRTC voice engine with thread-safe remote ICE candidate queueing, full STUN + authenticated TURN fallback (UDP/TCP/TLS) across carrier NATs, guaranteed local audio track attachment before Offer/Answer SDP generation, AudioManager communication mode and focus management, and dynamic live Voice Isolation track rebuilding with hardware NoiseSuppressor.",
+          highlights: [
+            "Thread-Safe Remote ICE Candidate Queueing: Buffered incoming ICE candidates arriving before setRemoteDescription completes, flushing immediately upon onSetSuccess to eliminate silent call drops.",
+            "Carrier-Grade TURN Fallback: Configured authenticated TURN UDP/TCP/TLS relays (openrelay.metered.ca) with iceTransportsType = ALL for seamless NAT traversal on mobile 4G/5G carriers.",
+            "Guaranteed Audio Track Attachment: Local AudioTrack is created, enabled, and attached to PeerConnection prior to Offer/Answer SDP generation.",
+            "AudioManager Routing & Focus: Requested audio focus (USAGE_VOICE_COMMUNICATION, CONTENT_TYPE_SPEECH) and MODE_IN_COMMUNICATION before starting or answering calls, resetting to MODE_NORMAL and releasing focus on termination.",
+            "Dynamic Voice Isolation Live Toggle: Built JavaAudioDeviceModule with hardware AEC and NS enabled. Toggling voice isolation attaches native NoiseSuppressor/AEC to active audioSessionId and swaps AudioSource tracks on active RtpSenders without dropping PeerConnection.",
+            "Android Native App v5.6.1 (Build 175 • 36.3 MB): SHA-256 3cb683fc382b54f09bb5b91394ee865058de7834fbc0c3b5403e23b869ec415e."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
         {
           version: "v5.6.0",
           date: "Nov 18, 2026",
