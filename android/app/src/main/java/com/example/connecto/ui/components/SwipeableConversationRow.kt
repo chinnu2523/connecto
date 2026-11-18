@@ -68,6 +68,12 @@ fun SwipeableConversationRow(
     val configuration = LocalConfiguration.current
     val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
 
+    val currentOnTogglePin by rememberUpdatedState(onTogglePin)
+    val currentIsPinned by rememberUpdatedState(isPinned)
+    val currentOnDeleteInitiated by rememberUpdatedState(onDeleteInitiated)
+    val currentOnUndoDelete by rememberUpdatedState(onUndoDelete)
+    val currentOnDeleteFinalized by rememberUpdatedState(onDeleteFinalized)
+
     val pinThresholdPx = with(density) { 85.dp.toPx() }
     val maxRightDragPx = with(density) { 130.dp.toPx() }
     val deleteThresholdPx = with(density) { 95.dp.toPx() }
@@ -76,6 +82,13 @@ fun SwipeableConversationRow(
     val offsetX = remember(chatId) { Animatable(0f) }
     var hasHapticFiredForPin by remember(chatId) { mutableStateOf(false) }
     var hasHapticFiredForDelete by remember(chatId) { mutableStateOf(false) }
+
+    // Cleanly reset horizontal offset whenever pin status changes to prevent offset carryover during list reordering
+    LaunchedEffect(isPinned) {
+        if (offsetX.value != 0f) {
+            offsetX.snapTo(0f)
+        }
+    }
 
     // Liquid deletion visual collapse progress (0f = normal, 1f = fully collapsed)
     val liquidCollapseAlpha = remember(chatId) { Animatable(1f) }
@@ -221,7 +234,7 @@ fun SwipeableConversationRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .offset { IntOffset(offsetX.value.roundToInt(), 0) }
-                    .pointerInput(chatId) {
+                    .pointerInput(chatId, isPinned) {
                         detectHorizontalDragGestures(
                             onDragStart = {
                                 hasHapticFiredForPin = false
@@ -231,9 +244,8 @@ fun SwipeableConversationRow(
                                 val finalOffset = offsetX.targetValue
                                 coroutineScope.launch {
                                     if (finalOffset >= pinThresholdPx) {
-                                        // Pinned / Unpinned: Fire haptic & execute onTogglePin immediately!
+                                        // Pinned / Unpinned: Fire haptic, animate smoothly back to 0, and invoke updated toggle callback!
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onTogglePin()
                                         offsetX.animateTo(
                                             targetValue = 0f,
                                             animationSpec = spring(
@@ -241,6 +253,7 @@ fun SwipeableConversationRow(
                                                 stiffness = Spring.StiffnessMedium
                                             )
                                         )
+                                        currentOnTogglePin()
                                     } else if (finalOffset <= -deleteThresholdPx) {
                                         // Liquid Deletion Animation Triggered!
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -263,7 +276,7 @@ fun SwipeableConversationRow(
                                             )
                                         )
                                         // 3. Switch row into Inline Undo Strip
-                                        onDeleteInitiated()
+                                        currentOnDeleteInitiated()
                                     } else {
                                         // Release back to 0
                                         offsetX.animateTo(

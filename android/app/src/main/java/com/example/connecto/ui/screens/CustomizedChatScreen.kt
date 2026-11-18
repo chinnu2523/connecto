@@ -5358,10 +5358,11 @@ fun CustomizedChatScreen(
                                 isPendingDelete = isPendingDelete,
                                 triggerInitialPeekHint = false,
                                 onTogglePin = {
-                                    if (isPinned) {
-                                        pinnedChatIds = pinnedChatIds - friend.id
+                                    val isCurrentlyPinned = pinnedChatIds.contains(friend.id)
+                                    pinnedChatIds = if (isCurrentlyPinned) {
+                                        pinnedChatIds - friend.id
                                     } else {
-                                        pinnedChatIds = pinnedChatIds + friend.id
+                                        pinnedChatIds + friend.id
                                     }
                                     friendPrefs.edit().putStringSet("${userPrefix}_pinned_chat_ids", pinnedChatIds).apply()
                                 },
