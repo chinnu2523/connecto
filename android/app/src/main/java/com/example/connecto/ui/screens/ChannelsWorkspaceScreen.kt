@@ -229,6 +229,19 @@ fun ChannelsWorkspaceScreen(
     val savedChannelId = remember { sharedPrefs.getString("last_active_channel", initialChannelId) ?: initialChannelId }
     var selectedChannelId by rememberSaveable { mutableStateOf(savedChannelId) }
 
+    // Sync active channel conversation with ConnectoNotificationManager for foreground suppression and tray cleanup
+    androidx.compose.runtime.DisposableEffect(selectedChannelId) {
+        val cleanChan = selectedChannelId.trim().lowercase().removePrefix("#")
+        com.example.connecto.notifications.ConnectoNotificationManager.currentActiveConversationId = cleanChan
+        com.example.connecto.notifications.ConnectoNotificationManager.cancelConversationNotification(cleanChan)
+        com.example.connecto.notifications.ConnectoNotificationManager.cancelConversationNotification(selectedChannelId)
+        onDispose {
+            if (com.example.connecto.notifications.ConnectoNotificationManager.currentActiveConversationId == cleanChan) {
+                com.example.connecto.notifications.ConnectoNotificationManager.currentActiveConversationId = null
+            }
+        }
+    }
+
     // Channel metadata list
     val defaultChannels = remember {
         listOf(

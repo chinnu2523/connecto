@@ -212,6 +212,7 @@ class MainActivity : FragmentActivity() {
             pendingIntentAction = ConnectoNotificationManager.ACTION_OPEN_CHAT
             if (!target.isNullOrBlank()) {
                 pendingOpenChatTarget = target
+                ConnectoNotificationManager.cancelConversationNotification(target)
             }
 
             // SEC-A4-04 FIX: Never parse or persist message payloads into SQLite from untrusted Intent extras.
@@ -243,8 +244,19 @@ class MainActivity : FragmentActivity() {
 
     override fun onResume() {
         super.onResume()
+        ConnectoNotificationManager.isAppInForeground = true
         com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(this)
         com.example.connecto.voice.ProximityScreenLockManager.updateActivity(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        ConnectoNotificationManager.isAppInForeground = false
+    }
+
+    override fun onStop() {
+        super.onStop()
+        ConnectoNotificationManager.isAppInForeground = false
     }
 
     override fun onDestroy() {
@@ -1033,6 +1045,10 @@ fun ConnectoApp(
                                             unreadNotificationsCount = unreadNotifCount,
                                             targetChatUserOrChannel = MainActivity.pendingOpenChatTarget,
                                             onTargetChatHandled = {
+                                                val prevTarget = MainActivity.pendingOpenChatTarget
+                                                if (!prevTarget.isNullOrBlank()) {
+                                                    ConnectoNotificationManager.cancelConversationNotification(prevTarget)
+                                                }
                                                 MainActivity.pendingOpenChatTarget = null
                                             },
                                             scrollToTopTrigger = messagesScrollToTopTrigger

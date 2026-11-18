@@ -30,8 +30,8 @@ class VoiceCallForegroundService : Service() {
     companion object {
         private const val TAG = "VoiceCallService"
         const val NOTIFICATION_ID = 8801
-        const val CHANNEL_ID = "connecto_active_call_channel"
-        const val CHANNEL_NAME = "Active Voice Call"
+        const val CHANNEL_ID = "connecto_active_call_service"
+        const val CHANNEL_NAME = "Active Call Status"
 
         const val ACTION_START = "com.example.connecto.voice.START_CALL_SERVICE"
         const val ACTION_STOP = "com.example.connecto.voice.STOP_CALL_SERVICE"
@@ -275,6 +275,7 @@ class VoiceCallForegroundService : Service() {
     }
 
     private fun buildCallNotification(): Notification {
+        val callStartWallTime = System.currentTimeMillis() - (currentDurationSec * 1000L)
         val formattedTime = formatDuration(currentDurationSec)
         val subtitle = "$formattedTime • ${if (isMuted) "Muted 🔇" else "Microphone Active 🎙️"} • Tap to return"
 
@@ -312,18 +313,32 @@ class VoiceCallForegroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val partnerName = currentPartner?.ifBlank { null } ?: currentTitle
+        val callerPerson = androidx.core.app.Person.Builder()
+            .setName(partnerName)
+            .setImportant(true)
+            .build()
+
+        val callStyle = NotificationCompat.CallStyle.forOngoingCall(
+            callerPerson,
+            endCallPendingIntent
+        )
+
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("📞 $currentTitle")
+            .setStyle(callStyle)
+            .setContentTitle(partnerName)
             .setContentText(subtitle)
             .setContentIntent(contentPendingIntent)
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setColor(0xFF2563EB.toInt())
+            .setColor(0xFF10B981.toInt())
+            .setUsesChronometer(true)
+            .setWhen(callStartWallTime)
+            .setShowWhen(true)
             .addAction(android.R.drawable.ic_lock_silent_mode, muteTitle, mutePendingIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "End Call 🔴", endCallPendingIntent)
 
         return builder.build()
     }

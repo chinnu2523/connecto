@@ -38,14 +38,21 @@ import android.util.LruCache
 import java.text.SimpleDateFormat
 import java.util.Locale
 import com.example.connecto.voice.CallActionReceiver
+import java.util.concurrent.ConcurrentHashMap
 
 object ConnectoNotificationManager {
     private const val TAG = "ConnectoNotifManager"
     private val avatarMemoryCache = LruCache<String, Bitmap>(64)
 
-    // Notification Channel IDs
-    const val CHANNEL_CALLS = "connecto_voice_calls_v2"
-    const val CHANNEL_MESSAGES = "connecto_messages_v4"
+    // 4 Canonical Carrier-Grade Notification Channel IDs
+    const val CHANNEL_DIRECT_MESSAGES = "connecto_direct_messages"
+    const val CHANNEL_CHANNELS_GROUPS = "connecto_channels_groups"
+    const val CHANNEL_INCOMING_CALLS = "connecto_incoming_calls"
+    const val CHANNEL_ACTIVE_CALL_SERVICE = "connecto_active_call_service"
+
+    // Backward-compatible channel aliases
+    const val CHANNEL_CALLS = CHANNEL_INCOMING_CALLS
+    const val CHANNEL_MESSAGES = CHANNEL_DIRECT_MESSAGES
     const val CHANNEL_SOCIAL = "connecto_social_v2"
 
     // Action Intents
@@ -65,6 +72,25 @@ object ConnectoNotificationManager {
     const val NOTIFICATION_ID_CALL = 7001
     const val NOTIFICATION_ID_MESSAGE = 7002
     const val NOTIFICATION_ID_SOCIAL = 7003
+
+    @Volatile
+    var isAppInForeground: Boolean = false
+
+    @Volatile
+    var currentActiveConversationId: String? = null
+
+    data class NotificationMessageItem(
+        val messageId: String,
+        val text: String,
+        val timestamp: Long,
+        val senderName: String,
+        val senderUsername: String,
+        val senderAvatarUrl: String?,
+        val isMe: Boolean
+    )
+
+    // Active unread conversation threads in notification shade (conversationId -> List of messages)
+    val activeThreadMessages = ConcurrentHashMap<String, MutableList<NotificationMessageItem>>()
 
     private var appContext: Context? = null
 
@@ -87,6 +113,62 @@ object ConnectoNotificationManager {
         return false
     }
 
+    fun isCurrentConversationActive(conversationId: String?, senderUsername: String? = null): Boolean {
+        val active = currentActiveConversationId?.trim()?.lowercase() ?: return false
+        val cleanConv = conversationId?.trim()?.lowercase()?.removePrefix("@")?.removePrefix("#") ?: ""
+        val cleanSender = senderUsername?.trim()?.lowercase()?.removePrefix("@")
+        if (cleanConv.isNotBlank() && active == cleanConv) return true
+        if (cleanSender != null && (active == cleanSender || active.contains(cleanSender) || cleanConv.contains(active))) return true
+        if (active.startsWith("dm-") && cleanSender != null && active.contains(cleanSender)) return true
+        return false
+    }
+
+    fun isConversationMuted(context: Context, conversationId: String?, senderUsername: String? = null): Boolean {
+        val prefs = context.getSharedPreferences("connecto_notification_prefs", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("dnd_enabled", false)) return true
+        val cleanConv = conversationId?.trim()?.lowercase()?.removePrefix("#")?.removePrefix("@") ?: ""
+        val cleanSender = senderUsername?.trim()?.lowercase()?.removePrefix("@")
+        val muted = prefs.getStringSet("muted_channels", emptySet()) ?: emptySet()
+        return muted.any { m ->
+            val c = m.trim().lowercase().removePrefix("#").removePrefix("@")
+            (cleanConv.isNotBlank() && c == cleanConv) || (cleanSender != null && c == cleanSender)
+        }
+    }
+
+    fun isConversationLocked(context: Context, conversationId: String?, senderUsername: String? = null): Boolean {
+        val friendPrefs = context.getSharedPreferences("connecto_friend_prefs", Context.MODE_PRIVATE)
+        val myUsername = (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+        val cleanConv = conversationId?.trim()?.lowercase()?.removePrefix("#")?.removePrefix("@")?.removePrefix("dm-") ?: ""
+        val cleanSender = senderUsername?.trim()?.lowercase()?.removePrefix("@")
+
+        val keysToCheck = mutableListOf(
+            "chat_locked_$cleanConv",
+            "${myUsername}_chat_locked_$cleanConv"
+        )
+        if (!cleanSender.isNullOrBlank()) {
+            keysToCheck.add("chat_locked_$cleanSender")
+            keysToCheck.add("${myUsername}_chat_locked_$cleanSender")
+        }
+        return keysToCheck.any { friendPrefs.getBoolean(it, false) }
+    }
+
+    fun getConversationNotificationId(conversationId: String): Int {
+        val clean = conversationId.trim().lowercase().removePrefix("#")
+        return NOTIFICATION_ID_MESSAGE + (Math.abs(clean.hashCode()) % 10000)
+    }
+
+    fun cancelConversationNotification(conversationId: String?) {
+        val context = appContext ?: return
+        if (conversationId.isNullOrBlank()) return
+        val clean = conversationId.trim().lowercase().removePrefix("#")
+        activeThreadMessages.remove(clean)
+        val notifId = getConversationNotificationId(clean)
+        try {
+            NotificationManagerCompat.from(context).cancel(notifId)
+            Log.d(TAG, "Canceled notification for conversation: $clean (id=$notifId)")
+        } catch (_: Exception) {}
+    }
+
     fun init(context: Context) {
         appContext = context.applicationContext
         createNotificationChannels()
@@ -103,33 +185,21 @@ object ConnectoNotificationManager {
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                 .build()
 
-            // 1. Calls Channel (High importance, vibration, heads-up banner)
-            val callsChannel = NotificationChannel(
-                CHANNEL_CALLS,
-                "Voice & Video Calls",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Incoming 1:1 voice calls and war room alerts"
-                enableVibration(true)
-                vibrationPattern = longArrayOf(0, 500, 250, 500, 250, 500)
-                setSound(callSoundUri, callAudioAttributes)
-                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
-                setShowBadge(true)
-            }
-
-            // 2. Messages Channel (High importance, heads-up banner, vibration, sound)
-            val notifSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val selectedSoundId = NotificationPreferences.getSelectedSoundId(context)
+            val notifSoundUri = NotificationSoundManager.getSoundUri(context, selectedSoundId)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             val notifAudioAttributes = AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_INSTANT)
                 .build()
 
-            val messagesChannel = NotificationChannel(
-                CHANNEL_MESSAGES,
-                "Chat Messages & Mentions",
+            // 1. Direct Messages Channel (IMPORTANCE_HIGH, heads-up enabled, vibration + user's sound preference)
+            val directMessagesChannel = NotificationChannel(
+                CHANNEL_DIRECT_MESSAGES,
+                "Direct Messages",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Direct messages, channel mentions, and squad pings"
+                description = "Direct 1-on-1 private messages and alerts"
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 250, 200, 250)
                 setSound(notifSoundUri, notifAudioAttributes)
@@ -139,7 +209,53 @@ object ConnectoNotificationManager {
                 setShowBadge(true)
             }
 
-            // 3. Social Channel
+            // 2. Channels & Groups Channel (IMPORTANCE_HIGH, grouped by channel/group ID)
+            val channelsGroupsChannel = NotificationChannel(
+                CHANNEL_CHANNELS_GROUPS,
+                "Channels & Groups",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Workspace channels, mentions, and squad group alerts"
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 250, 200, 250)
+                setSound(notifSoundUri, notifAudioAttributes)
+                enableLights(true)
+                lightColor = 0xFF6C5CE7.toInt()
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+                setShowBadge(true)
+            }
+
+            // 3. Incoming Voice Calls Channel (IMPORTANCE_MAX, CATEGORY_CALL, looping ringtone attributes, bypass DND)
+            val incomingCallsChannel = NotificationChannel(
+                CHANNEL_INCOMING_CALLS,
+                "Incoming Calls",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Incoming 1-on-1 and group voice call alerts"
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 1000, 800, 1000, 800)
+                setSound(callSoundUri, callAudioAttributes)
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+                setShowBadge(true)
+                try {
+                    setBypassDnd(true)
+                } catch (_: Exception) {}
+            }
+
+            // 4. Active Voice Call Foreground Service Channel (IMPORTANCE_LOW, no sound/vibration, persistent)
+            val activeCallServiceChannel = NotificationChannel(
+                CHANNEL_ACTIVE_CALL_SERVICE,
+                "Active Call Status",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Ongoing Connecto voice calls and live room audio status"
+                setShowBadge(false)
+                enableVibration(false)
+                setSound(null, null)
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+            }
+
+            // 5. Social & Friends Channel
             val socialChannel = NotificationChannel(
                 CHANNEL_SOCIAL,
                 "Friend Requests & Activity",
@@ -150,9 +266,15 @@ object ConnectoNotificationManager {
                 setShowBadge(true)
             }
 
-            val channelsToRegister = mutableListOf(callsChannel, messagesChannel, socialChannel)
+            val channelsToRegister = mutableListOf(
+                directMessagesChannel,
+                channelsGroupsChannel,
+                incomingCallsChannel,
+                activeCallServiceChannel,
+                socialChannel
+            )
 
-            // Register dedicated channels for custom trending notification sounds (especially Faah)
+            // Register dedicated channels for custom trending notification sounds (Faah, Chin Tapak, etc.)
             NotificationSoundManager.TRENDING_SOUNDS.forEach { sound ->
                 if (sound.id != "system_default") {
                     val sChannelId = "connecto_msg_channel_${sound.id}"
@@ -178,20 +300,22 @@ object ConnectoNotificationManager {
             }
 
             notificationManager.createNotificationChannels(channelsToRegister)
-            Log.d(TAG, "Notification channels registered successfully (including trending sound channels)")
+            Log.d(TAG, "Notification channels registered successfully (direct messages, channels/groups, calls, active service)")
         }
     }
 
-    fun getOrCreateMessageChannelForSound(context: Context, soundId: String): String {
+    fun getOrCreateMessageChannelForSound(context: Context, soundId: String, isDm: Boolean = true): String {
+        val defaultChannel = if (isDm) CHANNEL_DIRECT_MESSAGES else CHANNEL_CHANNELS_GROUPS
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-                ?: return CHANNEL_MESSAGES
+                ?: return defaultChannel
 
             if (soundId == "system_default") {
-                return CHANNEL_MESSAGES
+                return defaultChannel
             }
 
-            val channelId = "connecto_msg_channel_$soundId"
+            val prefix = if (isDm) "connecto_dm" else "connecto_grp"
+            val channelId = "${prefix}_msg_channel_$soundId"
             val existingChannel = notificationManager.getNotificationChannel(channelId)
             if (existingChannel != null) {
                 return channelId
@@ -207,9 +331,10 @@ object ConnectoNotificationManager {
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_INSTANT)
                 .build()
 
+            val channelName = if (isDm) "Direct Messages ($soundName)" else "Channels & Groups ($soundName)"
             val channel = NotificationChannel(
                 channelId,
-                "Chat Messages ($soundName)",
+                channelName,
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Chat messages with $soundName sound alert"
@@ -225,7 +350,7 @@ object ConnectoNotificationManager {
             notificationManager.createNotificationChannel(channel)
             return channelId
         }
-        return CHANNEL_MESSAGES
+        return defaultChannel
     }
 
     private fun hasNotificationPermission(): Boolean {
@@ -237,18 +362,31 @@ object ConnectoNotificationManager {
         }
     }
 
-    fun shouldShowNotification(channelOrDmId: String? = null): Boolean {
+    fun shouldShowNotification(channelOrDmId: String? = null, senderUsername: String? = null): Boolean {
         val context = appContext ?: return true
+
+        // 0. Check Foreground Suppression: suppress if app is in foreground and viewing this conversation
+        if (isCurrentConversationActive(channelOrDmId, senderUsername)) {
+            Log.d(TAG, "Notification suppressed: App is in foreground viewing $channelOrDmId / $senderUsername")
+            return false
+        }
+
+        // 1. Check Mute Status (both Chat & Lock toggle and global muted list)
+        if (isConversationMuted(context, channelOrDmId, senderUsername)) {
+            Log.d(TAG, "Notification suppressed: Conversation $channelOrDmId / $senderUsername is muted")
+            return false
+        }
+
         val prefs = context.getSharedPreferences("connecto_notification_prefs", Context.MODE_PRIVATE)
 
-        // 1. Check Do Not Disturb (DND)
+        // 2. Check Do Not Disturb (DND)
         val dndEnabled = prefs.getBoolean("dnd_enabled", false)
         if (dndEnabled) {
             Log.d(TAG, "Notification suppressed: DND is enabled")
             return false
         }
 
-        // 2. Check Quiet Hours
+        // 3. Check Quiet Hours
         val quietHoursEnabled = prefs.getBoolean("quiet_hours_enabled", false)
         if (quietHoursEnabled) {
             val startHour = prefs.getInt("quiet_hours_start_hour", 22)
@@ -273,7 +411,7 @@ object ConnectoNotificationManager {
             }
         }
 
-        // 3. Check Muted Channels / DMs
+        // 4. Check Muted Channels / DMs from legacy prefs
         if (!channelOrDmId.isNullOrBlank()) {
             val cleanId = channelOrDmId.trim().lowercase().removePrefix("#").removePrefix("@")
             val muted = prefs.getStringSet("muted_channels", emptySet()) ?: emptySet()
@@ -652,20 +790,38 @@ object ConnectoNotificationManager {
         messageText: String,
         channelOrDmId: String,
         senderAvatar: String? = null,
-        senderUsername: String? = null
+        senderUsername: String? = null,
+        messageId: String? = null
     ) {
         val context = appContext ?: return
         if (!hasNotificationPermission()) return
-        if (!shouldShowNotification(channelOrDmId)) return
+        if (!shouldShowNotification(channelOrDmId, senderUsername ?: senderName)) return
 
         val cleanSenderKey = (senderUsername ?: senderName).trim().lowercase().removePrefix("@")
-        val cleanChKey = channelOrDmId.trim().lowercase().removePrefix("dm-").removePrefix("dm_").removePrefix("#")
+        val isDm = channelOrDmId.startsWith("dm-") || channelOrDmId.startsWith("dm_") ||
+            (!channelOrDmId.contains("#") && !channelOrDmId.startsWith("grp-") && !channelOrDmId.startsWith("group-") && !channelOrDmId.startsWith("grp_"))
+
+        // In Android MessagingStyle, user is the CURRENT (local) user; senderPerson is the remote sender
+        val myUsername = (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "").trim().removePrefix("@").lowercase()
+        val myDisplayName = (com.example.connecto.network.ConnectoApiClient.currentUserDisplayName ?: "").ifBlank { myUsername.ifEmpty { "Me" } }
+
+        val conversationId = if (isDm) {
+            if (myUsername.isNotBlank() && cleanSenderKey.isNotBlank()) "dm-${minOf(myUsername, cleanSenderKey)}-${maxOf(myUsername, cleanSenderKey)}"
+            else cleanSenderKey
+        } else {
+            channelOrDmId.trim().lowercase().removePrefix("#")
+        }
+
         val cleanText = messageText.trim()
-        val notifSig = "${cleanSenderKey}_${cleanChKey}_$cleanText"
+        val notifSig = "${cleanSenderKey}_${conversationId}_$cleanText"
         if (hasRecentlyNotified(notifSig)) {
             Log.d(TAG, "Suppressed duplicate notification for: $notifSig")
             return
         }
+
+        val isLocked = isConversationLocked(context, channelOrDmId, cleanSenderKey)
+        val notifId = getConversationNotificationId(conversationId)
+        val actualMsgId = messageId?.ifBlank { null } ?: "notif_msg_${System.currentTimeMillis()}_${cleanText.hashCode()}"
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -677,98 +833,154 @@ object ConnectoNotificationManager {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     putExtra(EXTRA_NOTIFICATION_ACTION, ACTION_OPEN_CHAT)
                     putExtra(EXTRA_CHANNEL_ID, channelOrDmId)
+                    putExtra("extra_friend_username", cleanSenderKey)
+                    putExtra("extra_is_group", !isDm)
                     putExtra(EXTRA_INTERNAL_SOURCE, true) // SEC-08 FIX: Mark as trusted internal notification
                 }
                 val pendingIntent = PendingIntent.getActivity(
                     context,
-                    201,
+                    notifId,
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
 
-                val isDm = channelOrDmId.startsWith("dm-") || channelOrDmId.startsWith("dm_") || !channelOrDmId.contains("#")
-                val subText = if (isDm) "Connecto • DM" else "Connecto • #${channelOrDmId.removePrefix("#")}"
+                val selectedSoundId = NotificationPreferences.getSelectedSoundId(context)
+                val targetChannelId = getOrCreateMessageChannelForSound(context, selectedSoundId, isDm)
+                val soundUri = NotificationSoundManager.getSoundUri(context, selectedSoundId)
+                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                val vibrationPattern = longArrayOf(0, 250, 200, 250)
 
-                // In Android MessagingStyle, user is the CURRENT (local) user; senderPerson is the remote sender.
-                val myUsername = (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "").trim().removePrefix("@")
-                val myDisplayName = (com.example.connecto.network.ConnectoApiClient.currentUserDisplayName ?: "").ifBlank { myUsername.ifEmpty { "Me" } }
+                // Biometric Lock Chat Session Privacy Redaction
+                if (isLocked) {
+                    val lockedTitle = "Connecto"
+                    val lockedBody = "🔒 Locked chat • New encrypted message"
+                    val lockedSubText = "🔒 End-to-End Encrypted"
+
+                    val markReadIntent = Intent(context, DirectReplyReceiver::class.java).apply {
+                        action = DirectReplyReceiver.ACTION_MARK_AS_READ
+                        putExtra(EXTRA_CHANNEL_ID, channelOrDmId)
+                        putExtra("extra_sender_username", cleanSenderKey)
+                        putExtra("extra_notification_id", notifId)
+                        putExtra("extra_conversation_id", conversationId)
+                    }
+                    val markReadPendingIntent = PendingIntent.getBroadcast(
+                        context,
+                        notifId + 20,
+                        markReadIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    val markReadAction = NotificationCompat.Action.Builder(
+                        android.R.drawable.checkbox_on_background,
+                        "Mark as read",
+                        markReadPendingIntent
+                    ).build()
+
+                    val lockedBuilder = NotificationCompat.Builder(context, targetChannelId)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle(lockedTitle)
+                        .setContentText(lockedBody)
+                        .setSubText(lockedSubText)
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                        .setAutoCancel(true)
+                        .setContentIntent(pendingIntent)
+                        .setColor(0xFF10B981.toInt())
+                        .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                        .setGroup(conversationId)
+                        .setSound(soundUri)
+                        .setVibrate(vibrationPattern)
+                        .addAction(markReadAction) // Inline Reply is strictly disabled for locked chats!
+
+                    val publicNotif = NotificationCompat.Builder(context, targetChannelId)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle("Connecto")
+                        .setContentText("🔒 Locked chat • New encrypted message")
+                        .build()
+                    lockedBuilder.setPublicVersion(publicNotif)
+
+                    NotificationManagerCompat.from(context).notify(notifId, lockedBuilder.build())
+                    Log.d(TAG, "Posted redacted locked chat notification for conversation: $conversationId")
+                    return@launch
+                }
+
+                // Normal Active / Unlocked Chat: Rich MessagingStyle with thread grouping
+                val threadList = activeThreadMessages.getOrPut(conversationId) {
+                    java.util.Collections.synchronizedList(mutableListOf())
+                }
+
+                synchronized(threadList) {
+                    if (threadList.isEmpty()) {
+                        // Prepopulate recent history from SQLite DB
+                        try {
+                            val dbHelper = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context)
+                            val recentDb = if (isDm) {
+                                dbHelper.getDirectMessages(myUsername, cleanSenderKey, limit = 5)
+                            } else {
+                                dbHelper.getMessagesForChannel(channelOrDmId, limit = 5)
+                            }
+                            recentDb.sortedBy { it.createdAt }.takeLast(4).forEach { dbMsg ->
+                                if (dbMsg.id != actualMsgId && dbMsg.content.trim() != cleanText) {
+                                    val isMe = dbMsg.authorId.equals(myUsername, ignoreCase = true) || dbMsg.authorName.equals(myUsername, ignoreCase = true)
+                                    val ts = try {
+                                        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+                                        sdf.parse(dbMsg.createdAt.substringBefore("."))?.time ?: System.currentTimeMillis()
+                                    } catch (_: Exception) { System.currentTimeMillis() }
+                                    threadList.add(
+                                        NotificationMessageItem(
+                                            messageId = dbMsg.id,
+                                            text = dbMsg.content,
+                                            timestamp = ts,
+                                            senderName = dbMsg.authorName.ifBlank { senderName },
+                                            senderUsername = dbMsg.authorId.lowercase().removePrefix("@"),
+                                            senderAvatarUrl = dbMsg.authorAvatar,
+                                            isMe = isMe
+                                        )
+                                    )
+                                }
+                            }
+                        } catch (_: Exception) {}
+                    }
+
+                    // Append current message
+                    threadList.add(
+                        NotificationMessageItem(
+                            messageId = actualMsgId,
+                            text = cleanText,
+                            timestamp = System.currentTimeMillis(),
+                            senderName = senderName,
+                            senderUsername = cleanSenderKey,
+                            senderAvatarUrl = senderAvatar,
+                            isMe = false
+                        )
+                    )
+                    while (threadList.size > 5) {
+                        threadList.removeAt(0)
+                    }
+                }
 
                 val localUser = Person.Builder()
                     .setName(myDisplayName)
                     .setKey(myUsername.ifEmpty { "self" })
                     .build()
 
-                val senderPersonKey = (senderUsername ?: senderName).trim().lowercase().removePrefix("@")
-                val senderPerson = Person.Builder()
-                    .setName(senderName)
-                    .setKey(senderPersonKey.ifBlank { "sender" })
-                    .setIcon(IconCompat.createWithBitmap(avatarBitmap))
-                    .build()
-
-                val dbHelper = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context)
-                val recentMessages = try {
-                    if (isDm) {
-                        dbHelper.getDirectMessages(myUsername, senderPersonKey, limit = 5)
-                    } else {
-                        dbHelper.getMessagesForChannel(channelOrDmId, limit = 5)
-                    }
-                } catch (_: Exception) {
-                    emptyList()
-                }
-
                 val messagingStyle = NotificationCompat.MessagingStyle(localUser)
                     .setConversationTitle(if (isDm) null else "#${channelOrDmId.removePrefix("#")}")
                     .setGroupConversation(!isDm)
 
-                // Build history messages in chronological order (oldest to newest)
-                // Filter out the incoming message and deduplicate to guarantee zero duplicate lines
-                val cleanIncoming = messageText.trim()
-                val historyList = if (recentMessages.isNotEmpty()) {
-                    recentMessages.sortedBy { it.createdAt }
-                        .filter { m ->
-                            val c = m.content.trim()
-                            c != cleanIncoming && com.example.connecto.ui.screens.cleanMessageContentForDisplay(c, "") != cleanIncoming
+                synchronized(threadList) {
+                    for (item in threadList) {
+                        val person = if (item.isMe) localUser else {
+                            Person.Builder()
+                                .setName(item.senderName)
+                                .setKey(item.senderUsername.lowercase().removePrefix("@"))
+                                .setIcon(IconCompat.createWithBitmap(avatarBitmap))
+                                .build()
                         }
-                        .distinctBy { "${it.authorId}_${it.content.trim()}" }
-                        .takeLast(4)
-                } else emptyList()
-
-                historyList.forEach { m ->
-                    val isMe = m.authorId.equals(myUsername, ignoreCase = true) || m.authorName.equals(myUsername, ignoreCase = true)
-                    val authorPerson = if (isMe) localUser else {
-                        Person.Builder()
-                            .setName(m.authorName.ifBlank { senderName })
-                            .setKey(m.authorId.lowercase().removePrefix("@"))
-                            .setIcon(IconCompat.createWithBitmap(avatarBitmap))
-                            .build()
+                        messagingStyle.addMessage(item.text, item.timestamp, person)
                     }
-                    val ts = try {
-                        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-                        sdf.parse(m.createdAt.substringBefore("."))?.time ?: System.currentTimeMillis()
-                    } catch (_: Exception) {
-                        System.currentTimeMillis()
-                    }
-                    messagingStyle.addMessage(m.content, ts, authorPerson)
                 }
 
-                // ALWAYS append the actual current incoming message as the latest message in messagingStyle
-                messagingStyle.addMessage(messageText, System.currentTimeMillis(), senderPerson)
-
-                val isContentHidden = NotificationPreferences.isHideContentEnabled(context)
-                val displayTitle = if (isContentHidden) "Connecto" else senderName
-                val displayMessage = if (isContentHidden) "New message received" else messageText
-                val displaySubText = if (isContentHidden) "Connecto • Private" else subText
-
-                val canonicalNotifKey = if (isDm) {
-                    val myU = myUsername.lowercase()
-                    if (myU.isNotBlank() && cleanSenderKey.isNotBlank()) "dm-${minOf(myU, cleanSenderKey)}-${maxOf(myU, cleanSenderKey)}"
-                    else cleanSenderKey
-                } else {
-                    channelOrDmId.trim().lowercase().removePrefix("#")
-                }
-                val notifId = NOTIFICATION_ID_MESSAGE + (Math.abs(canonicalNotifKey.hashCode()) % 1000)
-
-                // Inline Direct Reply RemoteInput (just like WhatsApp)
+                // Inline Direct Reply RemoteInput
                 val remoteInput = androidx.core.app.RemoteInput.Builder(DirectReplyReceiver.KEY_TEXT_REPLY)
                     .setLabel("Reply to $senderName...")
                     .build()
@@ -778,8 +990,9 @@ object ConnectoNotificationManager {
                     action = DirectReplyReceiver.ACTION_DIRECT_REPLY
                     putExtra(EXTRA_CHANNEL_ID, channelOrDmId)
                     putExtra("extra_sender_name", senderName)
-                    putExtra("extra_sender_username", senderUsername ?: senderName)
+                    putExtra("extra_sender_username", cleanSenderKey)
                     putExtra("extra_notification_id", notifId)
+                    putExtra("extra_conversation_id", conversationId)
                 }
                 val replyPendingIntent = PendingIntent.getBroadcast(
                     context,
@@ -799,8 +1012,9 @@ object ConnectoNotificationManager {
                 val markReadIntent = Intent(context, DirectReplyReceiver::class.java).apply {
                     action = DirectReplyReceiver.ACTION_MARK_AS_READ
                     putExtra(EXTRA_CHANNEL_ID, channelOrDmId)
-                    putExtra("extra_sender_username", senderUsername ?: senderName)
+                    putExtra("extra_sender_username", cleanSenderKey)
                     putExtra("extra_notification_id", notifId)
+                    putExtra("extra_conversation_id", conversationId)
                 }
                 val markReadPendingIntent = PendingIntent.getBroadcast(
                     context,
@@ -814,74 +1028,198 @@ object ConnectoNotificationManager {
                     markReadPendingIntent
                 ).build()
 
-                val selectedSoundId = NotificationPreferences.getSelectedSoundId(context)
-                val targetChannelId = getOrCreateMessageChannelForSound(context, selectedSoundId)
-                val soundUri = NotificationSoundManager.getSoundUri(context, selectedSoundId)
-                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                val vibrationPattern = longArrayOf(0, 250, 200, 250)
-
                 val builder = NotificationCompat.Builder(context, targetChannelId)
                     .setSmallIcon(R.mipmap.ic_launcher)
                     .setLargeIcon(avatarBitmap)
-                    .setContentTitle(displayTitle)
-                    .setSubText(displaySubText)
-                    .setContentText(displayMessage)
+                    .setStyle(messagingStyle)
                     .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setCategory(NotificationCompat.CATEGORY_MESSAGE)
                     .setAutoCancel(true)
                     .setContentIntent(pendingIntent)
-                    .setColor(0xFF6C5CE7.toInt()) // Connecto Brand Accent Purple
-                    .setVisibility(if (isContentHidden) NotificationCompat.VISIBILITY_PRIVATE else NotificationCompat.VISIBILITY_PUBLIC)
-                    .setDefaults(NotificationCompat.DEFAULT_LIGHTS)
+                    .setColor(0xFF6C5CE7.toInt())
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setGroup(conversationId)
                     .setSound(soundUri)
                     .setVibrate(vibrationPattern)
                     .addAction(replyAction)
                     .addAction(markReadAction)
 
-                if (isDm && !isContentHidden) {
-                    try {
-                        val shortcutId = "dm_${senderPersonKey.ifBlank { "user" }}"
-                        val shortcutIntent = Intent(Intent.ACTION_VIEW).apply {
-                            setClass(context, MainActivity::class.java)
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                            putExtra(EXTRA_NOTIFICATION_ACTION, ACTION_OPEN_CHAT)
-                            putExtra(EXTRA_CHANNEL_ID, channelOrDmId)
-                            putExtra(EXTRA_INTERNAL_SOURCE, true) // SEC-08 FIX
-                        }
-                        val shortcut = ShortcutInfoCompat.Builder(context, shortcutId)
-                            .setShortLabel(senderName)
-                            .setLongLabel(senderName)
-                            .setIcon(IconCompat.createWithBitmap(avatarBitmap))
-                            .setIntent(shortcutIntent)
-                            .setLongLived(true)
-                            .setPerson(senderPerson)
-                            .build()
-                        ShortcutManagerCompat.pushDynamicShortcut(context, shortcut)
-                        builder.setShortcutId(shortcutId)
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to push conversation shortcut: ${e.message}", e)
-                    }
-                }
-
-                if (!isContentHidden) {
-                    builder.setStyle(messagingStyle)
-                } else {
-                    val publicNotif = NotificationCompat.Builder(context, targetChannelId)
-                        .setSmallIcon(R.mipmap.ic_launcher)
-                        .setContentTitle("Connecto")
-                        .setContentText("New message received")
-                        .build()
-                    builder.setPublicVersion(publicNotif)
-                }
-
                 val notification = builder.build()
                 NotificationManagerCompat.from(context).notify(notifId, notification)
-                Log.d(TAG, "Message notification posted with heads-up banner & reply for: $senderName (notifId=$notifId)")
+                Log.d(TAG, "MessagingStyle notification posted for $conversationId (notifId=$notifId, msgs=${threadList.size})")
 
-                // Play chosen trending notification sound
                 NotificationSoundManager.playNotificationSound(context)
             } catch (t: Throwable) {
                 Log.e(TAG, "Failed to post message notification: ${t.message}", t)
+            }
+        }
+    }
+
+    fun onInlineReplySubmitted(conversationId: String, replyText: String, notifId: Int) {
+        val context = appContext ?: return
+        val cleanConv = conversationId.trim().lowercase().removePrefix("#")
+        val threadList = activeThreadMessages.getOrPut(cleanConv) {
+            java.util.Collections.synchronizedList(mutableListOf())
+        }
+        val myUsername = (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "").trim().removePrefix("@").lowercase()
+
+        synchronized(threadList) {
+            threadList.add(
+                NotificationMessageItem(
+                    messageId = "reply_${System.currentTimeMillis()}",
+                    text = replyText,
+                    timestamp = System.currentTimeMillis(),
+                    senderName = "You",
+                    senderUsername = myUsername.ifEmpty { "self" },
+                    senderAvatarUrl = null,
+                    isMe = true
+                )
+            )
+            while (threadList.size > 5) {
+                threadList.removeAt(0)
+            }
+        }
+        reissueMessagingNotification(context, cleanConv, notifId, setOnlyAlertOnce = true)
+    }
+
+    fun onMessageDeleted(messageId: String) {
+        val context = appContext ?: return
+        if (messageId.isBlank()) return
+
+        var targetConvId: String? = null
+        for ((convId, list) in activeThreadMessages) {
+            val removed = synchronized(list) {
+                list.removeAll { it.messageId == messageId }
+            }
+            if (removed) {
+                targetConvId = convId
+                break
+            }
+        }
+
+        val convId = targetConvId ?: return
+        val notifId = getConversationNotificationId(convId)
+        val list = activeThreadMessages[convId]
+
+        if (list.isNullOrEmpty()) {
+            activeThreadMessages.remove(convId)
+            try {
+                NotificationManagerCompat.from(context).cancel(notifId)
+                Log.d(TAG, "Unsent message removed; notification tray cleared for $convId")
+            } catch (_: Exception) {}
+        } else {
+            reissueMessagingNotification(context, convId, notifId, setOnlyAlertOnce = true)
+            Log.d(TAG, "Unsent message removed; notification updated in-place for $convId")
+        }
+    }
+
+    fun onMessageUpdated(messageId: String, newContent: String) {
+        val context = appContext ?: return
+        if (messageId.isBlank() || newContent.isBlank()) return
+
+        var targetConvId: String? = null
+        for ((convId, list) in activeThreadMessages) {
+            var found = false
+            synchronized(list) {
+                for (i in list.indices) {
+                    if (list[i].messageId == messageId) {
+                        list[i] = list[i].copy(text = newContent)
+                        found = true
+                        break
+                    }
+                }
+            }
+            if (found) {
+                targetConvId = convId
+                break
+            }
+        }
+
+        val convId = targetConvId ?: return
+        val notifId = getConversationNotificationId(convId)
+        reissueMessagingNotification(context, convId, notifId, setOnlyAlertOnce = true)
+        Log.d(TAG, "Edited message updated in notification tray for $convId")
+    }
+
+    private fun reissueMessagingNotification(
+        context: Context,
+        conversationId: String,
+        notifId: Int,
+        setOnlyAlertOnce: Boolean = true
+    ) {
+        val threadList = activeThreadMessages[conversationId] ?: return
+        if (threadList.isEmpty()) {
+            NotificationManagerCompat.from(context).cancel(notifId)
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val isDm = conversationId.startsWith("dm-") || conversationId.startsWith("dm_") || !conversationId.contains("#")
+                val myUsername = (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "").trim().removePrefix("@").lowercase()
+                val myDisplayName = (com.example.connecto.network.ConnectoApiClient.currentUserDisplayName ?: "").ifBlank { myUsername.ifEmpty { "Me" } }
+
+                val localUser = Person.Builder()
+                    .setName(myDisplayName)
+                    .setKey(myUsername.ifEmpty { "self" })
+                    .build()
+
+                val messagingStyle = NotificationCompat.MessagingStyle(localUser)
+                    .setConversationTitle(if (isDm) null else "#${conversationId.removePrefix("#")}")
+                    .setGroupConversation(!isDm)
+
+                val firstSender = synchronized(threadList) {
+                    threadList.firstOrNull { !it.isMe } ?: threadList.firstOrNull()
+                }
+                val senderName = firstSender?.senderName ?: "Friend"
+                val avatarBitmap = fetchAvatarBitmap(firstSender?.senderAvatarUrl, senderName, firstSender?.senderUsername)
+                    ?: createBadgedAvatarBitmap(context, createMonogramBitmap(senderName))
+
+                synchronized(threadList) {
+                    for (item in threadList) {
+                        val person = if (item.isMe) localUser else {
+                            Person.Builder()
+                                .setName(item.senderName)
+                                .setKey(item.senderUsername.lowercase().removePrefix("@"))
+                                .setIcon(IconCompat.createWithBitmap(avatarBitmap))
+                                .build()
+                        }
+                        messagingStyle.addMessage(item.text, item.timestamp, person)
+                    }
+                }
+
+                val selectedSoundId = NotificationPreferences.getSelectedSoundId(context)
+                val targetChannelId = getOrCreateMessageChannelForSound(context, selectedSoundId, isDm)
+
+                val intent = Intent(context, MainActivity::class.java).apply {
+                    action = ACTION_OPEN_CHAT
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    putExtra(EXTRA_NOTIFICATION_ACTION, ACTION_OPEN_CHAT)
+                    putExtra(EXTRA_CHANNEL_ID, conversationId)
+                    putExtra(EXTRA_INTERNAL_SOURCE, true)
+                }
+                val pendingIntent = PendingIntent.getActivity(
+                    context,
+                    notifId,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+
+                val builder = NotificationCompat.Builder(context, targetChannelId)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setLargeIcon(avatarBitmap)
+                    .setStyle(messagingStyle)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                    .setAutoCancel(true)
+                    .setContentIntent(pendingIntent)
+                    .setColor(0xFF6C5CE7.toInt())
+                    .setGroup(conversationId)
+                    .setOnlyAlertOnce(setOnlyAlertOnce)
+
+                NotificationManagerCompat.from(context).notify(notifId, builder.build())
+            } catch (t: Throwable) {
+                Log.e(TAG, "Failed to reissue messaging notification: ${t.message}", t)
             }
         }
     }

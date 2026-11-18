@@ -1790,7 +1790,7 @@ object VoiceCallManager {
                         Log.d(TAG, "Received session_terminated event, but current session is the initiator or not targeted.")
                     }
                 }
-                "message_deleted", "delete_message" -> {
+                "message_deleted", "delete_message", "message_unsent", "unsend_message" -> {
                     val data = json.optJSONObject("data") ?: json.optJSONObject("payload") ?: json
                     val msgId = data.optString("message_id").ifEmpty { json.optString("message_id").ifEmpty { data.optString("id") } }
                     if (msgId.isNotBlank()) {
@@ -1802,10 +1802,11 @@ object VoiceCallManager {
                             }
                         }
                         _deletedMessageIds.tryEmit(msgId)
+                        com.example.connecto.notifications.ConnectoNotificationManager.onMessageDeleted(msgId)
                         Log.d(TAG, "Real-time message deleted event received via WebSocket: $msgId")
                     }
                 }
-                "message_edited", "edit_message" -> {
+                "message_edited", "edit_message", "message_updated" -> {
                     val data = json.optJSONObject("data") ?: json.optJSONObject("payload") ?: json
                     val msgObj = data.optJSONObject("message") ?: data
                     val msgId = msgObj.optString("id").ifEmpty { json.optString("message_id") }
@@ -1819,6 +1820,7 @@ object VoiceCallManager {
                             }
                         }
                         _editedMessages.tryEmit(MessageEditEvent(msgId, newContent))
+                        com.example.connecto.notifications.ConnectoNotificationManager.onMessageUpdated(msgId, newContent)
                         Log.d(TAG, "Real-time message edited event received via WebSocket: $msgId -> $newContent")
                     }
                 }

@@ -39,15 +39,20 @@ class DirectReplyReceiver : BroadcastReceiver() {
         val action = intent.action ?: return
         val channelOrDmId = intent.getStringExtra(ConnectoNotificationManager.EXTRA_CHANNEL_ID) ?: ""
         val senderUsername = intent.getStringExtra("extra_sender_username") ?: ""
+        val conversationId = intent.getStringExtra("extra_conversation_id") ?: channelOrDmId
         val notificationId = intent.getIntExtra("extra_notification_id", ConnectoNotificationManager.NOTIFICATION_ID_MESSAGE)
 
-        Log.d(TAG, "DirectReplyReceiver onReceive: action=$action channel=$channelOrDmId sender=$senderUsername notifId=$notificationId")
+        Log.d(TAG, "DirectReplyReceiver onReceive: action=$action channel=$channelOrDmId sender=$senderUsername notifId=$notificationId convId=$conversationId")
 
         when (action) {
             ACTION_MARK_AS_READ -> {
-                // Cancel notification and clear unread counts in local database
+                // Cancel notification immediately from tray
                 val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
                 notificationManager?.cancel(notificationId)
+                ConnectoNotificationManager.cancelConversationNotification(conversationId)
+                if (channelOrDmId.isNotBlank() && channelOrDmId != conversationId) {
+                    ConnectoNotificationManager.cancelConversationNotification(channelOrDmId)
+                }
 
                 receiverScope.launch {
                     try {
@@ -59,8 +64,13 @@ class DirectReplyReceiver : BroadcastReceiver() {
                                 context.getSharedPreferences(prefName, Context.MODE_PRIVATE)
                                     .edit()
                                     .putInt("unread_$cleanSender", 0)
+                                    .putBoolean("read_$cleanSender", true)
                                     .apply()
                             }
+                            try {
+                                ConnectoApiClient.initSessionFromPrefs(context)
+                                ConnectoApiClient.markDmRead(cleanSender)
+                            } catch (_: Exception) {}
                         }
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed to mark as read: ${e.message}")
@@ -85,16 +95,12 @@ class DirectReplyReceiver : BroadcastReceiver() {
                     Log.d(TAG, "Processing direct reply to $senderUsername ($channelOrDmId)")
                 }
 
-                // Update notification immediately to show "Sending..." feedback like WhatsApp
-                val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-                val feedbackNotification = NotificationCompat.Builder(context, ConnectoNotificationManager.CHANNEL_MESSAGES)
-                    .setSmallIcon(R.mipmap.ic_launcher)
-                    .setContentTitle(senderUsername.ifBlank { "Connecto" })
-                    .setContentText("Replied: $replyText")
-                    .setAutoCancel(true)
-                    .setColor(0xFF6C5CE7.toInt())
-                    .build()
-                notificationManager?.notify(notificationId, feedbackNotification)
+                // Append the user's own reply to the active MessagingStyle notification briefly
+                ConnectoNotificationManager.onInlineReplySubmitted(
+                    conversationId = conversationId,
+                    replyText = replyText,
+                    notifId = notificationId
+                )
 
                 receiverScope.launch {
                     try {
@@ -106,7 +112,7 @@ class DirectReplyReceiver : BroadcastReceiver() {
                         val cleanChannel = channelOrDmId.trim()
                         val targetChannel = cleanChannel.ifBlank { "dm-$cleanRecipient" }
 
-                        // Send DM via API
+                        // Send DM via background API
                         val sendResult = ConnectoApiClient.sendMessage(
                             channelId = targetChannel,
                             content = replyText
@@ -139,9 +145,11 @@ class DirectReplyReceiver : BroadcastReceiver() {
                             lastMessageTimestamp = System.currentTimeMillis()
                         )
 
-                        // Clear notification after small delay so user sees feedback
-                        kotlinx.coroutines.delay(1200L)
+                        // Dismiss cleanly once sent
+                        kotlinx.coroutines.delay(1400L)
+                        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
                         notificationManager?.cancel(notificationId)
+                        ConnectoNotificationManager.cancelConversationNotification(conversationId)
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to send direct reply: ${e.message}", e)
                     }

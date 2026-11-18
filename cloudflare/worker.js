@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.7.1",
-        version_name: "v5.7.1",
-        version_code: 178,
-        build: 178,
-        sha256: "01ec75c20979d28844ef9152ade7d6a58a84cb70b758492acf910cb055ad0f93",
+        version: "5.7.2",
+        version_name: "v5.7.2",
+        version_code: 179,
+        build: 179,
+        sha256: "3eee75d751638cd62a6a3d41ab4455d8a4dd64cdf68decc1040cfefe87babcfe",
         filename: "connecto-fun.apk",
-        size_bytes: 38122734,
+        size_bytes: 38127963,
         size_display: "36.4 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -218,6 +218,7 @@ Sitemap: https://connecto.fun/sitemap.xml
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Carrier-Grade Phone Notification System (v5.7.2): Implemented carrier-grade Android notification architecture across DMs, Channels, and Incoming/Ongoing Calls. Registered 4 distinct Android Notification Channels on app init (connecto_direct_messages, connecto_channels_groups, connecto_incoming_calls with CATEGORY_CALL and DND bypass, and connecto_active_call_service). Upgraded messages to rich NotificationCompat.MessagingStyle with Person.Builder() async circular avatars and thread grouping by conversationId (last 5 messages per stack). Added direct notification shade inline reply (RemoteInput key_text_reply) and 1-tap Mark as Read background action. Strict foreground suppression suppresses notifications when viewing the active chat. Integrated Chat & Lock biometric privacy redaction (VISIBILITY_PRIVATE, '🔒 Locked chat • New encrypted message', disabled inline reply) and mute checks. Real-time tray sync deletes unsent/revoked messages and edits unread messages in place. Incoming calls feature NotificationCompat.CallStyle with FullScreenIntent directly over lock screen, and ongoing calls run foreground CallStyle with chronometer and notification shade Mute/Unmute action.",
           "Direct Chat Alignment, Long-Press Dimming & Profile Cleanup (v5.7.1): Fixed contact avatar glitch and horizontal alignment across 1-on-1 direct messages with strict 52px left margin, clustering avatars on the bottom-most message of a consecutive series and transparent spacing on earlier bubbles. Suppressed sender name label in 1-on-1 chats while retaining it in group channels. Implemented translucent dark backdrop overlay (rgba(0,0,0,0.55)) with z-indexing during message long-press reaction HUD. Repositioned scroll-to-bottom FAB to bottom-right corner (38px, subtle 0.12 white border). Pre-warmed persistent WebSocket connection on chat launch. Fixed theme wallpaper preview outgoing bubble token (#47526B) with crisp white text. Refined preset selection indicator to 22px checkmark with 1.5px border. Removed duplicate unfriend button from Chat & Lock screen, removed duplicate top-right chat icon on Friend Profile, and refined 80px avatar with 4px #0A0B0E border overlapping banner cleanly by 50% with 3px status dot cutout.",
           "Production-Grade WebRTC Group Voice Calls & Pure OLED Black Calls UI (v5.7.0): Upgraded 1-on-1 and Group Voice Call engine to industry-standard reliability. Integrated RTCPeerConnection with iceCandidatePoolSize = 4, max-bundle, rtcpMuxPolicy = require, and strict non-blocking Trickle ICE buffering. Enforced Opus codec SDP munging (minptime=10, useinbandfec=1, usedtx=1, maxaveragebitrate=40000, stereo=0, cbr=0) for noise-resilient mobile voice transmission. Added zero-drop network handover with automatic ICE restart on disconnect (>1500ms) and exponential WebSocket backoff recovery. Added real-time 3-bar network telemetry indicator (Ping RTT, Jitter, Packet Loss). Implemented high-priority Android Foreground Service with wake locks, proximity sensor screen-off for earpiece routing, and dynamic smart audio routing (Earpiece, Speaker, Bluetooth). 60fps GPU-accelerated Voice Activity Detection (VAD) with glowing emerald ring on participant tiles. Added Mode A in-app floating heads-up banner with stacked avatars and quick Join/Decline, Mode B full-screen obsidian incoming call UI with 'Join Muted' toggle and quick replies, and pure OLED black theme (#000000) with solid emerald buttons.",
           "Swipe-to-Reply, Quoted Replies & Quick Emoji Reactions HUD (v5.6.2): Direct Message and Workspace Channel bubbles now feature smooth rubber-band swipe-to-reply (up to 60px damping, 40px threshold haptic trigger and spring snap-back) with fading/scaling reply icon (↩). Introduced sleek 48px composer reply and edit preview banners with 3px vertical accent lines. Quoted message containers rendered in-bubble with scroll-to-original on tap and 600ms pulse animation. Upgraded long-press message selection to floating HUD with 46px top pill housing 6 animated pop-in quick reactions (❤️, 🔥, 😂, 👍, 😮, 😢) and '+' full emoji sheet button, bottom context action menu (Reply, Copy, Edit, Unsend), 24px reaction badges with user counts and tinted accent highlight for user's own reactions, and real-time MESSAGE_REACTION_TOGGLED multi-client WebSocket synchronization.",
@@ -602,18 +603,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.1/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.0/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.2/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.1/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.1-b178-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.2-b179-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.7.1");
-          res.headers.set("X-Connecto-Build", "178");
+          res.headers.set("X-Connecto-Version", "v5.7.2");
+          res.headers.set("X-Connecto-Build", "179");
           return res;
         }
 
@@ -649,8 +650,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.7.1");
-              downloadHeaders.set("X-Connecto-Build", "178");
+              downloadHeaders.set("X-Connecto-Version", "v5.7.2");
+              downloadHeaders.set("X-Connecto-Build", "179");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2038,14 +2039,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.7.1",
-        version_code: 178,
-        size_bytes: 38122734,
+        version_name: "5.7.2",
+        version_code: 179,
+        size_bytes: 38127963,
         size_formatted: "36.4 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Carrier-Grade Phone Notification System (v5.7.2): Implemented carrier-grade Android notification architecture across DMs, Channels, and Incoming/Ongoing Calls. Registered 4 distinct Android Notification Channels on app init (connecto_direct_messages, connecto_channels_groups, connecto_incoming_calls with CATEGORY_CALL and DND bypass, and connecto_active_call_service). Upgraded messages to rich NotificationCompat.MessagingStyle with Person.Builder() async circular avatars and thread grouping by conversationId (last 5 messages per stack). Added direct notification shade inline reply (RemoteInput key_text_reply) and 1-tap Mark as Read background action. Strict foreground suppression suppresses notifications when viewing the active chat. Integrated Chat & Lock biometric privacy redaction (VISIBILITY_PRIVATE, '🔒 Locked chat • New encrypted message', disabled inline reply) and mute checks. Real-time tray sync deletes unsent/revoked messages and edits unread messages in place. Incoming calls feature NotificationCompat.CallStyle with FullScreenIntent directly over lock screen, and ongoing calls run foreground CallStyle with chronometer and notification shade Mute/Unmute action.",
           "Direct Chat Alignment, Long-Press Dimming & Profile Cleanup (v5.7.1): Fixed contact avatar glitch and horizontal alignment across 1-on-1 direct messages with strict 52px left margin, clustering avatars on the bottom-most message of a consecutive series and transparent spacing on earlier bubbles. Suppressed sender name label in 1-on-1 chats while retaining it in group channels. Implemented translucent dark backdrop overlay (rgba(0,0,0,0.55)) with z-indexing during message long-press reaction HUD. Repositioned scroll-to-bottom FAB to bottom-right corner (38px, subtle 0.12 white border). Pre-warmed persistent WebSocket connection on chat launch. Fixed theme wallpaper preview outgoing bubble token (#47526B) with crisp white text. Refined preset selection indicator to 22px checkmark with 1.5px border. Removed duplicate unfriend button from Chat & Lock screen, removed duplicate top-right chat icon on Friend Profile, and refined 80px avatar with 4px #0A0B0E border overlapping banner cleanly by 50% with 3px status dot cutout.",
           "Production-Grade WebRTC Group Voice Calls & Pure OLED Black Calls UI (v5.7.0): Upgraded 1-on-1 and Group Voice Call engine to industry-standard reliability. Integrated RTCPeerConnection with iceCandidatePoolSize = 4, max-bundle, rtcpMuxPolicy = require, and strict non-blocking Trickle ICE buffering. Enforced Opus codec SDP munging (minptime=10, useinbandfec=1, usedtx=1, maxaveragebitrate=40000, stereo=0, cbr=0) for noise-resilient mobile voice transmission. Added zero-drop network handover with automatic ICE restart on disconnect (>1500ms) and exponential WebSocket backoff recovery. Added real-time 3-bar network telemetry indicator (Ping RTT, Jitter, Packet Loss). Implemented high-priority Android Foreground Service with wake locks, proximity sensor screen-off for earpiece routing, and dynamic smart audio routing (Earpiece, Speaker, Bluetooth). 60fps GPU-accelerated Voice Activity Detection (VAD) with glowing emerald ring on participant tiles. Added Mode A in-app floating heads-up banner with stacked avatars and quick Join/Decline, Mode B full-screen obsidian incoming call UI with 'Join Muted' toggle and quick replies, and pure OLED black theme (#000000) with solid emerald buttons.",
           "Swipe-to-Reply, Quoted Replies & Quick Emoji Reactions HUD (v5.6.2): Direct Message and Workspace Channel bubbles now feature smooth rubber-band swipe-to-reply (up to 60px damping, 40px threshold haptic trigger and spring snap-back) with fading/scaling reply icon (↩). Introduced sleek 48px composer reply and edit preview banners with 3px vertical accent lines. Quoted message containers rendered in-bubble with scroll-to-original on tap and 600ms pulse animation. Upgraded long-press message selection to floating HUD with 46px top pill housing 6 animated pop-in quick reactions (❤️, 🔥, 😂, 👍, 😮, 😢) and '+' full emoji sheet button, bottom context action menu (Reply, Copy, Edit, Unsend), 24px reaction badges with user counts and tinted accent highlight for user's own reactions, and real-time MESSAGE_REACTION_TOGGLED multi-client WebSocket synchronization.",
@@ -7332,13 +7334,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.7.1",
-      version_name: "v5.7.1",
-      version_code: 178,
-      build: 178,
-      sha256: "01ec75c20979d28844ef9152ade7d6a58a84cb70b758492acf910cb055ad0f93",
+      version: "5.7.2",
+      version_name: "v5.7.2",
+      version_code: 179,
+      build: 179,
+      sha256: "3eee75d751638cd62a6a3d41ab4455d8a4dd64cdf68decc1040cfefe87babcfe",
       filename: "connecto-fun.apk",
-      size_bytes: 38122734,
+      size_bytes: 38127963,
       size_display: "36.4 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7352,10 +7354,29 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v5.7.1",
+          version: "v5.7.2",
           date: "Nov 18, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v5.7.2: Carrier-Grade Phone Notification System",
+          summary: "Complete Android MessagingStyle and CallStyle notifications with conversation thread grouping, inline replies from notification shade, 1-tap Mark as Read, foreground suppression, biometric locked chat privacy redaction, real-time unsend/edit synchronization, and lock screen FullScreenIntent incoming calls.",
+          highlights: [
+            "4 Dedicated Notification Channels: connecto_direct_messages, connecto_channels_groups, connecto_incoming_calls (CATEGORY_CALL, ringtone looping, DND bypass), and connecto_active_call_service.",
+            "MessagingStyle & Thread Grouping: NotificationCompat.MessagingStyle with Person.Builder() async circular avatars, grouped by conversationId with in-tray history aggregation up to 5 messages.",
+            "Direct Inline Reply & Mark as Read: WhatsApp-grade RemoteInput key_text_reply in notification shade for background replies and 1-tap dismiss/read receipt sync.",
+            "Strict Foreground Suppression: Silently suppresses system notifications when the app is in the foreground and the user is actively viewing that exact conversation.",
+            "Biometric Chat Lock Privacy Redaction: Encrypted private visibility (VISIBILITY_PRIVATE, '🔒 Locked chat • New encrypted message', inline reply disabled) when Lock Chat Session is active.",
+            "Real-Time Tray Unsend & Edit Sync: MESSAGE_DELETED removes messages from tray stack immediately; MESSAGE_UPDATED updates notification text in place with setOnlyAlertOnce(true).",
+            "CallStyle Incoming & Ongoing Calls: CallStyle incoming call notification with FullScreenIntent directly over lock screen; ongoing call foreground notification with live chronometer and shade Mute/Unmute toggle.",
+            "Android Native App v5.7.2 (Build 179 • 36.4 MB): SHA-256 3eee75d751638cd62a6a3d41ab4455d8a4dd64cdf68decc1040cfefe87babcfe."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
+          version: "v5.7.1",
+          date: "Nov 18, 2026",
+          category: "feature",
+          tag: "Stable",
           title: "Connecto v5.7.1: Direct Chat Alignment, Long-Press Dimming & Profile Cleanup",
           summary: "Refined 1-on-1 direct chat layout with 52px left margin, clustering contact avatar to the bottom message of consecutive sequences, hiding sender names in 1-on-1 chats, dimmed backdrop for message long-press HUD, bottom-right 38px scroll FAB, persistent WebSocket pre-warming, fixed theme wallpaper outgoing bubble token, and friend profile avatar/banner alignment.",
           highlights: [

@@ -151,6 +151,33 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                 ConnectoNotificationManager.cancelCallNotification()
                 VoiceCallManager.handleRemoteCallEnded(callRoomId)
             }
+            "message_deleted", "delete_message", "message_unsent" -> {
+                val messageId = data["message_id"]?.ifBlank { null } ?: data["id"]?.ifBlank { null } ?: referenceId
+                Log.d(TAG, "FCM message_deleted received: msgId=$messageId")
+                if (messageId.isNotBlank()) {
+                    ConnectoNotificationManager.onMessageDeleted(messageId)
+                    try {
+                        val dbHelper = ConnectoDatabaseHelper.getInstance(applicationContext)
+                        dbHelper.deleteMessage(messageId)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to delete message in SQLite: ${e.message}")
+                    }
+                }
+            }
+            "message_edited", "edit_message", "message_updated" -> {
+                val messageId = data["message_id"]?.ifBlank { null } ?: data["id"]?.ifBlank { null } ?: referenceId
+                val safeBodyPreview = com.example.connecto.ui.screens.cleanMessageContentForDisplay(body, "Message edited")
+                Log.d(TAG, "FCM message_edited received: msgId=$messageId, preview=$safeBodyPreview")
+                if (messageId.isNotBlank()) {
+                    ConnectoNotificationManager.onMessageUpdated(messageId, safeBodyPreview)
+                    try {
+                        val dbHelper = ConnectoDatabaseHelper.getInstance(applicationContext)
+                        dbHelper.updateMessageContent(messageId, body)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to update message in SQLite: ${e.message}")
+                    }
+                }
+            }
             "dm", "message", "new_dm_alert" -> {
                 val senderAvatar = data["sender_avatar"] ?: data["avatar"]
                 val senderUser = data["sender_username"] ?: sender
@@ -259,7 +286,8 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                         messageText = safeBodyPreview,
                         channelOrDmId = channelId,
                         senderAvatar = senderAvatar,
-                        senderUsername = senderUser
+                        senderUsername = senderUser,
+                        messageId = messageId
                     )
                 }
             }
@@ -276,12 +304,14 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
             else -> {
                 val senderAvatar = data["sender_avatar"] ?: data["avatar"]
                 val senderUser = data["sender_username"] ?: sender
+                val altMsgId = data["message_id"] ?: data["id"]
                 ConnectoNotificationManager.showMessageNotification(
                     senderName = title,
                     messageText = body.ifBlank { "You have a new notification" },
                     channelOrDmId = referenceId,
                     senderAvatar = senderAvatar,
-                    senderUsername = senderUser
+                    senderUsername = senderUser,
+                    messageId = altMsgId
                 )
             }
         }

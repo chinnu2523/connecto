@@ -853,6 +853,24 @@ fun CustomizedChatScreen(
         return "dm-${minOf(u, clean)}-${maxOf(u, clean)}"
     }
 
+    // Sync active conversation with ConnectoNotificationManager for foreground suppression and tray cleanup
+    DisposableEffect(selectedFriend) {
+        val friend = selectedFriend
+        if (friend != null) {
+            val convId = getCanonicalChatId(friend)
+            val cleanHandle = friend.handle.trim().lowercase().removePrefix("@")
+            com.example.connecto.notifications.ConnectoNotificationManager.currentActiveConversationId = convId
+            com.example.connecto.notifications.ConnectoNotificationManager.cancelConversationNotification(convId)
+            com.example.connecto.notifications.ConnectoNotificationManager.cancelConversationNotification(cleanHandle)
+            com.example.connecto.notifications.ConnectoNotificationManager.cancelConversationNotification(friend.id)
+        } else {
+            com.example.connecto.notifications.ConnectoNotificationManager.currentActiveConversationId = null
+        }
+        onDispose {
+            com.example.connecto.notifications.ConnectoNotificationManager.currentActiveConversationId = null
+        }
+    }
+
     // Direct Messages Feed & State
     var activeDmChannelId by remember { mutableStateOf<String?>(null) }
     var friendMessages by remember {
