@@ -4582,24 +4582,26 @@ fun CustomizedChatScreen(
                                     else MaterialTheme.colorScheme.outline,
                                     CircleShape
                                 )
-                                .clickable {
-                                    selectedFriend?.let { friend ->
-                                        markFriendChatAsReadLocallyAndRemotely(friend)
-                                        if (typedMessage.isNotBlank()) {
-                                            messageDrafts[friend.id] = typedMessage
-                                        } else {
-                                            messageDrafts.remove(friend.id)
+                                .pressScaleEffect(
+                                    onClick = {
+                                        selectedFriend?.let { friend ->
+                                            markFriendChatAsReadLocallyAndRemotely(friend)
+                                            if (typedMessage.isNotBlank()) {
+                                                messageDrafts[friend.id] = typedMessage
+                                            } else {
+                                                messageDrafts.remove(friend.id)
+                                            }
                                         }
+                                        typedMessage = ""
+                                        selectedFriend = null
+                                        selectedFriendProfileData = null
+                                        chatWallpaperId = "default"
+                                        customWallpaperUri = null
+                                        activeDmChannelId = null
+                                        isLoadingMessages = false
+                                        onDirectChatStateChanged(false)
                                     }
-                                    typedMessage = ""
-                                    selectedFriend = null
-                                    selectedFriendProfileData = null
-                                 chatWallpaperId = "default"
-                                 customWallpaperUri = null
-                                    activeDmChannelId = null
-                                    isLoadingMessages = false
-                                    onDirectChatStateChanged(false)
-                                },
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -4728,10 +4730,12 @@ fun CustomizedChatScreen(
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
                                         .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape)
-                                        .clickable {
-                                            isFriendProfileOpen = true
-                                            friendProfileSubPage = null
-                                        },
+                                        .pressScaleEffect(
+                                            onClick = {
+                                                isFriendProfileOpen = true
+                                                friendProfileSubPage = null
+                                            }
+                                        ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -4748,12 +4752,14 @@ fun CustomizedChatScreen(
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.surfaceVariant)
                                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                                        .clickable {
-                                            val friend = selectedFriend
-                                            if (friend != null) {
-                                                initiateVoiceCallWithFriend(friend)
+                                        .pressScaleEffect(
+                                            onClick = {
+                                                val friend = selectedFriend
+                                                if (friend != null) {
+                                                    initiateVoiceCallWithFriend(friend)
+                                                }
                                             }
-                                        },
+                                        ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -4770,9 +4776,11 @@ fun CustomizedChatScreen(
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.surfaceVariant)
                                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                                        .clickable {
-                                            showWallpaperCustomizerDialog = true
-                                        },
+                                        .pressScaleEffect(
+                                            onClick = {
+                                                showWallpaperCustomizerDialog = true
+                                            }
+                                        ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -5317,18 +5325,40 @@ fun CustomizedChatScreen(
                 targetState = currentScreenState,
                 transitionSpec = {
                     if (targetState == "FRIEND_PROFILE" || (initialState == "FRIENDS_LIST" && targetState == "DIRECT_CHAT")) {
-                        (fadeIn(animationSpec = tween(240, easing = EaseOutCubic)) +
-                         scaleIn(initialScale = 0.96f, animationSpec = tween(240, easing = EaseOutCubic)))
+                        // Opening Direct Chat or Friend Profile: fluid horizontal slide-in from right
+                        (slideInHorizontally(
+                            initialOffsetX = { fullWidth -> fullWidth },
+                            animationSpec = tween(320, easing = EaseOutCubic)
+                        ) + fadeIn(animationSpec = tween(220, easing = EaseOutCubic)))
                             .togetherWith(
-                                fadeOut(animationSpec = tween(180, easing = EaseInCubic)) +
-                                scaleOut(targetScale = 0.98f, animationSpec = tween(180, easing = EaseInCubic))
+                                slideOutHorizontally(
+                                    targetOffsetX = { fullWidth -> -fullWidth / 4 },
+                                    animationSpec = tween(280, easing = EaseInCubic)
+                                ) + fadeOut(animationSpec = tween(180, easing = EaseInCubic))
+                            )
+                    } else if (targetState == "FRIENDS_LIST") {
+                        // Closing Direct Chat / Friend Profile: fluid horizontal slide-out to right
+                        (slideInHorizontally(
+                            initialOffsetX = { fullWidth -> -fullWidth / 4 },
+                            animationSpec = tween(300, easing = EaseOutCubic)
+                        ) + fadeIn(animationSpec = tween(220, easing = EaseOutCubic)))
+                            .togetherWith(
+                                slideOutHorizontally(
+                                    targetOffsetX = { fullWidth -> fullWidth },
+                                    animationSpec = tween(280, easing = EaseInCubic)
+                                ) + fadeOut(animationSpec = tween(180, easing = EaseInCubic))
                             )
                     } else {
-                        (fadeIn(animationSpec = tween(240, easing = EaseOutCubic)) +
-                         scaleIn(initialScale = 1.02f, animationSpec = tween(240, easing = EaseOutCubic)))
+                        // Direct Chat <-> Friend Profile switching
+                        (slideInHorizontally(
+                            initialOffsetX = { fullWidth -> fullWidth / 2 },
+                            animationSpec = tween(280, easing = EaseOutCubic)
+                        ) + fadeIn(animationSpec = tween(200, easing = EaseOutCubic)))
                             .togetherWith(
-                                fadeOut(animationSpec = tween(180, easing = EaseInCubic)) +
-                                scaleOut(targetScale = 0.96f, animationSpec = tween(180, easing = EaseInCubic))
+                                slideOutHorizontally(
+                                    targetOffsetX = { fullWidth -> -fullWidth / 2 },
+                                    animationSpec = tween(260, easing = EaseInCubic)
+                                ) + fadeOut(animationSpec = tween(180, easing = EaseInCubic))
                             )
                     }
                 },

@@ -116,7 +116,7 @@ fun Modifier.pressScaleEffect(
     val haptic = LocalHapticFeedback.current
     val scale by animateFloatAsState(
         targetValue = if (isPressed) targetScale else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 420f),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 500f),
         label = "pressScale"
     )
 
@@ -129,9 +129,67 @@ fun Modifier.pressScaleEffect(
             interactionSource = interactionSource,
             indication = null
         ) {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            try {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            } catch (_: Exception) {}
             onClick()
         }
+}
+
+/**
+ * Universal tactile spring bounce click modifier for ANY button, card, or clickable component.
+ * Provides micro-compression and elastic spring rebound with tactile haptic feedback.
+ */
+@Composable
+fun Modifier.bounceClick(
+    enabled: Boolean = true,
+    targetScale: Float = 0.94f,
+    onClick: () -> Unit
+): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) targetScale else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 520f),
+        label = "bounceClickScale"
+    )
+
+    return this
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
+        .clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            enabled = enabled
+        ) {
+            try {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            } catch (_: Exception) {}
+            onClick()
+        }
+}
+
+/**
+ * Attaches pure tactile spring press scaling using an external or shared interactionSource.
+ */
+@Composable
+fun Modifier.tactilePress(
+    interactionSource: MutableInteractionSource,
+    targetScale: Float = 0.95f
+): Modifier {
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) targetScale else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 500f),
+        label = "tactilePressScale"
+    )
+    return this.graphicsLayer {
+        scaleX = scale
+        scaleY = scale
+    }
 }
 
 @Composable

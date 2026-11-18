@@ -121,18 +121,15 @@ fun ConnectoButton(
         }
     }
 
-    // Interactive scale following Default, Hover, Pressed, and Disabled states with ease-in / ease-out curves
+    // Interactive scale following Default, Hover, Pressed, and Disabled states with snappy spring physics
     val scale by animateFloatAsState(
         targetValue = when {
             !enabled -> 1.0f
-            isPressed -> 0.96f
+            isPressed -> 0.95f
             isHovered && !isLoading && !isError -> 1.02f
             else -> 1.0f
         },
-        animationSpec = tween(
-            durationMillis = 180,
-            easing = if (isPressed) EaseInCubic else EaseOutCubic
-        ),
+        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "buttonScale"
     )
 
@@ -436,5 +433,43 @@ fun ConnectoButton(
                 }
             }
         }
+    }
+}
+
+/**
+ * Universal tactile spring-animated Icon Button adhering to Connecto design principles.
+ * Delivers micro-press scaling and tactile feedback on every click.
+ */
+@Composable
+fun ConnectoIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.88f else 1.0f,
+        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "iconButtonScale"
+    )
+
+    androidx.compose.material3.IconButton(
+        onClick = {
+            try {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            } catch (_: Exception) {}
+            onClick()
+        },
+        modifier = modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        },
+        enabled = enabled,
+        interactionSource = interactionSource
+    ) {
+        content()
     }
 }

@@ -1127,7 +1127,7 @@ fun HomeChatScreen(
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clickable { onOpenConversation(convo) }
+                                                .pressScaleEffect(onClick = { onOpenConversation(convo) })
                                                 .padding(horizontal = 16.dp, vertical = 12.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
@@ -1591,7 +1591,7 @@ private fun GlobalSearchDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(ConnectoRadius.sm))
-                                    .clickable { action.third() }
+                                    .pressScaleEffect(onClick = { action.third() })
                                     .padding(vertical = 8.dp, horizontal = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -1641,7 +1641,7 @@ private fun GlobalSearchDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(ConnectoRadius.sm))
-                                    .clickable { onSelectChannel(ch) }
+                                    .pressScaleEffect(onClick = { onSelectChannel(ch) })
                                     .padding(vertical = 8.dp, horizontal = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {

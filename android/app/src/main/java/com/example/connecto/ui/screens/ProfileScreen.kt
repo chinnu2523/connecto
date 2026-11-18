@@ -83,6 +83,10 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.EaseInCubic
+import com.example.connecto.ui.theme.pressScaleEffect
+import com.example.connecto.ui.theme.bounceClick
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.BorderStroke
@@ -1127,7 +1131,43 @@ fun ProfileScreen(
         AnimatedContent(
             targetState = activeSubPage,
             transitionSpec = {
-                EnterTransition.None togetherWith ExitTransition.None
+                if (targetState != null && initialState == null) {
+                    // Opening sub-page: fluid horizontal slide-in from right with subtle fade
+                    (slideInHorizontally(
+                        initialOffsetX = { fullWidth -> fullWidth },
+                        animationSpec = tween(320, easing = EaseOutCubic)
+                    ) + fadeIn(animationSpec = tween(220, easing = EaseOutCubic)))
+                        .togetherWith(
+                            slideOutHorizontally(
+                                targetOffsetX = { fullWidth -> -fullWidth / 4 },
+                                animationSpec = tween(280, easing = EaseInCubic)
+                            ) + fadeOut(animationSpec = tween(180, easing = EaseInCubic))
+                        )
+                } else if (targetState == null && initialState != null) {
+                    // Closing sub-page: fluid horizontal slide-out to right with subtle fade
+                    (slideInHorizontally(
+                        initialOffsetX = { fullWidth -> -fullWidth / 4 },
+                        animationSpec = tween(300, easing = EaseOutCubic)
+                    ) + fadeIn(animationSpec = tween(220, easing = EaseOutCubic)))
+                        .togetherWith(
+                            slideOutHorizontally(
+                                targetOffsetX = { fullWidth -> fullWidth },
+                                animationSpec = tween(280, easing = EaseInCubic)
+                            ) + fadeOut(animationSpec = tween(180, easing = EaseInCubic))
+                        )
+                } else {
+                    // Switching between different sub-pages
+                    (slideInHorizontally(
+                        initialOffsetX = { fullWidth -> fullWidth / 2 },
+                        animationSpec = tween(280, easing = EaseOutCubic)
+                    ) + fadeIn(animationSpec = tween(200, easing = EaseOutCubic)))
+                        .togetherWith(
+                            slideOutHorizontally(
+                                targetOffsetX = { fullWidth -> -fullWidth / 2 },
+                                animationSpec = tween(260, easing = EaseInCubic)
+                            ) + fadeOut(animationSpec = tween(180, easing = EaseInCubic))
+                        )
+                }
             },
             label = "profile_subpage_navigation",
             modifier = Modifier.fillMaxSize()
@@ -4989,7 +5029,7 @@ fun ProfileScreen(
                                             ),
                                             RoundedCornerShape(18.dp)
                                         )
-                                        .clickable { showCustomerSupportAiDialog = true }
+                                        .pressScaleEffect(onClick = { showCustomerSupportAiDialog = true })
                                         .padding(16.dp)
                                 ) {
                                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -5094,7 +5134,7 @@ fun ProfileScreen(
                                                     else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
                                                     RoundedCornerShape(16.dp)
                                                 )
-                                                .clickable { sendSupportEmail() }
+                                                .pressScaleEffect(onClick = { sendSupportEmail() })
                                                 .padding(14.dp)
                                         ) {
                                             Column {
@@ -5143,7 +5183,7 @@ fun ProfileScreen(
                                                     else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
                                                     RoundedCornerShape(16.dp)
                                                 )
-                                                .clickable { showBugReportDialog = true }
+                                                .pressScaleEffect(onClick = { showBugReportDialog = true })
                                                 .padding(14.dp)
                                         ) {
                                             Column {
@@ -5197,7 +5237,7 @@ fun ProfileScreen(
                                                     else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
                                                     RoundedCornerShape(16.dp)
                                                 )
-                                                .clickable { openWebUrl("https://connecto.fun/architecture") }
+                                                .pressScaleEffect(onClick = { openWebUrl("https://connecto.fun/architecture") })
                                                 .padding(14.dp)
                                         ) {
                                             Column {
@@ -5246,7 +5286,7 @@ fun ProfileScreen(
                                                     else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
                                                     RoundedCornerShape(16.dp)
                                                 )
-                                                .clickable { openWebUrl("https://connecto.fun/status") }
+                                                .pressScaleEffect(onClick = { openWebUrl("https://connecto.fun/status") })
                                                 .padding(14.dp)
                                         ) {
                                             Column {
@@ -5296,7 +5336,7 @@ fun ProfileScreen(
                                                 else themeColors.borderSubtle,
                                                 RoundedCornerShape(16.dp)
                                             )
-                                            .clickable { showFeedbackDialog = true }
+                                            .pressScaleEffect(onClick = { showFeedbackDialog = true })
                                             .padding(14.dp)
                                     ) {
                                         Row(
@@ -8204,7 +8244,7 @@ private fun ProfileSubPageHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Smooth circular back button
+                // Smooth circular back button with tactile spring press scale
                 Box(
                     modifier = Modifier
                         .size(38.dp)
@@ -8213,7 +8253,7 @@ private fun ProfileSubPageHeader(
                             if (isDark) Color.White.copy(alpha = 0.08f)
                             else Color(0xFFF1F5F9)
                         )
-                        .clickable(onClick = onBack),
+                        .pressScaleEffect(onClick = onBack),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(

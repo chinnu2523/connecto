@@ -635,7 +635,7 @@ fun CallsScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Brush.linearGradient(gradientColors))
-                                .clickable { showCreateVoiceGroupDialog = true }
+                                .pressScaleEffect(onClick = { showCreateVoiceGroupDialog = true })
                                 .padding(horizontal = 12.dp, vertical = 7.dp)
                         ) {
                             Icon(
@@ -1019,9 +1019,11 @@ fun CallsScreen(
                                                 .size(34.dp)
                                                 .clip(CircleShape)
                                                 .background(if (colors.isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f))
-                                                .clickable {
-                                                    logPendingDelete = log
-                                                },
+                                                .pressScaleEffect(
+                                                    onClick = {
+                                                        logPendingDelete = log
+                                                    }
+                                                ),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
@@ -1038,14 +1040,16 @@ fun CallsScreen(
                                                 .size(36.dp)
                                                 .clip(CircleShape)
                                                 .background(colors.primary.copy(alpha = 0.12f))
-                                                .clickable {
-                                                    val dialTarget = if (log.friendUsername.isNotBlank()) log.friendUsername else log.callerName
-                                                    initiateDirectCall(
-                                                        target = dialTarget,
-                                                        displayName = log.callerName,
-                                                        avatarUrl = log.avatarUrl
-                                                    )
-                                                },
+                                                .pressScaleEffect(
+                                                    onClick = {
+                                                        val dialTarget = if (log.friendUsername.isNotBlank()) log.friendUsername else log.callerName
+                                                        initiateDirectCall(
+                                                            target = dialTarget,
+                                                            displayName = log.callerName,
+                                                            avatarUrl = log.avatarUrl
+                                                        )
+                                                    }
+                                                ),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(

@@ -81,7 +81,7 @@ fun ConnectoTopBar(
                 modifier = Modifier.weight(1f, fill = false)
             ) {
                 if (navigationIcon != null && onNavigationClick != null) {
-                    IconButton(
+                    ConnectoIconButton(
                         onClick = onNavigationClick,
                         modifier = Modifier.size(40.dp)
                     ) {
@@ -124,7 +124,7 @@ fun ConnectoTopBar(
                 actions?.invoke()
 
                 if (onSearchClick != null) {
-                    IconButton(
+                    ConnectoIconButton(
                         onClick = onSearchClick,
                         modifier = Modifier.size(40.dp)
                     ) {
