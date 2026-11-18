@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.4.7",
-        version_name: "v5.4.7",
-        version_code: 161,
-        build: 161,
-        sha256: "e847741906dfc3cb738a07a55636c9f3b57ae7d9bc45125217b40b76ac86852b",
+        version: "5.4.8",
+        version_name: "v5.4.8",
+        version_code: 162,
+        build: 162,
+        sha256: "76f0b4c5fc48e30e9bc2aff53e68c88e97606a5d1abe72c00b59bc61ac164c1c",
         filename: "connecto-fun.apk",
-        size_bytes: 38068164,
+        size_bytes: 38058086,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -595,18 +595,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.7/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.6/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.4.8/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.4.7/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.4.7-b161-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.4.8-b162-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.4.7");
-          res.headers.set("X-Connecto-Build", "161");
+          res.headers.set("X-Connecto-Version", "v5.4.8");
+          res.headers.set("X-Connecto-Build", "162");
           return res;
         }
 
@@ -642,8 +642,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.4.7");
-              downloadHeaders.set("X-Connecto-Build", "161");
+              downloadHeaders.set("X-Connecto-Version", "v5.4.8");
+              downloadHeaders.set("X-Connecto-Build", "162");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -658,7 +658,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.4.7/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.4.8/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2028,14 +2028,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.4.7",
-        version_code: 161,
-        size_bytes: 38068164,
+        version_name: "5.4.8",
+        version_code: 162,
+        size_bytes: 38058086,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Clean Help & Support UI: Streamlined the Help & Support center in Profile by removing the redundant Delete Account & Data card, Privacy Policy & Terms of Service action buttons, and Invite Friends & Refer card, keeping the support interface focused and uncluttered while retaining standard account security controls in Settings",
           "Studio-Grade Vocal Clarity & 80Hz Wideband Tuning: Upgraded high-pass filter cutoff from 140Hz to 80Hz (ITU-T G.722 Wideband HD Voice standard), preserving 100% of deep male and rich female vocal fundamental resonance while eliminating desk thumps, mic-handling noise, and electrical hum",
           "True Analogue Soft-Knee Saturation Limiter: Implemented smooth hyperbolic tangent (tanh) soft-knee saturation curve, preventing harsh digital clipping and audio distortion during loud speech or laughter while preserving warm natural dynamics",
           "Low-Latency Adaptive Jitter Buffer: Integrated 40ms pre-roll cushion with bounded 80ms latency ceiling to absorb mobile network packet jitter, guaranteeing zero audio underruns across 4G, 5G, and fluctuating Wi-Fi",
@@ -7299,13 +7300,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.4.7",
-      version_name: "v5.4.7",
-      version_code: 161,
-      build: 161,
-      sha256: "e847741906dfc3cb738a07a55636c9f3b57ae7d9bc45125217b40b76ac86852b",
+      version: "5.4.8",
+      version_name: "v5.4.8",
+      version_code: 162,
+      build: 162,
+      sha256: "76f0b4c5fc48e30e9bc2aff53e68c88e97606a5d1abe72c00b59bc61ac164c1c",
       filename: "connecto-fun.apk",
-      size_bytes: 38068164,
+      size_bytes: 38058086,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7319,10 +7320,25 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v5.4.7",
+          version: "v5.4.8",
           date: "Nov 18, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v5.4.8: Streamlined Help & Support Center",
+          summary: "Polished and focused user experience in Profile > Help & Support. Removed the redundant Delete Account & Data card, Privacy Policy & Terms of Service action buttons, and Invite Friends & Refer card, keeping the support hub clean and dedicated to assistance while retaining standard account security controls in Settings.",
+          highlights: [
+            "Clean Help & Support UI: Streamlined the Help & Support sub-page by removing the redundant Delete Account & Data section, keeping destructive account actions in Settings.",
+            "Removed Redundant Legal Buttons: Removed Privacy Policy and Terms of Service card action buttons from Help & Support to eliminate clutter.",
+            "Removed Invite Friends & Refer Card: Streamlined the quick action row to focus exclusively on customer support and feedback.",
+            "Android Native App v5.4.8 (Build 162 • 36.3 MB): SHA-256 76f0b4c5fc48e30e9bc2aff53e68c88e97606a5d1abe72c00b59bc61ac164c1c."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
+          version: "v5.4.7",
+          date: "Nov 18, 2026",
+          category: "feature",
+          tag: "Production",
           title: "Connecto v5.4.7: Studio-Grade Audio Perfection & Jitter Concealment",
           summary: "Uncompromising vocal fidelity and acoustic perfection. Enforces ITU-T G.722 80Hz wideband high-pass filtering for warm vocal resonance, analogue tanh soft-knee saturation limiter to prevent digital clipping, 40ms adaptive jitter pre-roll buffering, 2ms Hann micro-crossfade packet loss concealment (PLC), permanent hardware AEC locking, and a 160ms capture overrun shield.",
           highlights: [
