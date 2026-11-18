@@ -98,14 +98,14 @@ fun ConnectoFeedbackDialog(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFF59E0B).copy(alpha = 0.15f))
-                            .border(1.dp, Color(0xFFF59E0B).copy(alpha = 0.45f), RoundedCornerShape(12.dp)),
+                            .background(colors.primary.copy(alpha = 0.12f))
+                            .border(1.dp, colors.primary.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.RateReview,
                             contentDescription = null,
-                            tint = Color(0xFFF59E0B),
+                            tint = colors.primary,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -249,7 +249,7 @@ fun ConnectoFeedbackDialog(
                             ) {
                                 Text(
                                     text = cat,
-                                    color = if (isSelected) Color.White else colors.textPrimary,
+                                    color = if (isSelected) colors.onPrimary else colors.textPrimary,
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 )
@@ -391,66 +391,67 @@ fun ConnectoFeedbackDialog(
                     )
                 }
 
-                Button(
-                    onClick = {
-                        val trimmed = feedbackText.trim()
-                        val feedbackSummary = buildString {
-                            appendLine("--- Connecto User Feedback ---")
-                            appendLine("User: @$username")
-                            appendLine("Category: $selectedCategory")
-                            appendLine("Experience Rating: $rating / 5 Stars")
-                            appendLine()
-                            appendLine("Feedback Description:")
-                            appendLine(if (trimmed.isNotBlank()) trimmed else "[Quick Positive Feedback]")
-                            appendLine()
-                            appendLine("--- System Diagnostics ---")
-                            appendLine("App Version: v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})")
-                            appendLine("Android OS: Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
-                            appendLine("Device Model: ${Build.MANUFACTURER} ${Build.MODEL}")
-                        }
+                    Button(
+                        onClick = {
+                            val trimmed = feedbackText.trim()
+                            val feedbackSummary = buildString {
+                                appendLine("--- Connecto User Feedback ---")
+                                appendLine("User: @$username")
+                                appendLine("Category: $selectedCategory")
+                                appendLine("Experience Rating: $rating / 5 Stars")
+                                appendLine()
+                                appendLine("Feedback Description:")
+                                appendLine(if (trimmed.isNotBlank()) trimmed else "[Quick Positive Feedback]")
+                                appendLine()
+                                appendLine("--- System Diagnostics ---")
+                                appendLine("App Version: v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})")
+                                appendLine("Android OS: Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
+                                appendLine("Device Model: ${Build.MANUFACTURER} ${Build.MODEL}")
+                            }
 
-                        val subject = "[Connecto Feedback - $selectedCategory] @$username ($rating Stars)"
-                        val mailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                            data = Uri.parse("mailto:support@connecto.fun?subject=${Uri.encode(subject)}&body=${Uri.encode(feedbackSummary)}")
-                        }
+                            val subject = "[Connecto Feedback - $selectedCategory] @$username ($rating Stars)"
+                            val mailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("mailto:support@connecto.fun?subject=${Uri.encode(subject)}&body=${Uri.encode(feedbackSummary)}")
+                            }
 
-                        try {
-                            context.startActivity(mailIntent)
-                        } catch (_: Exception) {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Feedback", feedbackSummary))
-                            Toast.makeText(context, "Feedback copied to clipboard (support@connecto.fun)", Toast.LENGTH_LONG).show()
-                        }
+                            try {
+                                context.startActivity(mailIntent)
+                            } catch (_: Exception) {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("Feedback", feedbackSummary))
+                                Toast.makeText(context, "Feedback copied to clipboard (support@connecto.fun)", Toast.LENGTH_LONG).show()
+                            }
 
-                        Toast.makeText(context, "Thank you @$username! Feedback submitted 🚀", Toast.LENGTH_SHORT).show()
-                        onDismiss()
-                    },
-                    modifier = Modifier
-                        .weight(1.3f)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colors.primary
-                    )
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            Toast.makeText(context, "Thank you @$username! Feedback submitted 🚀", Toast.LENGTH_SHORT).show()
+                            onDismiss()
+                        },
+                        modifier = Modifier
+                            .weight(1.3f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.primary,
+                            contentColor = colors.onPrimary
+                        )
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "Send Feedback",
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = null,
+                                tint = colors.onPrimary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Send Feedback",
+                                color = colors.onPrimary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
-                }
             }
         }
     }

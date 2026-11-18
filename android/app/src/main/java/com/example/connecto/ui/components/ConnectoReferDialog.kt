@@ -97,14 +97,14 @@ fun ConnectoReferDialog(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF8B5CF6).copy(alpha = 0.15f))
-                            .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.45f), RoundedCornerShape(12.dp)),
+                            .background(colors.primary.copy(alpha = 0.12f))
+                            .border(1.dp, colors.primary.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Share,
                             contentDescription = null,
-                            tint = Color(0xFF8B5CF6),
+                            tint = colors.primary,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -150,21 +150,13 @@ fun ConnectoReferDialog(
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Hero Gift Card
+                // Hero Referral Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = if (colors.isDark) {
-                                    listOf(Color(0xFF2E1065), Color(0xFF1E1B4B))
-                                } else {
-                                    listOf(Color(0xFFEDE9FE), Color(0xFFF3E8FF))
-                                }
-                            )
-                        )
-                        .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.35f), RoundedCornerShape(18.dp))
+                        .background(colors.surfaceVariant.copy(alpha = if (colors.isDark) 0.35f else 0.5f))
+                        .border(1.dp, colors.borderSubtle, RoundedCornerShape(18.dp))
                         .padding(18.dp)
                 ) {
                     Column(
@@ -176,13 +168,14 @@ fun ConnectoReferDialog(
                             modifier = Modifier
                                 .size(52.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF8B5CF6).copy(alpha = 0.2f)),
+                                .background(colors.primary.copy(alpha = 0.12f))
+                                .border(1.dp, colors.primary.copy(alpha = 0.3f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.CardGiftcard,
                                 contentDescription = null,
-                                tint = Color(0xFF8B5CF6),
+                                tint = colors.primary,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -366,7 +359,8 @@ fun ConnectoReferDialog(
                         .height(48.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF8B5CF6)
+                        containerColor = colors.primary,
+                        contentColor = colors.onPrimary
                     )
                 ) {
                     Row(
@@ -376,12 +370,12 @@ fun ConnectoReferDialog(
                         Icon(
                             imageVector = Icons.Default.Share,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = colors.onPrimary,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = "Share via Apps",
-                            color = Color.White,
+                            color = colors.onPrimary,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )

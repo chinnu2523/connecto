@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.4.8",
-        version_name: "v5.4.8",
-        version_code: 162,
-        build: 162,
-        sha256: "76f0b4c5fc48e30e9bc2aff53e68c88e97606a5d1abe72c00b59bc61ac164c1c",
+        version: "5.4.9",
+        version_name: "v5.4.9",
+        version_code: 163,
+        build: 163,
+        sha256: "c2b7f8b876de9cf0b87a51582d37b3e17f71af338806aaf91cc298616362f315",
         filename: "connecto-fun.apk",
-        size_bytes: 38058086,
+        size_bytes: 38057905,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -595,18 +595,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.8/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.7/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.4.9/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.4.8/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.4.8-b162-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.4.9-b163-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.4.8");
-          res.headers.set("X-Connecto-Build", "162");
+          res.headers.set("X-Connecto-Version", "v5.4.9");
+          res.headers.set("X-Connecto-Build", "163");
           return res;
         }
 
@@ -642,8 +642,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.4.8");
-              downloadHeaders.set("X-Connecto-Build", "162");
+              downloadHeaders.set("X-Connecto-Version", "v5.4.9");
+              downloadHeaders.set("X-Connecto-Build", "163");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -658,7 +658,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.4.8/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.4.9/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2028,14 +2028,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.4.8",
-        version_code: 162,
-        size_bytes: 38058086,
+        version_name: "5.4.9",
+        version_code: 163,
+        size_bytes: 38057905,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Complete Design System & Theme Alignment: Fully synchronized Voice & Audio Settings with ConnectoTheme tokens, eliminating raw un-themed boxes and hardcoded blacks in VU meter and isolation cards. Purged hardcoded purple colors and purple gradients from Invite Friends & Refer sheet in favor of dynamic theme tokens, and restored perfect button and surface contrast (onPrimary color harmony) across the Send Feedback dialog and Help & Support center",
           "Clean Help & Support UI: Streamlined the Help & Support center in Profile by removing the redundant Delete Account & Data card, Privacy Policy & Terms of Service action buttons, and Invite Friends & Refer card, keeping the support interface focused and uncluttered while retaining standard account security controls in Settings",
           "Studio-Grade Vocal Clarity & 80Hz Wideband Tuning: Upgraded high-pass filter cutoff from 140Hz to 80Hz (ITU-T G.722 Wideband HD Voice standard), preserving 100% of deep male and rich female vocal fundamental resonance while eliminating desk thumps, mic-handling noise, and electrical hum",
           "True Analogue Soft-Knee Saturation Limiter: Implemented smooth hyperbolic tangent (tanh) soft-knee saturation curve, preventing harsh digital clipping and audio distortion during loud speech or laughter while preserving warm natural dynamics",
@@ -7300,13 +7301,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.4.8",
-      version_name: "v5.4.8",
-      version_code: 162,
-      build: 162,
-      sha256: "76f0b4c5fc48e30e9bc2aff53e68c88e97606a5d1abe72c00b59bc61ac164c1c",
+      version: "5.4.9",
+      version_name: "v5.4.9",
+      version_code: 163,
+      build: 163,
+      sha256: "c2b7f8b876de9cf0b87a51582d37b3e17f71af338806aaf91cc298616362f315",
       filename: "connecto-fun.apk",
-      size_bytes: 38058086,
+      size_bytes: 38057905,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7320,10 +7321,25 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v5.4.8",
+          version: "v5.4.9",
           date: "Nov 18, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v5.4.9: Complete Design System & Theme Alignment",
+          summary: "Comprehensive theme synchronization across Voice & Audio settings, Invite Friends & Refer, and Feedback sheets. Purged all hardcoded purple colors and gradients, aligned VU meters and DSP cards with ConnectoTokens, and guaranteed high-contrast onPrimary text and surface styling in both Noir OLED and Parchment themes.",
+          highlights: [
+            "Voice & Audio Settings Theme Unification: Aligned VoiceAudioSettingsCard, master isolation header, VU meter, and DSP specs directly with ConnectoTheme tokens, replacing hardcoded blacks and un-themed boxes.",
+            "Purged Purple in Invite Friends & Refer: Replaced all hardcoded purple hex colors (0xFF8B5CF6, 0xFF2E1065) and gradients with dynamic theme-aware primary and surface tokens.",
+            "Feedback & Bug Report Contrast Fix: Fixed onPrimary contrast on action buttons and chips, ensuring crisp visibility across OLED pitch-black and light themes.",
+            "Android Native App v5.4.9 (Build 163 • 36.3 MB): SHA-256 c2b7f8b876de9cf0b87a51582d37b3e17f71af338806aaf91cc298616362f315."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
+          version: "v5.4.8",
+          date: "Nov 18, 2026",
+          category: "feature",
+          tag: "Production",
           title: "Connecto v5.4.8: Streamlined Help & Support Center",
           summary: "Polished and focused user experience in Profile > Help & Support. Removed the redundant Delete Account & Data card, Privacy Policy & Terms of Service action buttons, and Invite Friends & Refer card, keeping the support hub clean and dedicated to assistance while retaining standard account security controls in Settings.",
           highlights: [

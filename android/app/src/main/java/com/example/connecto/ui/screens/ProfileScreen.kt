@@ -5288,12 +5288,12 @@ fun ProfileScreen(
                                             .clip(RoundedCornerShape(16.dp))
                                             .background(
                                                 if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
-                                                else MaterialTheme.colorScheme.surface
+                                                else themeColors.surface
                                             )
                                             .border(
                                                 1.dp,
                                                 if (hasCoverPhoto) Color.White.copy(alpha = 0.2f)
-                                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                                else themeColors.borderSubtle,
                                                 RoundedCornerShape(16.dp)
                                             )
                                             .clickable { showFeedbackDialog = true }
@@ -5312,13 +5312,14 @@ fun ProfileScreen(
                                                     modifier = Modifier
                                                         .size(36.dp)
                                                         .clip(RoundedCornerShape(10.dp))
-                                                        .background(Color(0xFFF59E0B).copy(alpha = 0.15f)),
+                                                        .background(themeColors.primary.copy(alpha = 0.12f))
+                                                        .border(1.dp, themeColors.primary.copy(alpha = 0.3f), RoundedCornerShape(10.dp)),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Icon(
                                                         imageVector = Icons.Default.RateReview,
                                                         contentDescription = null,
-                                                        tint = Color(0xFFF59E0B),
+                                                        tint = themeColors.primary,
                                                         modifier = Modifier.size(20.dp)
                                                     )
                                                 }
@@ -5327,19 +5328,19 @@ fun ProfileScreen(
                                                         text = "Send Feedback & Ideas",
                                                         fontSize = 14.sp,
                                                         fontWeight = FontWeight.Bold,
-                                                        color = MaterialTheme.colorScheme.onSurface
+                                                        color = themeColors.textPrimary
                                                     )
                                                     Text(
                                                         text = "Rate experience, request features & suggest changes",
                                                         fontSize = 11.5.sp,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        color = themeColors.textSecondary
                                                     )
                                                 }
                                             }
                                             Icon(
                                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                                 contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                tint = themeColors.textSecondary.copy(alpha = 0.5f),
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -5604,14 +5605,17 @@ fun ProfileScreen(
                         showBugReportDialog = false
                         bugReportDescription = ""
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = themeColors.primary,
+                        contentColor = themeColors.onPrimary
+                    )
                 ) {
-                    Text("Send via Email")
+                    Text("Send via Email", color = themeColors.onPrimary)
                 }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showBugReportDialog = false }) {
-                    Text("Cancel")
+                    Text("Cancel", color = themeColors.textSecondary)
                 }
             }
         )
@@ -6204,6 +6208,7 @@ fun ProfileScreen(
 @Composable
 private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
     val context = LocalContext.current
+    val themeColors = ConnectoTheme.colors
     val isVoiceIsoActive by com.example.connecto.voice.VoiceCallManager.isVoiceIsolationEnabled.collectAsState()
     val voiceIsolationCaps by com.example.connecto.voice.VoiceCallManager.voiceIsolationCapabilities.collectAsState()
     
@@ -6241,8 +6246,12 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
             .fillMaxWidth()
             .liquidGlassCard(
                 shape = RoundedCornerShape(20.dp),
-                backgroundColor = if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f) else MaterialTheme.colorScheme.surface,
-                borderColor = if (hasCoverPhoto) Color.White.copy(alpha = 0.22f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                    else themeColors.surface,
+                borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                    else themeColors.borderSubtle
             )
             .padding(18.dp)
     ) {
@@ -6256,13 +6265,13 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(
-                        if (isVoiceIsoActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                        if (isVoiceIsoActive) themeColors.primary.copy(alpha = if (themeColors.isDark) 0.12f else 0.08f)
+                        else themeColors.surfaceVariant.copy(alpha = if (themeColors.isDark) 0.35f else 0.5f)
                     )
                     .border(
                         1.dp,
-                        if (isVoiceIsoActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.50f)
-                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                        if (isVoiceIsoActive) themeColors.primary.copy(alpha = 0.45f)
+                        else themeColors.borderSubtle,
                         RoundedCornerShape(14.dp)
                     )
                     .padding(14.dp),
@@ -6278,15 +6287,21 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                             .size(42.dp)
                             .clip(CircleShape)
                             .background(
-                                if (isVoiceIsoActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
-                                else MaterialTheme.colorScheme.surfaceVariant
+                                if (isVoiceIsoActive) themeColors.primary.copy(alpha = 0.18f)
+                                else themeColors.surfaceVariant
+                            )
+                            .border(
+                                1.dp,
+                                if (isVoiceIsoActive) themeColors.primary.copy(alpha = 0.45f)
+                                else themeColors.borderSubtle,
+                                CircleShape
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Mic,
                             contentDescription = null,
-                            tint = if (isVoiceIsoActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (isVoiceIsoActive) themeColors.primary else themeColors.textSecondary,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -6297,15 +6312,15 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                                 text = "Voice Isolation",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = themeColors.textPrimary
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
                                     .background(
-                                        if (isVoiceIsoActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                                        if (isVoiceIsoActive) themeColors.primary.copy(alpha = 0.18f)
+                                        else themeColors.surfaceVariant.copy(alpha = 0.5f)
                                     )
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
@@ -6313,7 +6328,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                                     text = if (isVoiceIsoActive) "AI ACTIVE" else "OFF",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isVoiceIsoActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (isVoiceIsoActive) themeColors.primary else themeColors.textSecondary
                                 )
                             }
                         }
@@ -6321,7 +6336,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                         Text(
                             text = if (isVoiceIsoActive) "${voiceIsolationCaps.statusSummary} engaged" else "Raw mic input without suppression",
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = themeColors.textSecondary,
                             lineHeight = 16.sp
                         )
                     }
@@ -6339,7 +6354,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                             Toast.LENGTH_SHORT
                         ).show()
                     },
-                    colors = getMonochromeSwitchColors()
+                    colors = getMonochromeSwitchColors(isLight = !themeColors.isDark)
                 )
             }
 
@@ -6348,8 +6363,8 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color.Black.copy(alpha = 0.25f))
-                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(14.dp))
+                    .background(themeColors.surfaceVariant.copy(alpha = if (themeColors.isDark) 0.35f else 0.5f))
+                    .border(1.dp, themeColors.borderSubtle, RoundedCornerShape(14.dp))
                     .padding(14.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -6363,19 +6378,20 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                                 text = "Microphone Live Sensitivity",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = themeColors.textPrimary
                             )
                             Text(
                                 text = if (isMicTesting) "Testing input levels with current DSP..." else "Tap Test to monitor live spectral gating",
                                 fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = themeColors.textSecondary
                             )
                         }
                         Button(
                             onClick = { isMicTesting = !isMicTesting },
                             shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isMicTesting) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary
+                                containerColor = if (isMicTesting) themeColors.error else themeColors.primary,
+                                contentColor = if (isMicTesting) themeColors.onError else themeColors.onPrimary
                             ),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                             modifier = Modifier.height(32.dp)
@@ -6383,7 +6399,8 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                             Text(
                                 text = if (isMicTesting) "Stop" else "Test Mic",
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = if (isMicTesting) themeColors.onError else themeColors.onPrimary
                             )
                         }
                     }
@@ -6394,7 +6411,8 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                             .fillMaxWidth()
                             .height(28.dp)
                             .clip(RoundedCornerShape(6.dp))
-                            .background(Color.Black.copy(alpha = 0.4f))
+                            .background(if (themeColors.isDark) Color.Black.copy(alpha = 0.4f) else themeColors.background.copy(alpha = 0.8f))
+                            .border(0.5.dp, themeColors.borderSubtle, RoundedCornerShape(6.dp))
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.Bottom
@@ -6405,16 +6423,16 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                             val threshold = i.toFloat() / barCount
                             val isLit = animatedLevel >= threshold
                             val barColor = when {
-                                i >= barCount - 3 -> Color(0xFFEF4444) // Red peak
-                                i >= barCount - 7 -> Color(0xFFF59E0B) // Amber warning
-                                else -> Color(0xFF10B981) // Green clear
+                                i >= barCount - 3 -> themeColors.error // Red peak
+                                i >= barCount - 7 -> themeColors.warning // Amber warning
+                                else -> themeColors.success // Green clear
                             }
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(((i + 1) * 1.3f).dp)
                                     .clip(RoundedCornerShape(2.dp))
-                                    .background(if (isLit) barColor else barColor.copy(alpha = 0.15f))
+                                    .background(if (isLit) barColor else barColor.copy(alpha = if (themeColors.isDark) 0.15f else 0.25f))
                             )
                         }
                     }
@@ -6426,29 +6444,29 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                 text = "DSP ISOLATION PIPELINE",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                color = themeColors.textSecondary,
                 letterSpacing = 1.sp
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 DspSpecItem(
-                    title = "140Hz High-Pass Filter",
-                    detail = "Rejects sub-vocal rumble, AC hum, desk vibrations & handling noise",
+                    title = "80Hz Wideband High-Pass Filter",
+                    detail = "ITU-T G.722 tuning: preserves deep vocal resonance while rejecting desk thumps & hum",
                     isActive = isVoiceIsoActive
                 )
                 DspSpecItem(
-                    title = "3400Hz Vocal Low-Pass Filter",
-                    detail = "Attenuates high-frequency fan hiss, coil whine & keyboard clicks",
+                    title = "True Analogue Soft-Knee Saturation Limiter",
+                    detail = "Smooth tanh curve prevents digital clipping during loud speech & preserves dynamics",
                     isActive = isVoiceIsoActive
                 )
                 DspSpecItem(
                     title = "Adaptive Expander Gate (-90dB)",
-                    detail = "Total silence floor between speech with 240ms hangover protection",
+                    detail = "Total silence floor between speech with 800ms hangover protection",
                     isActive = isVoiceIsoActive
                 )
                 DspSpecItem(
-                    title = "Vocal Presence Normalization (+1.8dB)",
-                    detail = "Optimizes intelligibility and prevents clipping with soft limiter",
+                    title = "Low-Latency Jitter Buffer (40ms Pre-Roll)",
+                    detail = "Absorbs network timing fluctuations with 2ms Hann micro-crossfade PLC",
                     isActive = isVoiceIsoActive
                 )
                 DspSpecItem(
@@ -6464,7 +6482,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                 if (voiceIsolationCaps.hasHardwareEchoCanceler) {
                     DspSpecItem(
                         title = "Hardware Acoustic Echo Cancellation (AEC)",
-                        detail = "SoC-level echo removal eliminating speakerphone feedback",
+                        detail = "Permanent SoC-level hardware echo removal eliminating speakerphone feedback",
                         isActive = true
                     )
                 }
@@ -6475,7 +6493,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                 text = "ADVANCED AUDIO CONTROLS",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                color = themeColors.textSecondary,
                 letterSpacing = 1.sp
             )
 
@@ -6484,14 +6502,24 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    .background(themeColors.surfaceVariant.copy(alpha = if (themeColors.isDark) 0.35f else 0.5f))
+                    .border(1.dp, themeColors.borderSubtle, RoundedCornerShape(12.dp))
                     .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Acoustic Echo Cancellation", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
-                    Text(text = "Prevents speaker feedback from bleeding back into the mic", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "Acoustic Echo Cancellation",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = themeColors.textPrimary
+                    )
+                    Text(
+                        text = "Prevents speaker feedback from bleeding back into the mic",
+                        fontSize = 11.5.sp,
+                        color = themeColors.textSecondary
+                    )
                 }
                 Switch(
                     checked = echoCancellation,
@@ -6499,7 +6527,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                         echoCancellation = it
                         audioPrefs.edit().putBoolean("connecto_echo_cancellation", it).apply()
                     },
-                    colors = getMonochromeSwitchColors()
+                    colors = getMonochromeSwitchColors(isLight = !themeColors.isDark)
                 )
             }
 
@@ -6508,14 +6536,24 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    .background(themeColors.surfaceVariant.copy(alpha = if (themeColors.isDark) 0.35f else 0.5f))
+                    .border(1.dp, themeColors.borderSubtle, RoundedCornerShape(12.dp))
                     .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Automatic Gain Control (AGC)", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
-                    Text(text = "Normalizes voice volume regardless of phone distance", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "Automatic Gain Control (AGC)",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = themeColors.textPrimary
+                    )
+                    Text(
+                        text = "Normalizes voice volume regardless of phone distance",
+                        fontSize = 11.5.sp,
+                        color = themeColors.textSecondary
+                    )
                 }
                 Switch(
                     checked = autoGainControl,
@@ -6523,7 +6561,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                         autoGainControl = it
                         audioPrefs.edit().putBoolean("connecto_auto_gain", it).apply()
                     },
-                    colors = getMonochromeSwitchColors()
+                    colors = getMonochromeSwitchColors(isLight = !themeColors.isDark)
                 )
             }
 
@@ -6532,14 +6570,24 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    .background(themeColors.surfaceVariant.copy(alpha = if (themeColors.isDark) 0.35f else 0.5f))
+                    .border(1.dp, themeColors.borderSubtle, RoundedCornerShape(12.dp))
                     .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "HD Studio Voice (48 kHz Opus)", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
-                    Text(text = "Full-bandwidth ultra-clear audio for crystal calls", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "HD Studio Voice (48 kHz Opus)",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = themeColors.textPrimary
+                    )
+                    Text(
+                        text = "Full-bandwidth ultra-clear audio for crystal calls",
+                        fontSize = 11.5.sp,
+                        color = themeColors.textSecondary
+                    )
                 }
                 Switch(
                     checked = highDefVoice,
@@ -6547,7 +6595,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                         highDefVoice = it
                         audioPrefs.edit().putBoolean("connecto_hd_voice", it).apply()
                     },
-                    colors = getMonochromeSwitchColors()
+                    colors = getMonochromeSwitchColors(isLight = !themeColors.isDark)
                 )
             }
         }
@@ -6560,18 +6608,19 @@ private fun DspSpecItem(
     detail: String,
     isActive: Boolean
 ) {
+    val themeColors = ConnectoTheme.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(
-                if (isActive) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+                if (isActive) themeColors.surfaceVariant.copy(alpha = if (themeColors.isDark) 0.35f else 0.5f)
+                else themeColors.surfaceVariant.copy(alpha = if (themeColors.isDark) 0.15f else 0.25f)
             )
             .border(
                 1.dp,
-                if (isActive) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                if (isActive) themeColors.borderSubtle
+                else themeColors.borderSubtle.copy(alpha = 0.5f),
                 RoundedCornerShape(10.dp)
             )
             .padding(10.dp),
@@ -6581,7 +6630,7 @@ private fun DspSpecItem(
             modifier = Modifier
                 .size(8.dp)
                 .clip(CircleShape)
-                .background(if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                .background(if (isActive) themeColors.primary else themeColors.textSecondary.copy(alpha = 0.35f))
         )
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -6589,12 +6638,12 @@ private fun DspSpecItem(
                 text = title,
                 fontSize = 12.5.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                color = if (isActive) themeColors.textPrimary else themeColors.textSecondary
             )
             Text(
                 text = detail,
                 fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = themeColors.textSecondary,
                 lineHeight = 14.sp
             )
         }
