@@ -210,25 +210,25 @@ fun LegalTermsDialog(
                     ) {
                         if (selectedTab == 0) {
                             // TERMS OF USE CONTENT
-                            LegalBadge(text = "Official Legal Agreement • Public Beta Testing • 2026")
+                            LegalBadge(text = "Official Legal Agreement • Connecto v5.5.4 • Nov 2026")
                             Spacer(modifier = Modifier.height(8.dp))
 
                             LegalSection(
                                 number = "01",
                                 title = "Agreement to Terms & Public Beta Testing Stage",
-                                content = "These Terms of Use constitute a legally binding agreement between you and Connecto Network (\"Connecto\"). Connecto is currently in an active Public Beta Testing Stage. By accessing connecto.fun, creating an account, or downloading the Connecto Android client, you agree to comply with all terms herein and acknowledge that features, edge sync mechanisms, and audio mesh protocols are actively tested and optimized."
+                                content = "These Terms of Use constitute a legally binding agreement between you and Connecto Network (\"Connecto\"). Connecto is currently in an active Public Beta Testing Stage (v5.5.4). By accessing connecto.fun, creating an account via email OTP verification, exploring in guest sandbox mode, or downloading the Connecto Android client, you agree to comply with all terms herein and acknowledge that features, edge sync mechanisms, and audio protocols are continuously optimized."
                             )
 
                             LegalSection(
                                 number = "02",
-                                title = "Age Requirement (18+ Strictly Enforced)",
-                                content = "Connecto is engineered exclusively for adults. You certify that you are at least 18 years old upon creating an account. Any account discovered to belong to or operated by an individual under the age of 18 will be permanently deleted without notice."
+                                title = "Strict Age Requirement (18+ Strictly Enforced)",
+                                content = "Connecto is engineered exclusively for adults. You certify that you are at least 18 years old upon creating an account. During registration, users must provide their valid Date of Birth (YYYY-MM-DD) which is verified by an automated age calculation engine. Any account discovered to belong to or operated by an individual under the age of 18 will be permanently deleted without notice."
                             )
 
                             LegalSection(
                                 number = "03",
                                 title = "Beta Testing Disclaimer & Service Availability",
-                                content = "Connecto is provided on an \"AS-IS\" and \"AS-AVAILABLE\" basis during the Public Beta Testing phase without commercial advertisements or paywalls. While we maintain 99.9% uptime, edge database quotas, background updates, or protocol iterations may occur. Connecto disclaims liability for indirect, incidental, or consequential damages resulting from beta service updates."
+                                content = "Connecto is provided on an \"AS-IS\" and \"AS-AVAILABLE\" basis during the Public Beta Testing phase without commercial advertisements or paywalls. While we maintain 99.9% uptime, edge database sync, background updates, or protocol iterations may occur. Connecto disclaims liability for indirect, incidental, or consequential damages resulting from beta service updates."
                             )
 
                             LegalSection(
@@ -240,7 +240,7 @@ fun LegalTermsDialog(
                             LegalSection(
                                 number = "05",
                                 title = "Account Security & Authentication",
-                                content = "You are solely responsible for maintaining the confidentiality of your account credentials, sessions, and hardware biometric keys. Multi-factor authentication via Resend email OTP and Connecto Vault device biometrics are strongly encouraged to safeguard access."
+                                content = "You are solely responsible for maintaining the confidentiality of your account credentials, sessions, and hardware biometric keys. Multi-factor authentication via email verification codes (OTP) and Connecto Vault device biometrics are strongly encouraged to safeguard access."
                             )
 
                             LegalSection(
@@ -256,31 +256,31 @@ fun LegalTermsDialog(
                             )
                         } else {
                             // PRIVACY POLICY CONTENT
-                            LegalBadge(text = "GDPR & CCPA Compliant • Public Beta Privacy Standard")
+                            LegalBadge(text = "GDPR & CCPA Compliant • Public Beta Privacy Standard • Nov 2026")
                             Spacer(modifier = Modifier.height(8.dp))
 
                             LegalSection(
                                 number = "01",
                                 title = "Zero Data Selling Guarantee & Beta Privacy",
-                                content = "Connecto Network does not sell, rent, monetize, or trade your personal data, messages, voice audio, or browsing habits to advertisers, data brokers, or third parties. We have zero advertising trackers or behavioral pixels. In this Public Beta Testing Stage, data processing is strictly limited to essential core service delivery and crash debugging."
+                                content = "Connecto Network does not sell, rent, monetize, or trade your personal data, messages, voice audio, or browsing habits to advertisers, data brokers, or third parties. We have zero advertising trackers or behavioral pixels. Data processing is strictly limited to essential core service delivery and crash debugging."
                             )
 
                             LegalSection(
                                 number = "02",
                                 title = "Data Minimization & What We Collect",
-                                content = "We practice strict data minimization. We only collect the minimal credentials necessary to operate your account: chosen username, display name, public bio, email address for 2FA / OTP verification, and hashed passwords salted via modern cryptographic algorithms (Argon2id)."
+                                content = "We practice strict data minimization. We only collect the minimal credentials necessary to operate your account: chosen username, display name, public bio, email address for 2FA / OTP verification, Date of Birth strictly for automated 18+ eligibility calculation (never shown publicly), and hashed passwords salted via modern cryptographic algorithms (Argon2id)."
                             )
 
                             LegalSection(
                                 number = "03",
                                 title = "Ephemeral WebRTC Voice & Calls",
-                                content = "All spatial audio voice lounges and one-to-one voice calls are powered by WebRTC mesh connections and Opus 96kHz audio relays. Voice packets are completely ephemeral; we do not record, transcribe, store, or train machine learning models on your conversations."
+                                content = "All spatial audio voice channels and one-to-one voice calls are powered by WebRTC mesh connections and Opus 80Hz wideband audio relays. Voice packets are completely ephemeral in memory; we do not record, transcribe, store, or train machine learning models on your conversations. Calls default directly to the private earpiece to protect call confidentiality."
                             )
 
                             LegalSection(
                                 number = "04",
-                                title = "Hardware Vault & Local Biometrics",
-                                content = "Connecto Vault utilizes native Android BiometricPrompt and hardware keystores (Fingerprint / Face Unlock / PIN). Your biometric templates never leave your local device and are never transmitted to or stored on any server."
+                                title = "Hardware Vault & Screen Privacy Shield",
+                                content = "Connecto utilizes native Android BiometricPrompt and hardware keystores (Fingerprint / Face Unlock / PIN). Your biometric templates never leave your local device. The application also enforces OS-level SurfaceFlinger screen protection (FLAG_SECURE) causing screenshots, screen recorders, and video shares to output solid black screens."
                             )
 
                             LegalSection(

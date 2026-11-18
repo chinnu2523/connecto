@@ -243,19 +243,19 @@
     <div class="nav-links">
       <a href="/" class="btn-portal" style="background:transparent; border-color:var(--border); color:var(--text-secondary);">Home</a>
       <a href="/terms" class="btn-portal" style="background:transparent; border-color:var(--border); color:var(--text-secondary);">Terms</a>
-      <a href="/downloads/connecto.apk" class="btn-portal">Download APK ↓</a>
+      <a href="/downloads/connecto-fun.apk" class="btn-portal">Download APK ↓</a>
     </div>
   </header>
 
   <main class="page-container">
     <div class="doc-badge">Security & Privacy Standard • Public Beta Program</div>
     <h1>Privacy Policy</h1>
-    <div class="last-updated">Last Updated: October 2026 • Public Beta Testing Stage • GDPR & CCPA Compliant</div>
+    <div class="last-updated">Last Updated: November 2026 • Connecto v5.5.5 • Public Beta Testing Stage • GDPR & CCPA Compliant</div>
 
     <div class="legal-card" style="border-left: 3px solid #f59e0b; background: rgba(245, 158, 11, 0.04);">
       <h2 style="color: #fbbf24;"><span class="num" style="border-color: #f59e0b; color: #fbbf24;">β</span> Public Beta Testing Stage Notice</h2>
       <p>
-        <strong>Notice:</strong> Connecto (including the connecto.fun web portal and official Android application) is actively operating in a <strong>Public Beta Testing Stage</strong>.
+        <strong>Notice:</strong> Connecto (encompassing the connecto.fun web portal, edge endpoints, and official Android application) is actively operating in a <strong>Public Beta Testing Stage</strong> (Current Release: <strong>v5.5.5</strong>).
       </p>
       <p>
         The platform is made publicly available for developer evaluation, performance profiling, and community feedback. While features, user interfaces, and network protocols undergo active optimization, our commitment to zero data selling, end-to-end cryptographic integrity, and data minimization remains non-negotiable.
@@ -273,43 +273,42 @@
     </div>
 
     <div class="legal-card">
-      <h2><span class="num">02</span> Data We Collect</h2>
+      <h2><span class="num">02</span> Data We Collect & Process</h2>
       <p>
         We practice aggressive data minimization. The only data processed includes:
       </p>
       <ul>
-        <li><strong>Account Credentials:</strong> Chosen username, display nickname, optional bio/status, and securely hashed passwords (salted via Argon2id / bcrypt).</li>
-        <li><strong>Channel Messages & Artifacts:</strong> Collaborative messages, code snippets, and emoji reactions sent in workspace channels.</li>
-        <li><strong>Direct Communications:</strong> Encrypted message transmissions between authenticated participants.</li>
-        <li><strong>Diagnostic Beta Telemetry:</strong> Ephemeral WebSocket ping metrics, packet round-trip time (RTT), and crash logs strictly utilized for network stabilization and bug remediation during the beta period.</li>
+        <li><strong>Account Credentials:</strong> Chosen username, display name, optional public bio/status, and securely salted/hashed passwords (Argon2id / bcrypt).</li>
+        <li><strong>Email & Verification Codes (OTP):</strong> Provided email addresses are utilized solely for one-time verification passcodes (OTP), two-factor authentication (2FA), and critical account recovery alerts. We never send promotional spam.</li>
+        <li><strong>Age Verification (18+ Requirement):</strong> Date of Birth (YYYY-MM-DD) is collected during registration solely to compute adult eligibility (18+). It is never shared with third parties or publicly displayed on user profiles.</li>
+        <li><strong>Encrypted Communications:</strong> Messages, files, and emoji reactions sent in workspace channels or 1:1 direct conversations.</li>
+        <li><strong>Diagnostic Telemetry:</strong> Ephemeral WebSocket latency metrics, packet round-trip time (RTT), and crash logs strictly utilized for network stabilization and bug remediation during beta testing.</li>
       </ul>
       <p>
-        We do NOT collect phone numbers, real-world physical addresses, or tracking identifiers.
+        We do NOT collect phone numbers, real-world physical addresses, GPS locations, or advertising device IDs.
       </p>
     </div>
 
     <div class="legal-card">
-      <h2><span class="num">03</span> Audio Lounges & Spatial Stages</h2>
+      <h2><span class="num">03</span> Audio Calls & Spatial Stages</h2>
       <p>
-        Voice lounges and audio stages are powered by peer-to-peer WebRTC and high-throughput Coturn media relays:
+        Voice calls and audio channels are powered by peer-to-peer WebRTC and accelerated media relays:
       </p>
       <ul>
-        <li>Voice packets (96kHz Opus) are transmitted in real time and are <strong>strictly ephemeral in memory</strong>.</li>
-        <li>Connecto does not record, transcribe, store, or train machine learning models on voice stage conversations.</li>
+        <li>Voice packets (80Hz wideband Opus, ITU-T G.722) are transmitted in real time and are <strong>strictly ephemeral in memory</strong>.</li>
+        <li>Connecto does not record, transcribe, store, or train machine learning models on voice conversations.</li>
+        <li>Voice calls default directly to the private earpiece receiver upon call connection, preventing accidental loudspeaker exposure.</li>
       </ul>
     </div>
 
     <div class="legal-card">
-      <h2><span class="num">04</span> Cookies & Local Storage</h2>
+      <h2><span class="num">04</span> Hardware Screen Protection & Biometric Vault</h2>
       <p>
-        Connecto does not use third-party analytics trackers, advertising pixels, or behavioral cookies.
-      </p>
-      <p>
-        We strictly use secure, first-party browser local storage and essential session cookies for:
+        Connecto integrates hardware-level privacy mechanisms directly on your device:
       </p>
       <ul>
-        <li>Keeping you securely logged into your authenticated account session.</li>
-        <li>Saving your UI preferences (dark mode OLED theme, audio volume levels, sidebar collapse state).</li>
+        <li><strong>SurfaceFlinger Privacy Shield (FLAG_SECURE):</strong> The Android application enforces OS-level screen protection, causing screenshots, screen sharing (e.g. Discord, Zoom, Google Meet), and screen casting to output a solid black screen (#000000) to protect private chats from surveillance.</li>
+        <li><strong>Hardware Biometrics:</strong> Biometric authentication (Fingerprint / Face ID / PIN) operates via native Android BiometricPrompt and hardware keystores. Biometric templates never leave your local device and are never sent to or stored on any server.</li>
       </ul>
     </div>
 
@@ -323,7 +322,7 @@
     <div class="legal-card">
       <h2><span class="num">06</span> Strict Age Requirement (18+)</h2>
       <p>
-        Connecto and the Public Beta Testing Program are strictly designed for individuals aged <strong>18 and older</strong> (or the legal age of majority in your jurisdiction). We do not knowingly permit minors to register or collect data from individuals under 18 years of age. Accounts identified as belonging to underage individuals are terminated immediately.
+        Connecto and the Public Beta Testing Program are strictly designed for individuals aged <strong>18 and older</strong>. We do not knowingly permit minors to register or collect data from individuals under 18 years of age. Accounts identified as belonging to underage individuals are terminated immediately.
       </p>
     </div>
 
@@ -340,12 +339,12 @@
     </div>
 
     <div class="legal-card">
-      <h2><span class="num">08</span> Contact Our Data Protection & Beta Team</h2>
+      <h2><span class="num">08</span> Contact Our Data Protection Team</h2>
       <p>
-        If you have inquiries regarding our privacy practices, wish to submit an erasure request, or want to report a beta security finding, contact our team:
+        If you have inquiries regarding our privacy practices, wish to submit an erasure request, or want to report a privacy concern, contact our team:
       </p>
       <p style="font-family:var(--font-mono); color:var(--accent-green); font-size:13px; margin-top:8px;">
-        privacy@connecto.fun • dpo@connecto.fun • support@connecto.fun
+        privacy@connecto.fun • legal@connecto.fun • support@connecto.fun
       </p>
     </div>
   </main>
@@ -354,7 +353,7 @@
     <p>© 2026 Connecto Network. All rights reserved.</p>
     <p style="margin-top:8px;">
       <a href="/">Home</a>
-      <a href="/downloads/connecto.apk">Download APK</a>
+      <a href="/downloads/connecto-fun.apk">Download APK</a>
       <a href="/privacy">Privacy Policy</a>
       <a href="/terms">Terms of Service</a>
       <a href="/status">Status Page</a>

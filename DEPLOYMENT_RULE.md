@@ -24,6 +24,13 @@ Whenever any application change is made, execute the following steps in sequence
 - Update metadata in `backend/app/api/v1/store.py` (`version_name`, `version_code`, `size_bytes`, `size_formatted`, and changelog).
 - Update metadata in `cloudflare/worker.js` if version headers or catalog are changed.
 
+### Step 1b: Synchronize Privacy Policy & Terms of Use
+- **Mandatory on every release**: Always review and update the Privacy Policy and Terms of Use across:
+  1. `website/static/terms.html`
+  2. `website/static/privacy.html`
+  3. `android/app/src/main/java/com/example/connecto/ui/auth/LegalTermsDialog.kt`
+- Ensure all latest application requirements (e.g., 18+ age verification, email OTP verification, WebRTC voice privacy, hardware biometric keystores, SurfaceFlinger screen protection `FLAG_SECURE`, and data minimization) and current version references (`v<versionName>`) are strictly aligned with the current application state.
+
 ### Step 2: Production Release Build
 ```bash
 export JAVA_HOME="/opt/homebrew/opt/openjdk@17"
