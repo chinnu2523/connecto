@@ -19,9 +19,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
 import kotlin.math.hypot
+import kotlin.math.max
 
 /**
  * Accessor object for Connecto Design System tokens in Composable functions.
@@ -168,8 +172,22 @@ fun ConnectoDesignTheme(
 }
 
 /**
- * Full-screen theme transition ripple overlay.
- * Automatically animates a soft radial wipe when switching between Black and White themes.
+ * Global coordinator for smooth circular iris theme transitions.
+ * Captures the exact screen coordinates of the trigger toggle so the open/close
+ * aperture animation radiates directly from the button.
+ */
+object ThemeTransitionManager {
+    var toggleOrigin by mutableStateOf<Offset?>(null)
+
+    fun recordOrigin(origin: Offset) {
+        toggleOrigin = origin
+    }
+}
+
+/**
+ * Full-screen theme transition iris reveal container.
+ * Animates a silky circular aperture open/close reveal originating directly
+ * from the toggle's physical screen coordinates.
  */
 @Composable
 fun ConnectoThemeTransitionContainer(
@@ -179,38 +197,82 @@ fun ConnectoThemeTransitionContainer(
 ) {
     var previousDarkState by remember { mutableStateOf<Boolean?>(null) }
     val transitionProgress = remember { Animatable(1f) }
+    var animatingToDark by remember { mutableStateOf(isDark) }
 
     LaunchedEffect(isDark) {
         if (previousDarkState != null && previousDarkState != isDark) {
+            animatingToDark = isDark
             transitionProgress.snapTo(0f)
             transitionProgress.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(durationMillis = 380, easing = FastOutSlowInEasing)
+                animationSpec = tween(
+                    durationMillis = 440,
+                    easing = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
+                )
             )
         }
         previousDarkState = isDark
     }
 
-    Box(modifier = modifier) {
+    Box(modifier = modifier.fillMaxSize()) {
         content()
 
         if (transitionProgress.value < 1.0f) {
             val progress = transitionProgress.value
+            val origin = ThemeTransitionManager.toggleOrigin
+
             Canvas(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        alpha = ((1f - progress) * 0.35f).coerceIn(0f, 1f)
-                    }
+                modifier = Modifier.fillMaxSize()
             ) {
-                val center = Offset(size.width / 2f, size.height / 2f)
-                val maxRadius = kotlin.math.hypot(size.width, size.height)
+                // Origin starts from the toggle button coordinates or falls back to top right
+                val center = origin ?: Offset(size.width * 0.82f, size.height * 0.32f)
+
+                // Calculate the exact distance from center to the furthest of the 4 screen corners
+                val maxRadius = maxOf(
+                    hypot(center.x, center.y),
+                    hypot(size.width - center.x, center.y),
+                    hypot(center.x, size.height - center.y),
+                    hypot(size.width - center.x, size.height - center.y)
+                ) * 1.05f
+
                 val currentRadius = maxRadius * progress
 
+                val accentColor = if (animatingToDark) Color(0xFF38BDF8) else Color(0xFFF59E0B)
+                val targetBg = if (animatingToDark) Color(0xFF000000) else Color(0xFFFAF9F6)
+
+                // 1. Soft radial aperture aura expanding from the toggle
+                val fillAlpha = ((1f - progress) * 0.18f).coerceIn(0f, 1f)
+                val radialBrush = Brush.radialGradient(
+                    colors = listOf(
+                        accentColor.copy(alpha = fillAlpha * 0.95f),
+                        targetBg.copy(alpha = fillAlpha * 0.50f),
+                        Color.Transparent
+                    ),
+                    center = center,
+                    radius = currentRadius.coerceAtLeast(1f)
+                )
                 drawCircle(
-                    color = if (isDark) Color(0xFF000000) else Color(0xFFFFFFFF),
+                    brush = radialBrush,
                     radius = currentRadius,
                     center = center
+                )
+
+                // 2. Glowing Iris wavefront boundary ring (Aperture opening / closing)
+                val ringAlpha = ((1f - progress * 0.75f) * 0.85f).coerceIn(0f, 1f)
+                drawCircle(
+                    color = accentColor.copy(alpha = ringAlpha),
+                    radius = currentRadius,
+                    center = center,
+                    style = Stroke(width = 3.5.dp.toPx())
+                )
+
+                // 3. Ambient soft bloom aura around the wavefront
+                val glowAlpha = ((1f - progress) * 0.40f).coerceIn(0f, 1f)
+                drawCircle(
+                    color = accentColor.copy(alpha = glowAlpha),
+                    radius = (currentRadius + 4.dp.toPx()),
+                    center = center,
+                    style = Stroke(width = 8.dp.toPx())
                 )
             }
         }

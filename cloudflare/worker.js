@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.4.9",
-        version_name: "v5.4.9",
-        version_code: 163,
-        build: 163,
-        sha256: "c2b7f8b876de9cf0b87a51582d37b3e17f71af338806aaf91cc298616362f315",
+        version: "5.5.0",
+        version_name: "v5.5.0",
+        version_code: 164,
+        build: 164,
+        sha256: "809879f5183de06ec62a15dccd84659839a3f6def95840cda0c94bfd18c43f5b",
         filename: "connecto-fun.apk",
-        size_bytes: 38057905,
+        size_bytes: 38056901,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -595,18 +595,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.9/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.8/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.5.0/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.4.9/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.4.9-b163-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.5.0-b164-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.4.9");
-          res.headers.set("X-Connecto-Build", "163");
+          res.headers.set("X-Connecto-Version", "v5.5.0");
+          res.headers.set("X-Connecto-Build", "164");
           return res;
         }
 
@@ -642,8 +642,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.4.9");
-              downloadHeaders.set("X-Connecto-Build", "163");
+              downloadHeaders.set("X-Connecto-Version", "v5.5.0");
+              downloadHeaders.set("X-Connecto-Build", "164");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -658,7 +658,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.4.9/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.5.0/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2028,14 +2028,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.4.9",
-        version_code: 163,
-        size_bytes: 38057905,
+        version_name: "5.5.0",
+        version_code: 164,
+        size_bytes: 38056901,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Profile Display Theme Toggle & Aperture Iris Transition: Redesigned the Display Theme toggle row to match the exact visual architecture, squircle leading icon, typography, and tactile press interaction of all Profile tab buttons (ConnectoSettingsRow). Implemented an ultra-smooth open/close circular iris reveal animation originating directly from the toggle's physical screen coordinates with a luminous wavefront rim, eliminating screen-center stutter and washed-out radial artifacts",
           "Complete Design System & Theme Alignment: Fully synchronized Voice & Audio Settings with ConnectoTheme tokens, eliminating raw un-themed boxes and hardcoded blacks in VU meter and isolation cards. Purged hardcoded purple colors and purple gradients from Invite Friends & Refer sheet in favor of dynamic theme tokens, and restored perfect button and surface contrast (onPrimary color harmony) across the Send Feedback dialog and Help & Support center",
           "Clean Help & Support UI: Streamlined the Help & Support center in Profile by removing the redundant Delete Account & Data card, Privacy Policy & Terms of Service action buttons, and Invite Friends & Refer card, keeping the support interface focused and uncluttered while retaining standard account security controls in Settings",
           "Studio-Grade Vocal Clarity & 80Hz Wideband Tuning: Upgraded high-pass filter cutoff from 140Hz to 80Hz (ITU-T G.722 Wideband HD Voice standard), preserving 100% of deep male and rich female vocal fundamental resonance while eliminating desk thumps, mic-handling noise, and electrical hum",
@@ -7301,13 +7302,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.4.9",
-      version_name: "v5.4.9",
-      version_code: 163,
-      build: 163,
-      sha256: "c2b7f8b876de9cf0b87a51582d37b3e17f71af338806aaf91cc298616362f315",
+      version: "5.5.0",
+      version_name: "v5.5.0",
+      version_code: 164,
+      build: 164,
+      sha256: "809879f5183de06ec62a15dccd84659839a3f6def95840cda0c94bfd18c43f5b",
       filename: "connecto-fun.apk",
-      size_bytes: 38057905,
+      size_bytes: 38056901,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7321,10 +7322,25 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v5.4.9",
+          version: "v5.5.0",
           date: "Nov 18, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v5.5.0: Profile Theme Toggle Button Harmonization & Aperture Iris Transition",
+          summary: "Redesigned the Display Theme toggle row in the Profile tab to strictly match the exact geometry, squircle icon, typography, and tactile press dynamics of all settings buttons. Engineered a hardware-accelerated circular iris reveal animation radiating directly from the toggle's physical coordinates with a luminous wavefront rim.",
+          highlights: [
+            "Harmonized Profile Theme Toggle: Refactored ConnectoThemeToggleRow to match the exact visual style of ConnectoSettingsRow with squircle leading icon, title, subtitle, active mode pill, and sleek trailing switch.",
+            "Buttery Iris Aperture Animation: Built an open/close circular iris reveal animation radiating from the toggle switch's exact screen coordinates (ThemeTransitionManager) with an ethereal cyan/amber wavefront rim.",
+            "Eliminated Washed-Out Center Stutter: Removed the faint 35% translucent center-bound circle overlay, replacing it with an organic, fluid GPU-rendered aperture wave.",
+            "Android Native App v5.5.0 (Build 164 • 36.3 MB): SHA-256 809879f5183de06ec62a15dccd84659839a3f6def95840cda0c94bfd18c43f5b."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
+          version: "v5.4.9",
+          date: "Nov 18, 2026",
+          category: "feature",
+          tag: "Production",
           title: "Connecto v5.4.9: Complete Design System & Theme Alignment",
           summary: "Comprehensive theme synchronization across Voice & Audio settings, Invite Friends & Refer, and Feedback sheets. Purged all hardcoded purple colors and gradients, aligned VU meters and DSP cards with ConnectoTokens, and guaranteed high-contrast onPrimary text and surface styling in both Noir OLED and Parchment themes.",
           highlights: [
