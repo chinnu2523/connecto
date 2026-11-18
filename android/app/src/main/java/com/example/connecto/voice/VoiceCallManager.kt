@@ -695,6 +695,7 @@ object VoiceCallManager {
                         startStatsPolling(peerId)
                         if (!_activeCallTitle.value.contains("Echo", ignoreCase = true)) {
                             stopFallbackAudioRecordOnly()
+                            stopFallbackAudioTrackOnly()
                         }
                     } else if (newState == PeerConnection.IceConnectionState.DISCONNECTED ||
                         newState == PeerConnection.IceConnectionState.FAILED) {
@@ -2390,6 +2391,7 @@ object VoiceCallManager {
             callerAvatar = callerAvatar
         )
         _callState.value = CallState.INCOMING_RINGING
+        appContext?.let { CallRingtoneManager.startRingtoneAndVibration(it) }
         ConnectoNotificationManager.showIncomingCallNotification(
             callerName = callerName.ifEmpty { callerUsername },
             roomId = roomId,
@@ -2574,6 +2576,7 @@ object VoiceCallManager {
 
     fun acceptIncomingCall() {
         val call = _incomingCall.value ?: return
+        CallRingtoneManager.stopRingtoneAndVibration(appContext)
         com.example.connecto.ui.components.InAppNotificationController.dismiss()
         ConnectoNotificationManager.cancelCallNotification()
         isCallCaller = false
@@ -2637,6 +2640,7 @@ object VoiceCallManager {
 
     fun declineIncomingCall() {
         val call = _incomingCall.value ?: return
+        CallRingtoneManager.stopRingtoneAndVibration(appContext)
         markCallTerminated(call.roomId)
         com.example.connecto.ui.components.InAppNotificationController.dismiss()
         ConnectoNotificationManager.cancelCallNotification()
@@ -2845,6 +2849,7 @@ object VoiceCallManager {
 
     fun handleRemoteCallEnded(roomId: String) {
         Log.d(TAG, "handleRemoteCallEnded for room: $roomId")
+        CallRingtoneManager.stopRingtoneAndVibration(appContext)
         if (roomId.isNotBlank()) {
             markCallTerminated(roomId)
         }
@@ -2852,6 +2857,7 @@ object VoiceCallManager {
     }
 
     private fun endCallLocally() {
+        CallRingtoneManager.stopRingtoneAndVibration(appContext)
         if (isTeardownInProgress.getAndSet(true)) {
             Log.d(TAG, "endCallLocally: Teardown already in progress, skipping duplicate call")
             return
@@ -3457,16 +3463,20 @@ object VoiceCallManager {
         }
 
         synchronized(audioHardwareLock) {
+            // ALWAYS initialize and prime AudioTrack immediately so incoming audio is audible from millisecond 0
+            initAudioTrack(SAMPLE_RATE)
+
             val isEchoCall = _activeCallTitle.value.contains("Echo", ignoreCase = true)
-            if (isEchoCall) {
-                initAudioTrack(SAMPLE_RATE)
+            val hasConnectedPeer = peerConnections.values.any { pc ->
+                try {
+                    val s = pc.iceConnectionState()
+                    s == PeerConnection.IceConnectionState.CONNECTED || s == PeerConnection.IceConnectionState.COMPLETED
+                } catch (_: Throwable) { false }
             }
 
-            // If WebRTC is initialized, JavaAudioDeviceModule has mic ownership and streams
-            // audio directly via WebRTC RTP and samplesReadyCallback.
-            // Do NOT start competing AudioRecord loop when WebRTC factory is active (unless Echo test).
-            if (peerConnectionFactory != null && !isEchoCall) {
-                Log.d(TAG, "WebRTC JavaAudioDeviceModule active; microphone managed exclusively by WebRTC engine.")
+            // Only suppress fallback loop when WebRTC peer connection has already completed its ICE handshake
+            if (hasConnectedPeer && !isEchoCall) {
+                Log.d(TAG, "WebRTC peer connection already connected; microphone managed exclusively by WebRTC engine.")
                 return
             }
 
@@ -3476,6 +3486,23 @@ object VoiceCallManager {
             }
 
             startAudioRecordLoop()
+        }
+    }
+
+    private fun stopFallbackAudioTrackOnly() {
+        val trackToRelease: AudioTrack?
+        synchronized(audioHardwareLock) {
+            trackToRelease = audioTrack
+            audioTrack = null
+        }
+        scope.launch(Dispatchers.IO) {
+            try {
+                trackToRelease?.pause()
+                trackToRelease?.flush()
+                trackToRelease?.stop()
+                trackToRelease?.release()
+                Log.d(TAG, "Fallback AudioTrack released; playout handed over to WebRTC P2P")
+            } catch (_: Throwable) {}
         }
     }
 

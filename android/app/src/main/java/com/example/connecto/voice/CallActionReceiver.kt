@@ -25,6 +25,7 @@ class CallActionReceiver : BroadcastReceiver() {
         when (action) {
             ACTION_END_CALL -> {
                 try {
+                    CallRingtoneManager.stopRingtoneAndVibration(context)
                     VoiceCallManager.endCall()
                     VoiceCallForegroundService.stopService(context)
                 } catch (t: Throwable) {
@@ -43,6 +44,7 @@ class CallActionReceiver : BroadcastReceiver() {
 
             ACTION_DECLINE_CALL -> {
                 try {
+                    CallRingtoneManager.stopRingtoneAndVibration(context)
                     VoiceCallManager.declineIncomingCall()
                     ConnectoNotificationManager.cancelCallNotification()
                 } catch (t: Throwable) {
@@ -52,6 +54,7 @@ class CallActionReceiver : BroadcastReceiver() {
 
             ACTION_ANSWER_CALL -> {
                 try {
+                    CallRingtoneManager.stopRingtoneAndVibration(context)
                     VoiceCallManager.acceptIncomingCall()
                     ConnectoNotificationManager.cancelCallNotification()
 

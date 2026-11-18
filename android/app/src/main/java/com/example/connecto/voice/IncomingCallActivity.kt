@@ -73,20 +73,19 @@ import android.os.VibrationEffect
 class IncomingCallActivity : ComponentActivity() {
 
     private var wakeLock: PowerManager.WakeLock? = null
-    private var ringtone: Ringtone? = null
-    private var vibrator: Vibrator? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setupLockscreenFlags()
         acquireWakeLock()
-        startRingtoneAndVibration()
+        CallRingtoneManager.startRingtoneAndVibration(this)
 
         // Auto-dismiss if caller hangs up, cancels, declines, or call ends
         lifecycleScope.launch {
             VoiceCallManager.callState.collect { state ->
                 if (state != CallState.INCOMING_RINGING) {
+                    CallRingtoneManager.stopRingtoneAndVibration(this@IncomingCallActivity)
                     ConnectoNotificationManager.cancelCallNotification()
                     finish()
                 }
@@ -109,7 +108,7 @@ class IncomingCallActivity : ComponentActivity() {
                         callerUsername = callerUsername,
                         callerAvatar = callerAvatar,
                         onAccept = {
-                            stopRingtoneAndVibration()
+                            CallRingtoneManager.stopRingtoneAndVibration(this@IncomingCallActivity)
                             VoiceCallManager.acceptIncomingCall()
                             ConnectoNotificationManager.cancelCallNotification()
                             val mainIntent = Intent(this@IncomingCallActivity, MainActivity::class.java).apply {
@@ -122,7 +121,7 @@ class IncomingCallActivity : ComponentActivity() {
                             finish()
                         },
                         onDecline = {
-                            stopRingtoneAndVibration()
+                            CallRingtoneManager.stopRingtoneAndVibration(this@IncomingCallActivity)
                             VoiceCallManager.declineIncomingCall()
                             ConnectoNotificationManager.cancelCallNotification()
                             finish()
@@ -134,45 +133,25 @@ class IncomingCallActivity : ComponentActivity() {
     }
 
     private fun startRingtoneAndVibration() {
-        try {
-            val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-            ringtone = RingtoneManager.getRingtone(applicationContext, soundUri)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                ringtone?.isLooping = true
-            }
-            ringtone?.play()
-        } catch (_: Throwable) {}
-
-        try {
-            vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val vm = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
-                vm?.defaultVibrator
-            } else {
-                @Suppress("DEPRECATION")
-                getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-            }
-            val pattern = longArrayOf(0, 800, 800, 800, 800)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator?.vibrate(pattern, 0)
-            }
-        } catch (_: Throwable) {}
+        CallRingtoneManager.startRingtoneAndVibration(this)
     }
 
     private fun stopRingtoneAndVibration() {
-        try {
-            if (ringtone?.isPlaying == true) {
-                ringtone?.stop()
-            }
-            ringtone = null
-        } catch (_: Throwable) {}
+        CallRingtoneManager.stopRingtoneAndVibration(this)
+    }
 
-        try {
-            vibrator?.cancel()
-            vibrator = null
-        } catch (_: Throwable) {}
+    override fun onPause() {
+        super.onPause()
+        if (VoiceCallManager.callState.value != CallState.INCOMING_RINGING) {
+            CallRingtoneManager.stopRingtoneAndVibration(this)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (VoiceCallManager.callState.value != CallState.INCOMING_RINGING) {
+            CallRingtoneManager.stopRingtoneAndVibration(this)
+        }
     }
 
     private fun setupLockscreenFlags() {

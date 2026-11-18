@@ -377,8 +377,8 @@ object ConnectoNotificationManager {
                     .setCategory(NotificationCompat.CATEGORY_CALL)
                     .setAutoCancel(true)
                     .setOngoing(true)
-                    .setSound(soundUri)
-                    .setVibrate(longArrayOf(0, 500, 250, 500, 250, 500))
+                    .setSound(null)
+                    .setVibrate(null)
                     .setFullScreenIntent(fullScreenPendingIntent, true)
                     .setContentIntent(fullScreenPendingIntent)
                     .setColor(0xFF6C5CE7.toInt()) // Connecto Brand Accent Purple
@@ -1030,6 +1030,7 @@ object ConnectoNotificationManager {
     fun cancelCallNotification() {
         val context = appContext ?: return
         try {
+            com.example.connecto.voice.CallRingtoneManager.stopRingtoneAndVibration(context)
             NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID_CALL)
             Log.d(TAG, "Call notification canceled")
         } catch (t: Throwable) {
