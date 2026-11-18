@@ -33,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,7 +72,11 @@ import com.example.connecto.ui.theme.liquidGlassCanvasMesh
 import com.example.connecto.ui.designsystem.ThemeMode
 import com.example.connecto.ui.designsystem.connectoAmbientShader
 import com.example.connecto.ui.components.FullScreenCallUI
+import com.example.connecto.ui.components.FullScreenGroupCallUI
 import com.example.connecto.ui.components.MinimizedCallPill
+import com.example.connecto.ui.components.MinimizedMultitaskingCallBar
+import com.example.connecto.ui.components.IncomingGroupCallUI
+import com.example.connecto.ui.components.ModeAGroupCallBanner
 import com.example.connecto.voice.CallState
 import com.example.connecto.voice.VoiceCallManager
 import androidx.compose.ui.graphics.Brush
@@ -932,12 +937,11 @@ fun ConnectoApp(
                                         .fillMaxWidth()
                                         .navigationBarsPadding()
                                 ) {
-                                    // Minimized Call Floating Capsule Dock
+                                    // Minimized Multitasking Call Bar
                                     val isCallOngoing = (callState == CallState.CONNECTED || callState == CallState.OUTGOING_RINGING)
                                     if (isCallMinimized && isCallOngoing) {
-                                        MinimizedCallPill(
+                                        MinimizedMultitaskingCallBar(
                                             callTitle = if (managerCallTitle.isNotBlank()) managerCallTitle else "Voice Call",
-                                            avatarUrl = null,
                                             onExpand = { isCallMinimized = false },
                                             onEndCall = {
                                                 isCallMinimized = false
@@ -1129,6 +1133,51 @@ fun ConnectoApp(
             }
         )
 
+        val isGroupCall by VoiceCallManager.isGroupCall.collectAsState()
+        val incomingGroupCall by VoiceCallManager.incomingGroupCall.collectAsState()
+        var isGroupCallModeBOpen by remember { mutableStateOf(false) }
+
+        LaunchedEffect(incomingGroupCall) {
+            if (incomingGroupCall == null) {
+                isGroupCallModeBOpen = false
+            }
+        }
+
+        // Mode A Floating Heads-Up Banner for Incoming Group Voice Call
+        if (incomingGroupCall != null && !isGroupCallModeBOpen) {
+            ModeAGroupCallBanner(
+                incomingData = incomingGroupCall!!,
+                onExpandModeB = { isGroupCallModeBOpen = true },
+                onJoin = {
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                        micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                    VoiceCallManager.acceptGroupCall(initialMuteState = false)
+                },
+                onDecline = {
+                    VoiceCallManager.declineGroupCall()
+                }
+            )
+        }
+
+        // Mode B Full-Screen Incoming Group Voice Call UI
+        if (incomingGroupCall != null && isGroupCallModeBOpen) {
+            IncomingGroupCallUI(
+                incomingData = incomingGroupCall!!,
+                onAccept = { initialMute ->
+                    isGroupCallModeBOpen = false
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                        micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                    VoiceCallManager.acceptGroupCall(initialMuteState = initialMute)
+                },
+                onDecline = { replyMsg ->
+                    isGroupCallModeBOpen = false
+                    VoiceCallManager.declineGroupCall(sendReplyMessage = replyMsg)
+                }
+            )
+        }
+
         // Global Full-Screen Audio Call Overlay (Only when CONNECTED or OUTGOING_RINGING, never during INCOMING_RINGING)
         val isCallActiveGlobal = (callState == CallState.CONNECTED || callState == CallState.OUTGOING_RINGING)
         androidx.compose.animation.AnimatedVisibility(
@@ -1145,20 +1194,34 @@ fun ConnectoApp(
                     ),
             modifier = Modifier.fillMaxSize()
         ) {
-            FullScreenCallUI(
-                callTitle = if (managerCallTitle.isNotBlank()) managerCallTitle else "Voice Call",
-                avatarUrl = managerAvatar,
-                participantCount = 2,
-                roomCode = managerRoomCode,
-                onMinimize = {
-                    isCallMinimized = true
-                },
-                onEndCall = {
-                    isCallMinimized = false
-                    VoiceCallManager.endCall()
-                },
-                modifier = Modifier.fillMaxSize()
-            )
+            if (isGroupCall) {
+                FullScreenGroupCallUI(
+                    callTitle = if (managerCallTitle.isNotBlank()) managerCallTitle else "Group Voice Call",
+                    onMinimize = {
+                        isCallMinimized = true
+                    },
+                    onEndCall = {
+                        isCallMinimized = false
+                        VoiceCallManager.endCall()
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                FullScreenCallUI(
+                    callTitle = if (managerCallTitle.isNotBlank()) managerCallTitle else "Voice Call",
+                    avatarUrl = managerAvatar,
+                    participantCount = 2,
+                    roomCode = managerRoomCode,
+                    onMinimize = {
+                        isCallMinimized = true
+                    },
+                    onEndCall = {
+                        isCallMinimized = false
+                        VoiceCallManager.endCall()
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
 
         // Global Server Maintenance Screen Overlay

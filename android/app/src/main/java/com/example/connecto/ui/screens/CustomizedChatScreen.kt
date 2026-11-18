@@ -4877,6 +4877,67 @@ fun CustomizedChatScreen(
                             )
                         )
                 )
+
+                // Group Voice Active Lobby Banner
+                val currentSelectedFriend = selectedFriend
+                val isGroupVoiceActive = if (currentSelectedFriend != null && currentSelectedFriend.isGroup) {
+                    VoiceCallManager.isGroupVoiceActive(currentSelectedFriend.id) || VoiceCallManager.isGroupVoiceActive(currentSelectedFriend.name)
+                } else false
+
+                if (isGroupVoiceActive && currentSelectedFriend != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF11221C))
+                            .border(1.dp, Color(0xFF10B981), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF10B981))
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Voice Active • Tap to Join",
+                                    color = Color(0xFF34D399),
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF10B981))
+                                    .clickable {
+                                        initiateGroupVoiceCall(currentSelectedFriend)
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 5.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Join",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
             } else {
                 // Header with tap-to-top, title, subtitle & quick actions
                 Box(

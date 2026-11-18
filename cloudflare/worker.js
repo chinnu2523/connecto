@@ -204,20 +204,21 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.6.2",
-        version_name: "v5.6.2",
-        version_code: 176,
-        build: 176,
-        sha256: "763985998ffd0bd3e51571b0f98976d6011a9e67acbaad9c6c191ab2028b4acc",
+        version: "5.7.0",
+        version_name: "v5.7.0",
+        version_code: 177,
+        build: 177,
+        sha256: "ec02952060aecfce095f1ab24bf99c58286872fe3e459883c368127bc777a992",
         filename: "connecto-fun.apk",
-        size_bytes: 38079779,
-        size_display: "36.3 MB",
+        size_bytes: 38123166,
+        size_display: "36.4 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
         url: "https://connecto.fun/download/apk",
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Production-Grade WebRTC Group Voice Calls & Pure OLED Black Calls UI (v5.7.0): Upgraded 1-on-1 and Group Voice Call engine to industry-standard reliability. Integrated RTCPeerConnection with iceCandidatePoolSize = 4, max-bundle, rtcpMuxPolicy = require, and strict non-blocking Trickle ICE buffering. Enforced Opus codec SDP munging (minptime=10, useinbandfec=1, usedtx=1, maxaveragebitrate=40000, stereo=0, cbr=0) for noise-resilient mobile voice transmission. Added zero-drop network handover with automatic ICE restart on disconnect (>1500ms) and exponential WebSocket backoff recovery. Added real-time 3-bar network telemetry indicator (Ping RTT, Jitter, Packet Loss). Implemented high-priority Android Foreground Service with wake locks, proximity sensor screen-off for earpiece routing, and dynamic smart audio routing (Earpiece, Speaker, Bluetooth). 60fps GPU-accelerated Voice Activity Detection (VAD) with glowing emerald ring on participant tiles. Added Mode A in-app floating heads-up banner with stacked avatars and quick Join/Decline, Mode B full-screen obsidian incoming call UI with 'Join Muted' toggle and quick replies, and pure OLED black theme (#000000) with solid emerald buttons.",
           "Swipe-to-Reply, Quoted Replies & Quick Emoji Reactions HUD (v5.6.2): Direct Message and Workspace Channel bubbles now feature smooth rubber-band swipe-to-reply (up to 60px damping, 40px threshold haptic trigger and spring snap-back) with fading/scaling reply icon (↩). Introduced sleek 48px composer reply and edit preview banners with 3px vertical accent lines. Quoted message containers rendered in-bubble with scroll-to-original on tap and 600ms pulse animation. Upgraded long-press message selection to floating HUD with 46px top pill housing 6 animated pop-in quick reactions (❤️, 🔥, 😂, 👍, 😮, 😢) and '+' full emoji sheet button, bottom context action menu (Reply, Copy, Edit, Unsend), 24px reaction badges with user counts and tinted accent highlight for user's own reactions, and real-time MESSAGE_REACTION_TOGGLED multi-client WebSocket synchronization.",
           "WebRTC Audio Engine, TURN Server Fallback, AudioManager Routing & Dynamic Voice Isolation (v5.6.1): Implemented thread-safe remote ICE candidate queueing to buffer incoming candidates until setRemoteDescription completes, eliminating silent call dropouts. Added authenticated TURN servers (UDP, TCP, TLS) with iceTransportsType = ALL for carrier NAT traversal across mobile 4G/5G networks. Guaranteed local AudioTrack creation, enablement, and attachment prior to Offer/Answer SDP generation. Request audio focus with USAGE_VOICE_COMMUNICATION & CONTENT_TYPE_SPEECH and AudioManager.MODE_IN_COMMUNICATION before starting or answering calls, cleanly resetting to MODE_NORMAL and releasing audio focus on call termination. Built JavaAudioDeviceModule with hardware AEC and NS enabled. Implemented dynamic setVoiceIsolationEnabled live toggling attaching native NoiseSuppressor and AcousticEchoCanceler to active audioSessionId and simultaneously rebuilding local AudioSource constraints and swapping tracks on active RtpSenders without dropping PeerConnection.",
           "Real-Time DM Header Presence & Signature Read Receipts (v5.6.0): Subscribed Direct Chat screen header to centralized WebSocket/Presence StateFlow (isUserOnline evaluated consistently across DM list and chat header, eliminating presence inversion bug where online contacts appeared offline). Replaced generic tick checkmarks with Connecto signature delivery receipts: 8dp pulsing ring for SENDING, 6dp solid dot for SENT, glowing double dots for DELIVERED, and recipient's mini circular avatar underneath the latest read message for SEEN.",
@@ -378,18 +379,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.3/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.4.2/our-store.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.0/our-store.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.6.2/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.1.6-b65-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.1.8-b67-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.1.6");
-          res.headers.set("X-Connecto-Store-Build", "65");
+          res.headers.set("X-Connecto-Store-Version", "v2.1.8");
+          res.headers.set("X-Connecto-Store-Build", "67");
           return res;
         }
 
@@ -427,8 +428,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.1.6");
-              downloadHeaders.set("X-Connecto-Store-Build", "65");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.1.8");
+              downloadHeaders.set("X-Connecto-Store-Build", "67");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -600,18 +601,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.6.2/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.6.1/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.0/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.6.2/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.6.2-b176-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.0-b177-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.6.2");
-          res.headers.set("X-Connecto-Build", "176");
+          res.headers.set("X-Connecto-Version", "v5.7.0");
+          res.headers.set("X-Connecto-Build", "177");
           return res;
         }
 
@@ -647,8 +648,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.6.2");
-              downloadHeaders.set("X-Connecto-Build", "176");
+              downloadHeaders.set("X-Connecto-Version", "v5.7.0");
+              downloadHeaders.set("X-Connecto-Build", "177");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1968,14 +1969,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.1.7",
-        version_code: 66,
-        size_bytes: 18977852,
+        version_name: "2.1.8",
+        version_code: 67,
+        size_bytes: 18977848,
         size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Ecosystem Sync & Production Release Pipeline (v2.1.8): Synchronized Our Store package catalog with Connecto v5.7.0 (Build 177) featuring production WebRTC group call engine and pure OLED black theme.",
           "Tier-1 Google Play / App Store UI Refactor: Clean obsidian dark (#0A0B0E) surfaces, borderless elevated cards, flat translucent 64dp bottom navigation bar, single compact status header with installed apps list, streamlined single-line support rows, and interactive auto-update preferences",
           "Resolved Connecto In-Store Update IPC: Fixed background activity launch (BAL) restriction in PackageInstaller session receiver by enforcing foreground confirmation activity routing, installer-of-record checks for silent updates, and seamless system intent fallback",
           "Seamless PlayStore-Style Silent Package Installation: Bypasses OEM third-party antivirus scanning dialogs by routing all package updates through Android PackageInstaller sessions with USER_ACTION_NOT_REQUIRED, PACKAGE_SOURCE_STORE, and requestUpdateOwnership",
@@ -2034,14 +2036,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.6.2",
-        version_code: 176,
-        size_bytes: 38079779,
-        size_formatted: "36.3 MB",
+        version_name: "5.7.0",
+        version_code: 177,
+        size_bytes: 38123166,
+        size_formatted: "36.4 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Production-Grade WebRTC Group Voice Calls & Pure OLED Black Calls UI (v5.7.0): Upgraded 1-on-1 and Group Voice Call engine to industry-standard reliability. Integrated RTCPeerConnection with iceCandidatePoolSize = 4, max-bundle, rtcpMuxPolicy = require, and strict non-blocking Trickle ICE buffering. Enforced Opus codec SDP munging (minptime=10, useinbandfec=1, usedtx=1, maxaveragebitrate=40000, stereo=0, cbr=0) for noise-resilient mobile voice transmission. Added zero-drop network handover with automatic ICE restart on disconnect (>1500ms) and exponential WebSocket backoff recovery. Added real-time 3-bar network telemetry indicator (Ping RTT, Jitter, Packet Loss). Implemented high-priority Android Foreground Service with wake locks, proximity sensor screen-off for earpiece routing, and dynamic smart audio routing (Earpiece, Speaker, Bluetooth). 60fps GPU-accelerated Voice Activity Detection (VAD) with glowing emerald ring on participant tiles. Added Mode A in-app floating heads-up banner with stacked avatars and quick Join/Decline, Mode B full-screen obsidian incoming call UI with 'Join Muted' toggle and quick replies, and pure OLED black theme (#000000) with solid emerald buttons.",
           "Swipe-to-Reply, Quoted Replies & Quick Emoji Reactions HUD (v5.6.2): Direct Message and Workspace Channel bubbles now feature smooth rubber-band swipe-to-reply (up to 60px damping, 40px threshold haptic trigger and spring snap-back) with fading/scaling reply icon (↩). Introduced sleek 48px composer reply and edit preview banners with 3px vertical accent lines. Quoted message containers rendered in-bubble with scroll-to-original on tap and 600ms pulse animation. Upgraded long-press message selection to floating HUD with 46px top pill housing 6 animated pop-in quick reactions (❤️, 🔥, 😂, 👍, 😮, 😢) and '+' full emoji sheet button, bottom context action menu (Reply, Copy, Edit, Unsend), 24px reaction badges with user counts and tinted accent highlight for user's own reactions, and real-time MESSAGE_REACTION_TOGGLED multi-client WebSocket synchronization.",
           "WebRTC Audio Engine, TURN Server Fallback, AudioManager Routing & Dynamic Voice Isolation (v5.6.1): Implemented thread-safe remote ICE candidate queueing to buffer incoming candidates until setRemoteDescription completes, eliminating silent call dropouts. Added authenticated TURN servers (UDP, TCP, TLS) with iceTransportsType = ALL for carrier NAT traversal across mobile 4G/5G networks. Guaranteed local AudioTrack creation, enablement, and attachment prior to Offer/Answer SDP generation. Request audio focus with USAGE_VOICE_COMMUNICATION & CONTENT_TYPE_SPEECH and AudioManager.MODE_IN_COMMUNICATION before starting or answering calls, cleanly resetting to MODE_NORMAL and releasing audio focus on call termination. Built JavaAudioDeviceModule with hardware AEC and NS enabled. Implemented dynamic setVoiceIsolationEnabled live toggling attaching native NoiseSuppressor and AcousticEchoCanceler to active audioSessionId and simultaneously rebuilding local AudioSource constraints and swapping tracks on active RtpSenders without dropping PeerConnection.",
           "Real-Time DM Header Presence & Signature Read Receipts (v5.6.0): Subscribed Direct Chat screen header to centralized WebSocket/Presence StateFlow (isUserOnline evaluated consistently across DM list and chat header, eliminating presence inversion bug where online contacts appeared offline). Replaced generic tick checkmarks with Connecto signature delivery receipts: 8dp pulsing ring for SENDING, 6dp solid dot for SENT, glowing double dots for DELIVERED, and recipient's mini circular avatar underneath the latest read message for SEEN.",
@@ -7326,14 +7329,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.6.2",
-      version_name: "v5.6.2",
-      version_code: 176,
-      build: 176,
-      sha256: "763985998ffd0bd3e51571b0f98976d6011a9e67acbaad9c6c191ab2028b4acc",
+      version: "5.7.0",
+      version_name: "v5.7.0",
+      version_code: 177,
+      build: 177,
+      sha256: "ec02952060aecfce095f1ab24bf99c58286872fe3e459883c368127bc777a992",
       filename: "connecto-fun.apk",
-      size_bytes: 38079779,
-      size_display: "36.3 MB",
+      size_bytes: 38123166,
+      size_display: "36.4 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
       url: "https://connecto.fun/download/apk",
@@ -7345,6 +7348,25 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v5.7.0",
+          date: "Nov 18, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v5.7.0: Production WebRTC Group Voice Calls & Pure OLED Black Calls UI",
+          summary: "Overhauled 1-on-1 and Group Voice Call implementation to an uncompromising production-grade standard: RTCPeerConnection with iceCandidatePoolSize=4, non-blocking Trickle ICE buffering, Opus codec SDP munging (useinbandfec=1, usedtx=1), zero-drop network handover with automatic ICE restart and WebSocket recovery, 3-bar real-time telemetry indicator (Ping, Jitter, Packet Loss), Android Foreground Service with wake/wifi locks, proximity sensor screen-off, dynamic audio routing, 60fps GPU-accelerated VAD with emerald ring, Mode A floating heads-up banner, Mode B obsidian incoming group call UI, and pure OLED black theme.",
+          highlights: [
+            "Ultra-Fast Connection Setup: iceCandidatePoolSize=4, max-bundle, rtcpMuxPolicy=require, and strict Trickle ICE remote candidate queueing.",
+            "Opus Codec SDP Munging: Enforced useinbandfec=1 and usedtx=1 with 48kHz hardware AEC and NS for maximum clarity under packet loss.",
+            "Zero-Drop Network Handover: Auto ICE restart on network switches and 1500ms disconnects, with resilient P2P audio during WebSocket reconnect.",
+            "Real-Time Telemetry: 2000ms polling for RTT, jitter, and packet loss with sleek 3-bar Connection Quality Indicator in the call header.",
+            "Android OS Integration: Foreground Call Service with wake locks, proximity sensor screen-off for earpiece routing, and dynamic smart audio routing.",
+            "Incoming Group Call Modes: Mode A in-app floating banner and Mode B full-screen obsidian view with 'Join Muted' toggle and quick replies.",
+            "Pure OLED Black Calls UI: Pure black background (#000000) with solid emerald buttons (#10B981) and zero gradients.",
+            "Android Native App v5.7.0 (Build 177 • 36.4 MB): SHA-256 ec02952060aecfce095f1ab24bf99c58286872fe3e459883c368127bc777a992."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
         {
           version: "v5.6.2",
           date: "Nov 18, 2026",

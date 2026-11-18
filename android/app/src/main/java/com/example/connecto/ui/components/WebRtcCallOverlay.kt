@@ -73,6 +73,23 @@ import com.example.connecto.ui.designsystem.resolveImageModel
 import com.example.connecto.voice.AudioRoute
 import com.example.connecto.voice.CallState
 import com.example.connecto.voice.VoiceCallManager
+import com.example.connecto.voice.CallParticipant
+import com.example.connecto.voice.IncomingGroupCallData
+import com.example.connecto.voice.CallStatsDto
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -105,6 +122,7 @@ fun WebRtcCallOverlay(
     val isVoiceIsolationEnabled by VoiceCallManager.isVoiceIsolationEnabled.collectAsState()
     val voiceIsolationCapabilities by VoiceCallManager.voiceIsolationCapabilities.collectAsState()
     val callDuration by VoiceCallManager.callDurationSeconds.collectAsState()
+    val callStats by VoiceCallManager.callStats.collectAsState()
     val liveAmplitude by VoiceCallManager.liveAudioAmplitude.collectAsState()
     val callState by VoiceCallManager.callState.collectAsState()
     val isRemoteRinging by VoiceCallManager.isRemoteRinging.collectAsState()
@@ -402,6 +420,7 @@ fun FullScreenCallUI(
     val voiceIsolationCapabilities by VoiceCallManager.voiceIsolationCapabilities.collectAsState()
 
     val callDuration by VoiceCallManager.callDurationSeconds.collectAsState()
+    val callStats by VoiceCallManager.callStats.collectAsState()
     val liveAmplitude by VoiceCallManager.liveAudioAmplitude.collectAsState()
     val callState by VoiceCallManager.callState.collectAsState()
     val isRemoteRinging by VoiceCallManager.isRemoteRinging.collectAsState()
@@ -777,13 +796,16 @@ fun FullScreenCallUI(
                             letterSpacing = 0.8.sp,
                             color = Color(0xFFF1F5F9)
                         )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        ConnectionQualityIndicator(stats = callStats)
                     }
 
                     Spacer(modifier = Modifier.height(4.dp))
+                    val isUnstableNet = callStats?.let { it.roundTripTimeMs > 300 || it.packetLossPct > 7.0 } == true
                     Text(
-                        text = if (!roomCode.isNullOrBlank()) "Room #$roomCode • Lossless Audio" else "Connected • High Definition Audio",
+                        text = if (isUnstableNet) "Unstable network connection" else if (!roomCode.isNullOrBlank()) "Room #$roomCode • Lossless Audio" else "Connected • High Definition Audio",
                         fontSize = 12.sp,
-                        color = Color(0xFF94A3B8)
+                        color = if (isUnstableNet) Color(0xFFEF4444) else Color(0xFF94A3B8)
                     )
                 } else {
                     Text(
@@ -1565,3 +1587,1035 @@ fun MinimizedCallPill(
     }
 }
 
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Real-Time Network Quality Telemetry (Ping, Jitter & Packet Loss)
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+fun ConnectionQualityIndicator(
+    stats: CallStatsDto?,
+    modifier: Modifier = Modifier
+) {
+    val rtt = stats?.roundTripTimeMs ?: 0.0
+    val loss = stats?.packetLossPct ?: 0.0
+
+    // Green (Excellent): RTT < 120ms and packet loss < 2%
+    // Yellow (Fair): RTT 120ms–300ms or packet loss 2%–7%
+    // Red (Poor): RTT > 300ms or packet loss > 7%
+    val qualityLevel = when {
+        stats == null || (rtt == 0.0 && loss == 0.0) -> 3
+        rtt > 300.0 || loss > 7.0 -> 1
+        rtt > 120.0 || loss > 2.0 -> 2
+        else -> 3
+    }
+
+    val activeColor = when (qualityLevel) {
+        1 -> Color(0xFFEF4444)
+        2 -> Color(0xFFF59E0B)
+        else -> Color(0xFF10B981)
+    }
+
+    val barHeights = listOf(4.dp, 7.dp, 10.dp)
+
+    Row(
+        modifier = modifier.padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        barHeights.forEachIndexed { index, height ->
+            val isFilled = index < qualityLevel
+            Box(
+                modifier = Modifier
+                    .width(2.5.dp)
+                    .height(height)
+                    .clip(RoundedCornerShape(1.dp))
+                    .background(if (isFilled) activeColor else Color.White.copy(alpha = 0.22f))
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Isolated 60fps VAD Participant Tile
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+fun ParticipantTile(
+    participant: CallParticipant,
+    onCancelInvite: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    val isSpeaking = participant.isSpeaking
+    val audioLevel = participant.audioLevel
+    val isRinging = participant.isRinging
+    val isMuted = participant.isMuted
+    val isReconnecting = participant.isReconnecting
+
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isSpeaking) 1.0f + (audioLevel.coerceIn(0f, 1f) * 0.05f) else 1.0f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioLowBouncy),
+        label = "tileVADScale"
+    )
+
+    val tileBorder = if (isSpeaking) {
+        BorderStroke(2.dp, Color(0xFF10B981))
+    } else {
+        BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+    }
+
+    val tileAlpha = if (isRinging) 0.55f else 1.0f
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 150.dp, max = 240.dp)
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+                alpha = tileAlpha
+            }
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFF141722))
+            .border(tileBorder, RoundedCornerShape(18.dp))
+            .padding(12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // Glowing Emerald Ring behind Avatar when Speaking
+        if (isSpeaking) {
+            Box(
+                modifier = Modifier
+                    .size(76.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF10B981).copy(alpha = 0.25f))
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Participant Avatar
+            Box(
+                modifier = Modifier
+                    .size(62.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF1E2230))
+                    .border(
+                        width = if (isSpeaking) 2.dp else 1.dp,
+                        color = if (isSpeaking) Color(0xFF10B981) else Color.White.copy(alpha = 0.15f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!participant.avatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = resolveImageModel(participant.avatarUrl),
+                        contentDescription = participant.displayName,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize().clip(CircleShape)
+                    )
+                } else {
+                    val init = participant.displayName.take(1).uppercase().ifBlank { "U" }
+                    Text(
+                        text = init,
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Display Name
+            Text(
+                text = participant.displayName,
+                color = Color.White,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
+
+            // Equalizer Bars or Subtitle
+            if (isSpeaking) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    val transition = rememberInfiniteTransition(label = "vadTileEq")
+                    val h1 by transition.animateFloat(
+                        initialValue = 4f, targetValue = 12f,
+                        animationSpec = infiniteRepeatable(tween(250, easing = LinearEasing), RepeatMode.Reverse),
+                        label = "h1"
+                    )
+                    val h2 by transition.animateFloat(
+                        initialValue = 10f, targetValue = 4f,
+                        animationSpec = infiniteRepeatable(tween(280, easing = LinearEasing), RepeatMode.Reverse),
+                        label = "h2"
+                    )
+                    val h3 by transition.animateFloat(
+                        initialValue = 6f, targetValue = 14f,
+                        animationSpec = infiniteRepeatable(tween(220, easing = LinearEasing), RepeatMode.Reverse),
+                        label = "h3"
+                    )
+                    Box(modifier = Modifier.width(2.5.dp).height(h1.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF10B981)))
+                    Box(modifier = Modifier.width(2.5.dp).height(h2.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF10B981)))
+                    Box(modifier = Modifier.width(2.5.dp).height(h3.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF10B981)))
+                }
+            }
+        }
+
+        // Top-Right Badges: Muted / Reconnecting / Ringing
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(4.dp)
+        ) {
+            when {
+                isMuted -> {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEF4444)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MicOff,
+                            contentDescription = "Muted",
+                            tint = Color.White,
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+                }
+                isRinging -> {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0x33FFFFFF))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Calling...",
+                            fontSize = 10.sp,
+                            color = Color(0xFFCBD5E1),
+                            fontWeight = FontWeight.Medium
+                        )
+                        if (onCancelInvite != null) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Cancel",
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .clickable { onCancelInvite() }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Non-blocking Reconnecting Audio Badge
+        if (isReconnecting) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xCCF59E0B))
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = "Reconnecting audio...",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Full-Screen Dynamic Speaker Grid (FullScreenGroupCallUI)
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+fun FullScreenGroupCallUI(
+    callTitle: String = "Group Voice Call",
+    onMinimize: (() -> Unit)? = null,
+    onEndCall: () -> Unit = {},
+    onAddParticipant: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    val callDuration by VoiceCallManager.callDurationSeconds.collectAsState()
+    val callStats by VoiceCallManager.callStats.collectAsState()
+    val isMuted by VoiceCallManager.isMuted.collectAsState()
+    val currentAudioRoute by VoiceCallManager.currentAudioRoute.collectAsState()
+    val isBluetoothConnected by VoiceCallManager.isBluetoothConnected.collectAsState()
+    val bluetoothDeviceName by VoiceCallManager.bluetoothDeviceName.collectAsState()
+    val participants by VoiceCallManager.groupParticipants.collectAsState()
+
+    var showAudioRouteDialog by remember { mutableStateOf(false) }
+    var showReactionsRow by remember { mutableStateOf(false) }
+    var isEndingCall by remember { mutableStateOf(false) }
+
+    val minutes = callDuration / 60
+    val seconds = callDuration % 60
+    val formattedTime = String.format("%02d:%02d", minutes, seconds)
+
+    val isNetworkUnstable = callStats?.let { it.roundTripTimeMs > 300.0 || it.packetLossPct > 7.0 } == true
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFF0A0C13))
+            .statusBarsPadding()
+            .navigationBarsPadding()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            // Top Bar Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Minimize Button
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x1FFFFFFF))
+                        .clickable { onMinimize?.invoke() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Minimize",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                // Title & Duration & Telemetry
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = callTitle,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = "Encrypted",
+                            tint = Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = formattedTime,
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF94A3B8)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        ConnectionQualityIndicator(stats = callStats)
+                    }
+                    if (isNetworkUnstable) {
+                        Text(
+                            text = "Unstable network connection",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFFEF4444)
+                        )
+                    }
+                }
+
+                // Add Participant Button
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x1FFFFFFF))
+                        .clickable { onAddParticipant?.invoke() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PersonAdd,
+                        contentDescription = "Add Participant",
+                        tint = Color.White,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+            }
+
+            // Adaptive Participant Grid
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                when {
+                    participants.isEmpty() -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "Waiting for participants to connect...",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 13.5.sp
+                            )
+                        }
+                    }
+                    participants.size <= 2 -> {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            participants.forEach { p ->
+                                ParticipantTile(
+                                    participant = p,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                    participants.size in 3..4 -> {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                ParticipantTile(participant = participants[0], modifier = Modifier.weight(1f))
+                                if (participants.size > 1) {
+                                    ParticipantTile(participant = participants[1], modifier = Modifier.weight(1f))
+                                }
+                            }
+                            Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                if (participants.size > 2) {
+                                    ParticipantTile(participant = participants[2], modifier = Modifier.weight(1f))
+                                }
+                                if (participants.size > 3) {
+                                    ParticipantTile(participant = participants[3], modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+                    else -> {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(bottom = 80.dp)
+                        ) {
+                            items(participants, key = { it.userId }) { p ->
+                                ParticipantTile(participant = p)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Quick Floating Reactions Row (Optional)
+            AnimatedVisibility(visible = showReactionsRow) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val reactions = listOf("👍", "🔥", "😂", "👏", "❤️")
+                    reactions.forEach { emoji ->
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 6.dp)
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF1E2230))
+                                .clickable {
+                                    showReactionsRow = false
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = emoji, fontSize = 20.sp)
+                        }
+                    }
+                }
+            }
+
+            // Floating Bottom Control Dock (Height: 68dp, Radius: 34dp, Blur / Dark Glass)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(68.dp)
+                    .clip(RoundedCornerShape(34.dp))
+                    .background(Color(0xFF141824).copy(alpha = 0.90f))
+                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(34.dp))
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 1. Audio Route Button
+                    val routeIcon = when (currentAudioRoute) {
+                        AudioRoute.BLUETOOTH -> Icons.Default.Bluetooth
+                        AudioRoute.SPEAKER -> Icons.AutoMirrored.Filled.VolumeUp
+                        AudioRoute.EARPIECE -> Icons.Default.Phone
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.10f))
+                            .clickable { showAudioRouteDialog = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = routeIcon,
+                            contentDescription = "Audio Route",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // 2. Mic Mute Button
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(if (isMuted) Color(0xFFEF4444) else Color.White.copy(alpha = 0.10f))
+                            .clickable { VoiceCallManager.toggleMute() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                            contentDescription = "Mute",
+                            tint = Color.White,
+                            modifier = Modifier.size(21.dp)
+                        )
+                    }
+
+                    // 3. Reactions / Chat Button
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(if (showReactionsRow) Color(0xFF10B981).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.10f))
+                            .clickable { showReactionsRow = !showReactionsRow },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Chat,
+                            contentDescription = "Reactions",
+                            tint = Color.White,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
+
+                    // 4. Leave Call Button
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEF4444))
+                            .clickable(enabled = !isEndingCall) {
+                                if (!isEndingCall) {
+                                    isEndingCall = true
+                                    VoiceCallManager.endCall()
+                                    onEndCall()
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CallEnd,
+                            contentDescription = "Leave Call",
+                            tint = Color.White,
+                            modifier = Modifier.size(21.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAudioRouteDialog) {
+        AudioRouteSelectionDialog(
+            onDismiss = { showAudioRouteDialog = false }
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Minimized Multitasking Call Bar (Global Sticky Overlay)
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+fun MinimizedMultitaskingCallBar(
+    callTitle: String = "Voice Call",
+    speakerName: String? = null,
+    onExpand: () -> Unit,
+    onEndCall: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val callDuration by VoiceCallManager.callDurationSeconds.collectAsState()
+    val isMuted by VoiceCallManager.isMuted.collectAsState()
+    val activeSpeaker by VoiceCallManager.activeSpeakerName.collectAsState()
+
+    val minutes = callDuration / 60
+    val seconds = callDuration % 60
+    val formattedTime = String.format("%02d:%02d", minutes, seconds)
+
+    val effectiveSpeaker = activeSpeaker ?: speakerName
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .height(44.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF141824))
+            .border(1.dp, Color(0xFF10B981), RoundedCornerShape(12.dp))
+            .clickable { onExpand() }
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Left: Animated Green Equalizer + Speaker Name
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                val transition = rememberInfiniteTransition(label = "minBarEq")
+                val h1 by transition.animateFloat(
+                    initialValue = 4f, targetValue = 12f,
+                    animationSpec = infiniteRepeatable(tween(260, easing = LinearEasing), RepeatMode.Reverse),
+                    label = "bh1"
+                )
+                val h2 by transition.animateFloat(
+                    initialValue = 11f, targetValue = 5f,
+                    animationSpec = infiniteRepeatable(tween(290, easing = LinearEasing), RepeatMode.Reverse),
+                    label = "bh2"
+                )
+                val h3 by transition.animateFloat(
+                    initialValue = 6f, targetValue = 13f,
+                    animationSpec = infiniteRepeatable(tween(230, easing = LinearEasing), RepeatMode.Reverse),
+                    label = "bh3"
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Box(modifier = Modifier.width(2.5.dp).height(h1.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF10B981)))
+                    Box(modifier = Modifier.width(2.5.dp).height(h2.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF10B981)))
+                    Box(modifier = Modifier.width(2.5.dp).height(h3.dp).clip(RoundedCornerShape(1.dp)).background(Color(0xFF10B981)))
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Text(
+                    text = if (!effectiveSpeaker.isNullOrBlank()) "Speaking: $effectiveSpeaker" else callTitle,
+                    color = Color.White,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Center: Live Timer
+            Text(
+                text = formattedTime,
+                color = Color(0xFF94A3B8),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+
+            // Right: Quick Actions (Mute + Hang Up)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(if (isMuted) Color(0xFFEF4444).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.12f))
+                        .clickable { VoiceCallManager.toggleMute() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                        contentDescription = "Mute",
+                        tint = if (isMuted) Color(0xFFEF4444) else Color.White,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFDC2626))
+                        .clickable { onEndCall() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CallEnd,
+                        contentDescription = "End Call",
+                        tint = Color.White,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mode B — Full-Screen Incoming Group Call UI
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+fun IncomingGroupCallUI(
+    incomingData: IncomingGroupCallData,
+    onAccept: (initialMute: Boolean) -> Unit,
+    onDecline: (replyMessage: String?) -> Unit
+) {
+    var initialMuteState by remember { mutableStateOf(false) }
+    var showReplySheet by remember { mutableStateOf(false) }
+
+    val bgGradient = Brush.verticalGradient(
+        listOf(
+            Color(0xFF0F172A),
+            Color(0xFF090A0F),
+            Color(0xFF000000)
+        )
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgGradient)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(24.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Center Hero (Live Participant Preview)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // Ambient Slow Pulsing Ring Behind Avatar Cluster
+                val transition = rememberInfiniteTransition(label = "pulseRing")
+                val pulseScale by transition.animateFloat(
+                    initialValue = 0.95f,
+                    targetValue = 1.15f,
+                    animationSpec = infiniteRepeatable(tween(1400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                    label = "pulseScale"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(140.dp)
+                        .graphicsLayer {
+                            scaleX = pulseScale
+                            scaleY = pulseScale
+                        }
+                        .clip(CircleShape)
+                        .background(Color(0xFF10B981).copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Overlapping Avatar Cluster (64dp circular avatars with 3dp #090A0F cutout borders)
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val displayList = incomingData.activeParticipants.take(3)
+                        displayList.forEachIndexed { idx, p ->
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .offset(x = if (idx > 0) (-16 * idx).dp else 0.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF1E2230))
+                                    .border(3.dp, Color(0xFF090A0F), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (!p.avatarUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = resolveImageModel(p.avatarUrl),
+                                        contentDescription = p.displayName,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize().clip(CircleShape)
+                                    )
+                                } else {
+                                    Text(
+                                        text = p.displayName.take(1).uppercase().ifBlank { "U" },
+                                        color = Color.White,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Group Name (24sp Bold White)
+                Text(
+                    text = incomingData.groupName,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Invited by [initiatorName] (15sp #94A3B8)
+                Text(
+                    text = "Invited by ${incomingData.initiatorName}",
+                    fontSize = 15.sp,
+                    color = Color(0xFF94A3B8),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Live Pill Badge: ● N people currently in call
+                val count = incomingData.activeParticipants.size
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0x1F10B981))
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "● $count ${if (count == 1) "person" else "people"} currently in call",
+                        color = Color(0xFF34D399),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            // Pre-Call "Join Muted" Toggle & Quick Reply Mini Sheet
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Quick Reply Mini Sheet
+                AnimatedVisibility(visible = showReplySheet) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFF161922))
+                            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+                            .padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Quick Reply to Group",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        val replies = listOf(
+                            "I'll join in a few minutes",
+                            "Can't talk right now",
+                            "Text me instead"
+                        )
+                        replies.forEach { reply ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF222736))
+                                    .clickable {
+                                        showReplySheet = false
+                                        onDecline(reply)
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                            ) {
+                                Text(
+                                    text = reply,
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Two Glassmorphic Interactive Pills (#161922, radius 20dp, padding 8dp 16dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 1. Join Muted Pill
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color(0xFF161922))
+                            .border(
+                                width = 1.dp,
+                                color = if (initialMuteState) Color(0xFF10B981) else Color.White.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                            .clickable { initialMuteState = !initialMuteState }
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (initialMuteState) Icons.Default.MicOff else Icons.Default.Mic,
+                                contentDescription = null,
+                                tint = if (initialMuteState) Color(0xFF10B981) else Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Join Muted",
+                                color = if (initialMuteState) Color(0xFF10B981) else Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // 2. Reply Pill
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color(0xFF161922))
+                            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
+                            .clickable { showReplySheet = !showReplySheet }
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Chat,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Reply",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Bottom Accept / Decline Controls (Two large 68px circular buttons)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Decline Button (#EF4444 red fill)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier
+                                .size(68.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFEF4444))
+                                .clickable { onDecline(null) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CallEnd,
+                                contentDescription = "Decline",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Decline",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    // Join Button (#10B981 emerald fill)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier
+                                .size(68.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF10B981))
+                                .clickable { onAccept(initialMuteState) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Phone,
+                                contentDescription = "Join Call",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Join Call",
+                            color = Color(0xFF34D399),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

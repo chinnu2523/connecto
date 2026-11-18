@@ -4,8 +4,9 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -204,760 +206,379 @@ fun CreateVoiceGroupDialog(
 
     Dialog(
         onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
     ) {
+        val sheetBg = if (colors.isDark) Color(0xFF12141C) else Color(0xFFFFFFFF)
+        val searchBg = if (colors.isDark) Color(0xFF1A1D27) else Color(0xFFF1F5F9)
+        val borderColor = if (colors.isDark) Color(0x1FFFFFFF) else Color(0x14000000)
+
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.93f)
-                .liquidGlassCard(shape = RoundedCornerShape(ConnectoRadius.lg))
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.60f))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onDismissRequest() },
+            contentAlignment = Alignment.BottomCenter
         ) {
-            Column(modifier = Modifier.padding(ConnectoSpacing.lg)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 0.dp, bottomEnd = 0.dp))
+                    .background(sheetBg)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { /* prevent click through to scrim */ }
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+            ) {
+                // Drag Handle
+                Box(
+                    modifier = Modifier
+                        .width(42.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(if (colors.isDark) Color(0xFF334155) else Color(0xFFCBD5E1))
+                        .align(Alignment.CenterHorizontally)
+                )
 
-                // ── Header ──────────────────────────────────────────────────────
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Sheet Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(gradientColors)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Call,
-                            contentDescription = null,
-                            tint = contentOnGradient,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Group Voice Call",
-                            fontSize = 17.sp,
+                            text = "Start Voice Call",
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textPrimary
                         )
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = if (selectedMode == "FRIENDS") "Select friends to start a voice group" else "Select an existing group chat to call",
-                            fontSize = 11.sp,
+                            text = "Select participants for the call",
+                            fontSize = 12.sp,
                             color = colors.textSecondary
                         )
                     }
-                    IconButton(onClick = onDismissRequest, modifier = Modifier.size(36.dp)) {
+
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(if (colors.isDark) Color(0xFF1A1D27) else Color(0xFFF1F5F9))
+                            .clickable { onDismissRequest() },
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
                             tint = colors.textSecondary,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(ConnectoSpacing.md))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // ── Mode Selector Tabs (Friends vs Groups) ──────────────────────
+                // Search Input ("Search contacts to add...")
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(colors.background)
-                        .border(1.dp, colors.borderSubtle, RoundedCornerShape(10.dp))
-                        .padding(3.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(searchBg)
+                        .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Friends Tab
-                    val isFriendsActive = selectedMode == "FRIENDS"
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(34.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (isFriendsActive) Brush.linearGradient(gradientColors)
-                                else SolidColor(Color.Transparent)
-                            )
-                            .clickable {
-                                selectedMode = "FRIENDS"
-                                searchQuery = ""
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                tint = if (isFriendsActive) contentOnGradient else colors.textSecondary,
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Spacer(modifier = Modifier.width(5.dp))
-                            Text(
-                                text = "Select Friends",
-                                fontSize = 12.sp,
-                                fontWeight = if (isFriendsActive) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isFriendsActive) contentOnGradient else colors.textSecondary
-                            )
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = colors.textSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            color = colors.textPrimary,
+                            fontSize = 14.sp
+                        ),
+                        cursorBrush = SolidColor(Color(0xFF10B981)),
+                        decorationBox = { inner ->
+                            if (searchQuery.isEmpty()) {
+                                Text(
+                                    text = "Search contacts to add...",
+                                    fontSize = 14.sp,
+                                    color = colors.textSecondary.copy(alpha = 0.7f)
+                                )
+                            }
+                            inner()
                         }
-                    }
-
-                    // Existing Groups Tab
-                    val isGroupsActive = selectedMode == "GROUPS"
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(34.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (isGroupsActive) Brush.linearGradient(gradientColors)
-                                else SolidColor(Color.Transparent)
-                            )
-                            .clickable {
-                                selectedMode = "GROUPS"
-                                searchQuery = ""
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Groups,
-                                contentDescription = null,
-                                tint = if (isGroupsActive) contentOnGradient else colors.textSecondary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(5.dp))
-                            Text(
-                                text = if (groupsList.isNotEmpty()) "Existing Groups (${groupsList.size})" else "Existing Groups",
-                                fontSize = 12.sp,
-                                fontWeight = if (isGroupsActive) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isGroupsActive) contentOnGradient else colors.textSecondary
-                            )
-                        }
+                    )
+                    if (searchQuery.isNotEmpty()) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear",
+                            tint = colors.textSecondary,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clickable { searchQuery = "" }
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(ConnectoSpacing.md))
-
-                if (selectedMode == "FRIENDS") {
-                    // ── FRIENDS MODE: Group Call Name Input ──────────────────────
-                    Text(
-                        text = "VOICE GROUP NAME",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textSecondary,
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                            .background(colors.background)
-                            .border(
-                                1.dp,
-                                if (groupTitle.isNotEmpty()) colors.primary.copy(alpha = 0.6f) else colors.borderSubtle,
-                                RoundedCornerShape(ConnectoRadius.sm)
-                            )
-                            .padding(horizontal = ConnectoSpacing.md, vertical = 9.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        BasicTextField(
-                            value = groupTitle,
-                            onValueChange = { if (it.length <= 50) groupTitle = it },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            textStyle = TextStyle(
-                                color = colors.textPrimary,
-                                fontSize = 13.sp
-                            ),
-                            cursorBrush = SolidColor(colors.primary),
-                            decorationBox = { inner ->
-                                if (groupTitle.isEmpty()) {
-                                    Text(
-                                        text = "e.g. Squad Voice, Team Call...",
-                                        fontSize = 13.sp,
-                                        color = colors.textSecondary.copy(alpha = 0.6f)
-                                    )
-                                }
-                                inner()
-                            }
-                        )
-                        Text(
-                            text = "${groupTitle.length}/50",
-                            fontSize = 10.sp,
-                            color = colors.textSecondary.copy(alpha = 0.5f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
-
-                    // ── Filter Friends ──────────────────────────────────────────
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                            .background(colors.background)
-                            .border(1.dp, colors.borderSubtle, RoundedCornerShape(ConnectoRadius.sm))
-                            .padding(horizontal = ConnectoSpacing.md, vertical = 7.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            textStyle = TextStyle(
-                                color = colors.textPrimary,
-                                fontSize = 13.sp
-                            ),
-                            cursorBrush = SolidColor(colors.primary),
-                            decorationBox = { inner ->
-                                if (searchQuery.isEmpty()) {
-                                    Text(
-                                        text = "Filter friends by name...",
-                                        fontSize = 13.sp,
-                                        color = colors.textSecondary.copy(alpha = 0.6f)
-                                    )
-                                }
-                                inner()
-                            }
-                        )
-                        if (searchQuery.isNotEmpty()) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Clear",
-                                tint = colors.textSecondary,
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .clickable { searchQuery = "" }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
-
-                    // ── Friends Selection List Header ───────────────────────────
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "SELECT FRIENDS (${selectedFriends.size} selected)",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (selectedFriends.isNotEmpty()) colors.primary else colors.textSecondary,
-                            letterSpacing = 1.sp
-                        )
-                        if (friendsList.isNotEmpty()) {
-                            Text(
-                                text = if (selectedFriends.size == friendsList.size) "Deselect All" else "Select All",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colors.primary,
-                                modifier = Modifier.clickable {
-                                    if (selectedFriends.size == friendsList.size) {
-                                        selectedFriends.clear()
-                                    } else {
-                                        selectedFriends.clear()
-                                        selectedFriends.addAll(friendsList)
-                                    }
-                                }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // ── Selected Friends Chips ──────────────────────────────────
-                    AnimatedVisibility(visible = selectedFriends.isNotEmpty()) {
+                // Horizontal Row of Selected Avatar Chips (tap to remove)
+                AnimatedVisibility(visible = selectedFriends.isNotEmpty()) {
+                    Column {
+                        Spacer(modifier = Modifier.height(12.dp))
                         LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.padding(bottom = 6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             items(selectedFriends, key = { it.friendUsername }) { friend ->
-                                Row(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(colors.primary.copy(alpha = 0.14f))
-                                        .border(1.dp, colors.primary.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = friend.friendDisplayName.ifEmpty { friend.friendUsername },
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = colors.primary
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Remove",
-                                        tint = colors.primary,
-                                        modifier = Modifier
-                                            .size(12.dp)
-                                            .clickable { selectedFriends.remove(friend) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // ── Friends Scroll List ─────────────────────────────────────
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 120.dp, max = 220.dp)
-                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                            .background(colors.background)
-                            .border(1.dp, colors.borderSubtle, RoundedCornerShape(ConnectoRadius.sm))
-                    ) {
-                        when {
-                            isLoadingFriends && friendsList.isEmpty() -> {
+                                val disp = friend.friendDisplayName.ifEmpty { friend.friendUsername }
+                                val initial = disp.firstOrNull()?.uppercase() ?: "F"
                                 Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(140.dp),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                        .clickable { selectedFriends.remove(friend) }
+                                        .padding(horizontal = 2.dp)
                                 ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        color = colors.primary,
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "Loading friends...",
-                                        fontSize = 12.sp,
-                                        color = colors.textSecondary
-                                    )
-                                }
-                            }
-                            errorMessage != null && friendsList.isEmpty() -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(140.dp)
-                                        .padding(16.dp),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = errorMessage ?: "Failed to load",
-                                        fontSize = 12.sp,
-                                        color = colors.error,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                            friendsList.isEmpty() -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(140.dp)
-                                        .padding(16.dp),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "No friends found",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textPrimary
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Add friends first to start a group call.",
-                                        fontSize = 11.sp,
-                                        color = colors.textSecondary,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                            filteredFriends.isEmpty() -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(140.dp)
-                                        .padding(16.dp),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "No friends match \"$searchQuery\"",
-                                        fontSize = 12.sp,
-                                        color = colors.textSecondary,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                            else -> {
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    contentPadding = PaddingValues(vertical = 4.dp)
-                                ) {
-                                    items(filteredFriends, key = { it.friendUsername }) { friend ->
-                                        val isSelected = selectedFriends.any { it.friendUsername == friend.friendUsername }
-                                        val displayName = friend.friendDisplayName.ifEmpty { friend.friendUsername }
-                                        val initial = displayName.firstOrNull()?.uppercase() ?: "F"
-
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    if (isSelected) {
-                                                        selectedFriends.removeAll { it.friendUsername == friend.friendUsername }
-                                                    } else {
-                                                        selectedFriends.add(friend)
-                                                    }
-                                                }
-                                                .background(
-                                                    if (isSelected) colors.primary.copy(alpha = 0.08f)
-                                                    else Color.Transparent
-                                                )
-                                                .padding(horizontal = ConnectoSpacing.md, vertical = 9.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            // Avatar
-                                            Box(modifier = Modifier.size(34.dp)) {
-                                                if (!friend.friendAvatarUrl.isNullOrBlank()) {
-                                                    AsyncImage(
-                                                        model = friend.friendAvatarUrl,
-                                                        contentDescription = displayName,
-                                                        modifier = Modifier
-                                                            .size(34.dp)
-                                                            .clip(CircleShape),
-                                                        contentScale = ContentScale.Crop
-                                                    )
-                                                } else {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(34.dp)
-                                                            .clip(CircleShape)
-                                                            .background(Brush.linearGradient(gradientColors)),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Text(
-                                                            text = initial,
-                                                            fontSize = 13.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = contentOnGradient
-                                                        )
-                                                    }
-                                                }
-                                                if (friend.isOnline) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(9.dp)
-                                                            .clip(CircleShape)
-                                                            .background(OnlineGreen)
-                                                            .border(1.5.dp, colors.surface, CircleShape)
-                                                            .align(Alignment.BottomEnd)
-                                                    )
-                                                }
-                                            }
-
-                                            Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
-
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = displayName,
-                                                    fontSize = 13.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = colors.textPrimary,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                Text(
-                                                    text = "@${friend.friendUsername} • ${if (friend.isOnline) "Online" else "Offline"}",
-                                                    fontSize = 11.sp,
-                                                    color = if (friend.isOnline) OnlineGreen else colors.textSecondary,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-
-                                            // Checkbox
+                                    Box(modifier = Modifier.size(46.dp)) {
+                                        if (!friend.friendAvatarUrl.isNullOrBlank()) {
+                                            AsyncImage(
+                                                model = friend.friendAvatarUrl,
+                                                contentDescription = disp,
+                                                modifier = Modifier
+                                                    .size(42.dp)
+                                                    .align(Alignment.Center)
+                                                    .clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
                                             Box(
                                                 modifier = Modifier
-                                                    .size(22.dp)
+                                                    .size(42.dp)
+                                                    .align(Alignment.Center)
                                                     .clip(CircleShape)
-                                                    .background(
-                                                        if (isSelected) Brush.linearGradient(gradientColors)
-                                                        else SolidColor(Color.Transparent)
-                                                    )
-                                                    .border(
-                                                        1.5.dp,
-                                                        if (isSelected) Color.Transparent else colors.borderSubtle,
-                                                        CircleShape
-                                                    ),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                if (isSelected) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Check,
-                                                        contentDescription = "Selected",
-                                                        tint = contentOnGradient,
-                                                        modifier = Modifier.size(13.dp)
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                } else {
-                    // ── GROUPS MODE: Select Existing Group Chat ──────────────────
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                            .background(colors.background)
-                            .border(1.dp, colors.borderSubtle, RoundedCornerShape(ConnectoRadius.sm))
-                            .padding(horizontal = ConnectoSpacing.md, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            textStyle = TextStyle(
-                                color = colors.textPrimary,
-                                fontSize = 13.sp
-                            ),
-                            cursorBrush = SolidColor(colors.primary),
-                            decorationBox = { inner ->
-                                if (searchQuery.isEmpty()) {
-                                    Text(
-                                        text = "Search existing group chats...",
-                                        fontSize = 13.sp,
-                                        color = colors.textSecondary.copy(alpha = 0.6f)
-                                    )
-                                }
-                                inner()
-                            }
-                        )
-                        if (searchQuery.isNotEmpty()) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Clear",
-                                tint = colors.textSecondary,
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .clickable { searchQuery = "" }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
-
-                    Text(
-                        text = "EXISTING GROUP CHATS (${filteredGroups.size})",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textSecondary,
-                        letterSpacing = 1.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 160.dp, max = 260.dp)
-                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                            .background(colors.background)
-                            .border(1.dp, colors.borderSubtle, RoundedCornerShape(ConnectoRadius.sm))
-                    ) {
-                        when {
-                            isLoadingGroups && groupsList.isEmpty() -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(160.dp),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        color = colors.primary,
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "Loading groups...",
-                                        fontSize = 12.sp,
-                                        color = colors.textSecondary
-                                    )
-                                }
-                            }
-                            groupsList.isEmpty() -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(160.dp)
-                                        .padding(16.dp),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Groups,
-                                        contentDescription = null,
-                                        tint = colors.textSecondary,
-                                        modifier = Modifier.size(32.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "No group chats found",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textPrimary
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Create a group chat first or select friends above to start a voice group.",
-                                        fontSize = 11.sp,
-                                        color = colors.textSecondary,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                            filteredGroups.isEmpty() -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(160.dp)
-                                        .padding(16.dp),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "No groups match \"$searchQuery\"",
-                                        fontSize = 12.sp,
-                                        color = colors.textSecondary,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                            else -> {
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    contentPadding = PaddingValues(vertical = 4.dp)
-                                ) {
-                                    items(filteredGroups, key = { it.id }) { group ->
-                                        val isSelected = selectedGroup?.id == group.id
-                                        val memberCount = if (group.memberCount > 0) group.memberCount else group.members.size.coerceAtLeast(1)
-                                        val initial = group.name.firstOrNull()?.uppercase() ?: "G"
-
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    selectedGroup = if (isSelected) null else group
-                                                }
-                                                .background(
-                                                    if (isSelected) colors.primary.copy(alpha = 0.08f)
-                                                    else Color.Transparent
-                                                )
-                                                .padding(horizontal = ConnectoSpacing.md, vertical = 10.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            // Group Initial/Avatar
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(36.dp)
-                                                    .clip(CircleShape)
-                                                    .background(Brush.linearGradient(gradientColors)),
+                                                    .background(Color(0xFF10B981)),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Text(
                                                     text = initial,
-                                                    fontSize = 14.sp,
+                                                    fontSize = 16.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = contentOnGradient
+                                                    color = Color.White
                                                 )
                                             }
+                                        }
+                                        // Remove x badge on top-right
+                                        Box(
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .align(Alignment.TopEnd)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFFEF4444)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Remove",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(10.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = disp,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = colors.textPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.widthIn(max = 60.dp),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
 
-                                            Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = "#${group.name}",
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = colors.textPrimary,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                Text(
-                                                    text = "$memberCount members • ${if (group.isCreatedByMe) "Admin" else "Member"}",
-                                                    fontSize = 11.sp,
-                                                    color = colors.textSecondary,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
+                // Contact List with Checkboxes & Online Dots
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp, max = 280.dp)
+                ) {
+                    when {
+                        isLoadingFriends && friendsList.isEmpty() -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = Color(0xFF10B981),
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        }
+                        friendsList.isEmpty() -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No contacts available",
+                                    fontSize = 13.sp,
+                                    color = colors.textSecondary
+                                )
+                            }
+                        }
+                        filteredFriends.isEmpty() -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No contacts match \"$searchQuery\"",
+                                    fontSize = 13.sp,
+                                    color = colors.textSecondary
+                                )
+                            }
+                        }
+                        else -> {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentPadding = PaddingValues(vertical = 4.dp)
+                            ) {
+                                items(filteredFriends, key = { it.friendUsername }) { friend ->
+                                    val isSelected = selectedFriends.any { it.friendUsername == friend.friendUsername }
+                                    val displayName = friend.friendDisplayName.ifEmpty { friend.friendUsername }
+                                    val initial = displayName.firstOrNull()?.uppercase() ?: "F"
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable {
+                                                if (isSelected) {
+                                                    selectedFriends.removeAll { it.friendUsername == friend.friendUsername }
+                                                } else {
+                                                    selectedFriends.add(friend)
+                                                }
                                             }
-
-                                            // Quick One-tap Start Call Button
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(Brush.linearGradient(gradientColors))
-                                                    .clickable {
-                                                        val membersList = group.members.filter { !it.equals(currentUsername, ignoreCase = true) }.map { u ->
-                                                            val clean = u.trim().removePrefix("@")
-                                                            FriendshipDto(
-                                                                id = clean,
-                                                                userId = currentUsername,
-                                                                friendId = clean,
-                                                                friendUsername = clean,
-                                                                friendDisplayName = clean,
-                                                                friendAvatarUrl = null,
-                                                                status = "accepted",
-                                                                isOnline = true
-                                                            )
-                                                        }
-                                                        onStartVoiceGroup(group.name, membersList)
-                                                    }
-                                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Call,
-                                                        contentDescription = null,
-                                                        tint = contentOnGradient,
-                                                        modifier = Modifier.size(13.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(4.dp))
+                                            .padding(horizontal = 6.dp, vertical = 9.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // Avatar with Online dot
+                                        Box(modifier = Modifier.size(42.dp)) {
+                                            if (!friend.friendAvatarUrl.isNullOrBlank()) {
+                                                AsyncImage(
+                                                    model = friend.friendAvatarUrl,
+                                                    contentDescription = displayName,
+                                                    modifier = Modifier
+                                                        .size(40.dp)
+                                                        .clip(CircleShape),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                            } else {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(40.dp)
+                                                        .clip(CircleShape)
+                                                        .background(if (colors.isDark) Color(0xFF1E222D) else Color(0xFFE2E8F0)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
                                                     Text(
-                                                        text = "Call",
-                                                        fontSize = 11.sp,
+                                                        text = initial,
+                                                        fontSize = 16.sp,
                                                         fontWeight = FontWeight.Bold,
-                                                        color = contentOnGradient
+                                                        color = if (colors.isDark) Color.White else Color(0xFF0F172A)
                                                     )
                                                 }
+                                            }
+
+                                            // Online Green Dot
+                                            if (friend.isOnline) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(11.dp)
+                                                        .align(Alignment.BottomEnd)
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFF10B981))
+                                                        .border(2.dp, sheetBg, CircleShape)
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = displayName,
+                                                fontSize = 14.5.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = colors.textPrimary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "@${friend.friendUsername}",
+                                                fontSize = 12.sp,
+                                                color = colors.textSecondary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+
+                                        // Circular Checkbox Indicator
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    if (isSelected) Color(0xFF10B981)
+                                                    else Color.Transparent
+                                                )
+                                                .border(
+                                                    width = if (isSelected) 0.dp else 1.8.dp,
+                                                    color = if (isSelected) Color.Transparent else if (colors.isDark) Color(0x40FFFFFF) else Color(0x30000000),
+                                                    shape = CircleShape
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (isSelected) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Selected",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(15.dp)
+                                                )
                                             }
                                         }
                                     }
@@ -967,91 +588,46 @@ fun CreateVoiceGroupDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(ConnectoSpacing.lg))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // ── Action Buttons ───────────────────────────────────────────────
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(ConnectoSpacing.sm)
-                ) {
-                    // Cancel Button
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                            .background(colors.background)
-                            .border(1.dp, colors.borderSubtle, RoundedCornerShape(ConnectoRadius.sm))
-                            .clickable { onDismissRequest() }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Cancel",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.textSecondary
+                // Sticky Bottom CTA: "Start Voice Call (N)" (Solid Emerald #10B981, Zero Gradients)
+                val isActionEnabled = selectedFriends.isNotEmpty()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (isActionEnabled) Color(0xFF10B981)
+                            else if (colors.isDark) Color(0xFF1E222D) else Color(0xFFE2E8F0)
                         )
-                    }
-
-                    // Start Call Button
-                    val isActionEnabled = if (selectedMode == "FRIENDS") {
-                        groupTitle.isNotBlank() && selectedFriends.isNotEmpty()
-                    } else {
-                        selectedGroup != null
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1.3f)
-                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                            .background(
-                                if (isActionEnabled) Brush.linearGradient(gradientColors)
-                                else SolidColor(colors.borderSubtle)
-                            )
-                            .clickable(enabled = isActionEnabled) {
-                                if (selectedMode == "FRIENDS") {
-                                    onStartVoiceGroup(groupTitle.trim(), selectedFriends.toList())
-                                } else {
-                                    selectedGroup?.let { g ->
-                                        val membersList = g.members.filter { !it.equals(currentUsername, ignoreCase = true) }.map { u ->
-                                            val clean = u.trim().removePrefix("@")
-                                            FriendshipDto(
-                                                id = clean,
-                                                userId = currentUsername,
-                                                friendId = clean,
-                                                friendUsername = clean,
-                                                friendDisplayName = clean,
-                                                friendAvatarUrl = null,
-                                                status = "accepted",
-                                                isOnline = true
-                                            )
-                                        }
-                                        onStartVoiceGroup(g.name, membersList)
-                                    }
-                                }
+                        .clickable(enabled = isActionEnabled) {
+                            val title = if (selectedFriends.size == 1) {
+                                "Voice Call with ${selectedFriends.first().friendDisplayName.ifEmpty { selectedFriends.first().friendUsername }}"
+                            } else {
+                                "Group Voice Call (${selectedFriends.size + 1})"
                             }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center
+                            onStartVoiceGroup(title, selectedFriends.toList())
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Call,
-                                contentDescription = null,
-                                tint = if (isActionEnabled) contentOnGradient else colors.textSecondary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (selectedMode == "FRIENDS") "START VOICE GROUP" else "CALL GROUP",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isActionEnabled) contentOnGradient else colors.textSecondary,
-                                textAlign = TextAlign.Center
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Call,
+                            contentDescription = null,
+                            tint = if (isActionEnabled) Color.White else colors.textDisabled,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (selectedFriends.isEmpty()) "Start Voice Call" else "Start Voice Call (${selectedFriends.size})",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isActionEnabled) Color.White else colors.textDisabled
+                        )
                     }
                 }
             }

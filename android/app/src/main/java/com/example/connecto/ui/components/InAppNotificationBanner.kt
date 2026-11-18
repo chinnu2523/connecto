@@ -497,4 +497,144 @@ fun InAppNotificationBanner(
         }
     }
 }
+
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mode A — In-App Floating Heads-Up Banner (Group Voice Call)
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+fun ModeAGroupCallBanner(
+    incomingData: com.example.connecto.voice.IncomingGroupCallData,
+    onExpandModeB: () -> Unit,
+    onJoin: () -> Unit,
+    onDecline: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(top = 12.dp, start = 16.dp, end = 16.dp)
+            .shadow(16.dp, RoundedCornerShape(20.dp), spotColor = Color(0xFF10B981).copy(alpha = 0.25f))
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color(0xFF12151E).copy(alpha = 0.95f))
+            .border(1.dp, Color(0xFF10B981).copy(alpha = 0.40f), RoundedCornerShape(20.dp))
+            .clickable { onExpandModeB() }
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Left: Stacked Overlapping Avatars (32dp) + Titles
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                // Stacked Avatars (32dp each, max 3 visible)
+                val avatars = incomingData.activeParticipants.take(3)
+                Box(
+                    modifier = Modifier
+                        .height(34.dp)
+                        .width((if (avatars.isNotEmpty()) 32 + (avatars.size - 1) * 16 else 32).dp)
+                ) {
+                    avatars.forEachIndexed { idx, p ->
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .offset(x = (idx * 16).dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF1E2230))
+                                .border(1.5.dp, Color(0xFF12151E), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (!p.avatarUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = com.example.connecto.ui.designsystem.resolveImageModel(p.avatarUrl),
+                                    contentDescription = p.displayName,
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Text(
+                                    text = p.displayName.take(1).uppercase().ifBlank { "U" },
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = incomingData.groupName,
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    val otherCount = maxOf(0, incomingData.activeParticipants.size - 1)
+                    val talkingText = if (otherCount > 0) "${incomingData.initiatorName} & $otherCount others talking..." else "${incomingData.initiatorName} talking..."
+                    Text(
+                        text = talkingText,
+                        color = Color(0xFF34D399),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Right Actions: Decline & Join Buttons
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Decline Button (#2A1417 fill with #F87171 icon)
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF2A1417))
+                        .clickable { onDecline() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CallEnd,
+                        contentDescription = "Decline",
+                        tint = Color(0xFFF87171),
+                        modifier = Modifier.size(17.dp)
+                    )
+                }
+
+                // Join Button (#10B981 fill with #FFFFFF icon)
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF10B981))
+                        .clickable { onJoin() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Call,
+                        contentDescription = "Join",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+    }
 }

@@ -653,7 +653,7 @@ fun CallsScreen(
             .then(
                 if (colors.isLiquidGlass) Modifier.liquidGlassCanvasMesh()
                 else if (colors.isGlass) Modifier.glassCanvasMesh()
-                else Modifier.background(MaterialTheme.colorScheme.background)
+                else Modifier.background(if (colors.isDark) Color(0xFF000000) else MaterialTheme.colorScheme.background)
             )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -709,8 +709,8 @@ fun CallsScreen(
 
             // Quick Tab Filter Bar (All, Incoming, Outgoing, Missed)
             val filterShape = RoundedCornerShape(12.dp)
-            val trackBg = if (colors.isDark) Color(0xFF12141A) else Color(0xFFF1F5F9)
-            val activeTabBg = if (colors.isDark) Color(0xFF242836) else Color(0xFF0F172A)
+            val trackBg = if (colors.isDark) Color(0xFF0D0E12) else Color(0xFFF1F5F9)
+            val activeTabBg = if (colors.isDark) Color(0xFF1E222D) else Color(0xFF0F172A)
             val quickTabs = listOf(
                 "All" to null,
                 "Incoming" to Icons.AutoMirrored.Filled.CallReceived,
@@ -725,6 +725,7 @@ fun CallsScreen(
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .clip(filterShape)
                     .background(trackBg)
+                    .then(if (colors.isDark) Modifier.border(1.dp, Color(0x18FFFFFF), filterShape) else Modifier)
                     .padding(4.dp)
             ) {
                 val totalWidth = maxWidth
@@ -1027,7 +1028,7 @@ fun CallsScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .offset { IntOffset(animatedSwipeOffset.roundToInt(), 0) }
-                                            .background(if (colors.isDark) Color(0xFF12141A) else Color.White)
+                                            .background(if (colors.isDark) Color(0xFF0A0B10) else Color.White)
                                             .padding(horizontal = 16.dp, vertical = 12.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
@@ -1119,8 +1120,8 @@ fun CallsScreen(
                                             }
                                         }
 
-                                        // Single clean phone icon button on the right (#1C202B circular fill)
-                                        val phoneButtonBg = if (colors.isDark) Color(0xFF1C202B) else Color(0xFFF1F5F9)
+                                        // Single clean phone icon button on the right (#161822 circular fill in dark mode)
+                                        val phoneButtonBg = if (colors.isDark) Color(0xFF161822) else Color(0xFFF1F5F9)
                                         val phoneIconTint = if (colors.isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B)
                                         Box(
                                             modifier = Modifier
@@ -1233,7 +1234,7 @@ fun CallsScreen(
             }
         }
 
-        // Prominent Floating Action Button for Group Voice Call
+        // Prominent Floating Action Button for Group Voice Call (Zero Gradients, Solid Emerald #10B981)
         ExtendedFloatingActionButton(
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1243,7 +1244,7 @@ fun CallsScreen(
                 Icon(
                     imageVector = Icons.Default.GroupAdd,
                     contentDescription = "New Group Call",
-                    tint = contentOnGradient
+                    tint = Color.White
                 )
             },
             text = {
@@ -1251,11 +1252,11 @@ fun CallsScreen(
                     text = "Group Voice Call",
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.5.sp,
-                    color = contentOnGradient
+                    color = Color.White
                 )
             },
-            containerColor = gradientColors.first(),
-            contentColor = contentOnGradient,
+            containerColor = Color(0xFF10B981),
+            contentColor = Color.White,
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier
                 .align(Alignment.BottomEnd)

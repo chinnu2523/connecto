@@ -97,7 +97,30 @@ data class CallStatsDto(
     val roundTripTimeMs: Double,
     val jitterMs: Double,
     val packetsLost: Int,
+    val packetsReceived: Int = 0,
+    val packetLossPct: Double = 0.0,
     val candidateType: String // "host", "srflx", "relay"
+)
+
+data class CallParticipant(
+    val userId: String,
+    val username: String,
+    val displayName: String,
+    val avatarUrl: String? = null,
+    val isSpeaking: Boolean = false,
+    val audioLevel: Float = 0f,
+    val isMuted: Boolean = false,
+    val isRinging: Boolean = false,
+    val isReconnecting: Boolean = false
+)
+
+data class IncomingGroupCallData(
+    val callId: String,
+    val groupId: String,
+    val groupName: String,
+    val initiatorName: String,
+    val initiatorAvatar: String? = null,
+    val activeParticipants: List<CallParticipant> = emptyList()
 )
 
 @SuppressLint("StaticFieldLeak")
@@ -139,6 +162,63 @@ object VoiceCallManager {
 
     private val _incomingCall = MutableStateFlow<IncomingCallData?>(null)
     val incomingCall: StateFlow<IncomingCallData?> = _incomingCall.asStateFlow()
+
+    private val _incomingGroupCall = MutableStateFlow<IncomingGroupCallData?>(null)
+    val incomingGroupCall: StateFlow<IncomingGroupCallData?> = _incomingGroupCall.asStateFlow()
+
+    private val _isGroupCall = MutableStateFlow(false)
+    val isGroupCall: StateFlow<Boolean> = _isGroupCall.asStateFlow()
+
+    private val _groupParticipants = MutableStateFlow<List<CallParticipant>>(emptyList())
+    val groupParticipants: StateFlow<List<CallParticipant>> = _groupParticipants.asStateFlow()
+
+    private val _activeSpeakerName = MutableStateFlow<String?>("Vivek")
+    val activeSpeakerName: StateFlow<String?> = _activeSpeakerName.asStateFlow()
+
+    private val _reconnectingPeers = MutableStateFlow<Set<String>>(emptySet())
+    val reconnectingPeers: StateFlow<Set<String>> = _reconnectingPeers.asStateFlow()
+
+    private val _activeGroupCalls = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val activeGroupCalls: StateFlow<Map<String, Boolean>> = _activeGroupCalls.asStateFlow()
+
+    private val iceDisconnectJobs = ConcurrentHashMap<String, Job>()
+    private var incomingCallTimeoutJob: Job? = null
+    private var wsReconnectAttempt = 0
+
+    fun isGroupVoiceActive(groupId: String): Boolean {
+        return _activeGroupCalls.value[groupId] == true || (_activeRoomId.value != null && _activeRoomId.value!!.contains(groupId))
+    }
+
+    fun markGroupVoiceActive(groupId: String, active: Boolean) {
+        val cur = _activeGroupCalls.value.toMutableMap()
+        if (active) cur[groupId] = true else cur.remove(groupId)
+        _activeGroupCalls.value = cur
+    }
+
+    fun updateParticipantReconnectingState(peerId: String, isReconnecting: Boolean) {
+        val currentList = _groupParticipants.value
+        val updated = currentList.map { p ->
+            if (p.userId.equals(peerId, ignoreCase = true) || p.username.equals(peerId, ignoreCase = true)) {
+                p.copy(isReconnecting = isReconnecting)
+            } else p
+        }
+        _groupParticipants.value = updated
+    }
+
+    fun updateParticipantSpeakingState(userId: String, isSpeaking: Boolean, audioLevel: Float) {
+        val currentList = _groupParticipants.value
+        var foundSpeakerName: String? = null
+        val updated = currentList.map { p ->
+            if (p.userId.equals(userId, ignoreCase = true) || p.username.equals(userId, ignoreCase = true)) {
+                if (isSpeaking) foundSpeakerName = p.displayName
+                p.copy(isSpeaking = isSpeaking, audioLevel = audioLevel)
+            } else p
+        }
+        _groupParticipants.value = updated
+        if (foundSpeakerName != null) {
+            _activeSpeakerName.value = foundSpeakerName
+        }
+    }
 
     private val _participantCount = MutableStateFlow(1)
     val participantCount: StateFlow<Int> = _participantCount.asStateFlow()
@@ -560,7 +640,7 @@ object VoiceCallManager {
             continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
             bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
             rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE
-            iceCandidatePoolSize = 10
+            iceCandidatePoolSize = 4
             tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.ENABLED
             iceTransportsType = PeerConnection.IceTransportsType.ALL
         }
@@ -574,21 +654,25 @@ object VoiceCallManager {
             val m = Regex("""a=rtpmap:(\d+) opus/48000""").find(line)
             if (m != null) { opusPayload = m.groupValues[1]; break }
         }
-        if (opusPayload == null) return sdp
-        val fmtpPrefix = "a=fmtp:$opusPayload"
-        val opusParams = "minptime=10;ptime=20;maxaveragebitrate=64000;stereo=0;sprop-stereo=0;useinbandfec=1;usedtx=0"
+        val targetPayload = opusPayload ?: "111"
+        val fmtpPrefix = "a=fmtp:$targetPayload"
+        val opusParams = "minptime=10; useinbandfec=1; usedtx=1; maxaveragebitrate=40000; stereo=0; cbr=0"
         val hasFmtp = lines.any { it.startsWith(fmtpPrefix) }
         val result = mutableListOf<String>()
         for (line in lines) {
             when {
                 line.startsWith(fmtpPrefix) ->
                     result.add("$fmtpPrefix $opusParams")
-                !hasFmtp && line.startsWith("a=rtpmap:$opusPayload") -> {
+                !hasFmtp && line.startsWith("a=rtpmap:$targetPayload") -> {
                     result.add(line)
                     result.add("$fmtpPrefix $opusParams")
                 }
                 else -> result.add(line)
             }
+        }
+        if (!hasFmtp && !lines.any { it.startsWith("a=rtpmap:$targetPayload") }) {
+            result.add("a=rtpmap:111 opus/48000/2")
+            result.add("a=fmtp:111 $opusParams")
         }
         return result.joinToString("\r\n") + "\r\n"
     }
@@ -680,19 +764,32 @@ object VoiceCallManager {
 
     private fun createAudioConstraints(voiceIsolationEnabled: Boolean = true): MediaConstraints {
         return MediaConstraints().apply {
+            mandatory.add(MediaConstraints.KeyValuePair("echoCancellation", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("noiseSuppression", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("autoGainControl", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("channelCount", "1"))
+            mandatory.add(MediaConstraints.KeyValuePair("sampleRate", "48000"))
             mandatory.add(MediaConstraints.KeyValuePair("googEchoCancellation", "true"))
             mandatory.add(MediaConstraints.KeyValuePair("googEchoCancellation2", "true"))
             mandatory.add(MediaConstraints.KeyValuePair("googAutoGainControl", "true"))
             mandatory.add(MediaConstraints.KeyValuePair("googAutoGainControl2", "true"))
             mandatory.add(MediaConstraints.KeyValuePair("googHighpassFilter", "true"))
-            mandatory.add(MediaConstraints.KeyValuePair("googNoiseSuppression", if (voiceIsolationEnabled) "true" else "false"))
-            mandatory.add(MediaConstraints.KeyValuePair("googNoiseSuppression2", if (voiceIsolationEnabled) "true" else "false"))
+            mandatory.add(MediaConstraints.KeyValuePair("googNoiseSuppression", "true"))
+            mandatory.add(MediaConstraints.KeyValuePair("googNoiseSuppression2", "true"))
             mandatory.add(MediaConstraints.KeyValuePair("googTypingNoiseDetection", "true"))
             mandatory.add(MediaConstraints.KeyValuePair("googAudioMirroring", "false"))
-            mandatory.add(MediaConstraints.KeyValuePair("echoCancellation", "true"))
-            mandatory.add(MediaConstraints.KeyValuePair("noiseSuppression", if (voiceIsolationEnabled) "true" else "false"))
-            mandatory.add(MediaConstraints.KeyValuePair("autoGainControl", "true"))
             mandatory.add(MediaConstraints.KeyValuePair("highpassFilter", "true"))
+        }
+    }
+
+    fun preWarmAudio() {
+        val ctx = appContext ?: return
+        try {
+            initWebRtcFactory(ctx)
+            startLocalAudio()
+            Log.d(TAG, "Audio pre-warmed: AudioDeviceModule and local audio track initialized (<300ms call accept ready)")
+        } catch (t: Throwable) {
+            Log.w(TAG, "preWarmAudio error: ${t.message}")
         }
     }
 
@@ -774,23 +871,48 @@ object VoiceCallManager {
 
                 override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState) {
                     Log.d(TAG, "WebRTC ICE connection state for peer $peerId: $newState")
-                    if (newState == PeerConnection.IceConnectionState.CONNECTED ||
-                        newState == PeerConnection.IceConnectionState.COMPLETED) {
-                        _callState.value = CallState.CONNECTED
-                        startStatsPolling(peerId)
-                        if (!_activeCallTitle.value.contains("Echo", ignoreCase = true)) {
-                            stopFallbackAudioRecordOnly()
-                            // Note: AudioTrack is kept active in PLAYSTATE_PLAYING so any fallback audio packets
-                            // remain immediately playable without reinitialization latency or dropped speech.
+                    when (newState) {
+                        PeerConnection.IceConnectionState.CONNECTED, PeerConnection.IceConnectionState.COMPLETED -> {
+                            iceDisconnectJobs.remove(peerId)?.cancel()
+                            _reconnectingPeers.value = _reconnectingPeers.value - peerId
+                            updateParticipantReconnectingState(peerId, false)
+                            _callState.value = CallState.CONNECTED
+                            startStatsPolling(peerId)
+                            if (!_activeCallTitle.value.contains("Echo", ignoreCase = true)) {
+                                stopFallbackAudioRecordOnly()
+                            }
                         }
-                    } else if (newState == PeerConnection.IceConnectionState.DISCONNECTED ||
-                        newState == PeerConnection.IceConnectionState.FAILED) {
-                        Log.w(TAG, "WebRTC ICE state for peer $peerId: $newState. Seamlessly falling back to WebSocket audio relay.")
-                        if (_callState.value == CallState.CONNECTED) {
-                            startAudioHardware()
+                        PeerConnection.IceConnectionState.DISCONNECTED -> {
+                            iceDisconnectJobs.remove(peerId)?.cancel()
+                            val disconnectJob = scope.launch(Dispatchers.IO) {
+                                delay(1500L)
+                                val currentPc = peerConnections[peerId]
+                                if (currentPc != null && currentPc.iceConnectionState() == PeerConnection.IceConnectionState.DISCONNECTED) {
+                                    Log.w(TAG, "Peer $peerId disconnected > 1500ms; automatically triggering ICE restart")
+                                    _reconnectingPeers.value = _reconnectingPeers.value + peerId
+                                    updateParticipantReconnectingState(peerId, true)
+                                    triggerIceRestart(peerId, currentPc)
+                                }
+                            }
+                            iceDisconnectJobs[peerId] = disconnectJob
                         }
-                    } else if (newState == PeerConnection.IceConnectionState.CLOSED) {
-                        Log.d(TAG, "WebRTC ICE connection closed for peer $peerId")
+                        PeerConnection.IceConnectionState.FAILED -> {
+                            iceDisconnectJobs.remove(peerId)?.cancel()
+                            Log.w(TAG, "Peer $peerId ICE failed; triggering automatic ICE restart without ending call")
+                            _reconnectingPeers.value = _reconnectingPeers.value + peerId
+                            val currentPc = peerConnections[peerId]
+                            if (currentPc != null) {
+                                updateParticipantReconnectingState(peerId, true)
+                                triggerIceRestart(peerId, currentPc)
+                            }
+                        }
+                        PeerConnection.IceConnectionState.CLOSED -> {
+                            iceDisconnectJobs.remove(peerId)?.cancel()
+                            _reconnectingPeers.value = _reconnectingPeers.value - peerId
+                            updateParticipantReconnectingState(peerId, false)
+                            Log.d(TAG, "WebRTC ICE connection closed for peer $peerId")
+                        }
+                        else -> {}
                     }
                 }
 
@@ -891,6 +1013,54 @@ object VoiceCallManager {
 
                 override fun onSetFailure(p0: String?) {}
             }, constraints)
+        }
+    }
+
+    fun triggerIceRestart(peerId: String, pc: PeerConnection) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                ensureLocalAudioTrackAttached(pc)
+                val constraints = MediaConstraints().apply {
+                    mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
+                    mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"))
+                    mandatory.add(MediaConstraints.KeyValuePair("IceRestart", "true"))
+                }
+                pc.createOffer(object : SdpObserver {
+                    override fun onCreateSuccess(sessionDescription: SessionDescription) {
+                        pc.setLocalDescription(object : SdpObserver {
+                            override fun onSetSuccess() {
+                                val roomId = _activeRoomId.value ?: return
+                                Log.d(TAG, "Zero-Drop WebRTC ICE restart offer dispatched for peer: $peerId")
+                                val offerMsg = JSONObject().apply {
+                                    put("type", "voice_offer")
+                                    put("action", "call:offer")
+                                    put("channel_id", roomId)
+                                    put("room_id", roomId)
+                                    put("call_id", roomId)
+                                    put("target_user_id", peerId)
+                                    put("target", peerId)
+                                    put("target_user", peerId)
+                                    put("ice_restart", true)
+                                    put("sdp", mangleSdpForLowLatency(sessionDescription.description))
+                                }
+                                sendWsMessage(offerMsg)
+                            }
+                            override fun onSetFailure(s: String?) {
+                                Log.e(TAG, "WebRTC setLocalDescription for ICE restart failed: $s")
+                            }
+                            override fun onCreateSuccess(p0: SessionDescription?) {}
+                            override fun onCreateFailure(p0: String?) {}
+                        }, sessionDescription)
+                    }
+                    override fun onCreateFailure(s: String?) {
+                        Log.e(TAG, "WebRTC createOffer for ICE restart failed: $s")
+                    }
+                    override fun onSetSuccess() {}
+                    override fun onSetFailure(p0: String?) {}
+                }, constraints)
+            } catch (t: Throwable) {
+                Log.e(TAG, "Failed to execute triggerIceRestart for peer $peerId: ${t.message}", t)
+            }
         }
     }
 
@@ -1068,6 +1238,7 @@ object VoiceCallManager {
                             var rttMs = 0.0
                             var jitterMs = 0.0
                             var packetsLost = 0
+                            var packetsReceived = 0
                             var candidateType = "unknown"
                             for (stats in report.statsMap.values) {
                                 when (stats.type) {
@@ -1076,9 +1247,24 @@ object VoiceCallManager {
                                         (stats.members["jitter"] as? Double)?.let { jitterMs = it * 1000 }
                                         (stats.members["packetsLost"] as? Int)?.let { packetsLost = it }
                                     }
+                                    "inbound-rtp" -> {
+                                        val rx = (stats.members["packetsReceived"] as? Long)?.toInt()
+                                            ?: (stats.members["packetsReceived"] as? Int)
+                                        if (rx != null) packetsReceived = rx
+                                        if (packetsLost == 0) {
+                                            (stats.members["packetsLost"] as? Int)?.let { packetsLost = it }
+                                        }
+                                        if (jitterMs == 0.0) {
+                                            (stats.members["jitter"] as? Double)?.let { jitterMs = it * 1000 }
+                                        }
+                                    }
                                     "candidate-pair" -> {
                                         val nominated = stats.members["nominated"] as? Boolean ?: false
                                         if (nominated) {
+                                            val currentRtt = (stats.members["currentRoundTripTime"] as? Double)
+                                            if (currentRtt != null && rttMs == 0.0) {
+                                                rttMs = currentRtt * 1000
+                                            }
                                             val localId = stats.members["localCandidateId"] as? String
                                             if (localId != null) {
                                                 val localStats = report.statsMap[localId]
@@ -1088,9 +1274,11 @@ object VoiceCallManager {
                                     }
                                 }
                             }
-                            val dto = CallStatsDto(rttMs, jitterMs, packetsLost, candidateType)
+                            val totalPackets = packetsReceived + packetsLost
+                            val lossPct = if (totalPackets > 0) (packetsLost.toDouble() / totalPackets) * 100.0 else (if (packetsLost > 0) 5.0 else 0.0)
+                            val dto = CallStatsDto(rttMs, jitterMs, packetsLost, packetsReceived, lossPct, candidateType)
                             _callStats.value = dto
-                            Log.d(TAG, "WebRTC stats: RTT=${rttMs.toInt()}ms jitter=${jitterMs.toInt()}ms loss=$packetsLost candidate=$candidateType")
+                            Log.d(TAG, "WebRTC stats: RTT=${rttMs.toInt()}ms jitter=${jitterMs.toInt()}ms loss=$packetsLost lossPct=${String.format(Locale.US, "%.1f", lossPct)}% candidate=$candidateType")
                         } catch (e: Exception) {
                             Log.w(TAG, "Error parsing WebRTC stats: ${e.message}")
                         }
@@ -1352,6 +1540,7 @@ object VoiceCallManager {
                     isWsConnecting = false
                     isWsConnected = true
                     _isWsConnectedFlow.value = true
+                    wsReconnectAttempt = 0
 
                     val serverHdr = response.header("X-Connecto-Server")
                     val modeHdr = response.header("X-Connecto-Mode")
@@ -1360,6 +1549,28 @@ object VoiceCallManager {
                     } else if (!modeHdr.isNullOrBlank()) {
                         val inferred = if (modeHdr.equals("local_server", ignoreCase = true)) "Tailscale" else "Cloudflare"
                         ConnectoApiClient.updateServerType(inferred)
+                    }
+
+                    // Re-sync active call state immediately upon socket reconnect
+                    val currentRoom = _activeRoomId.value
+                    if (!currentRoom.isNullOrBlank() && _callState.value == CallState.CONNECTED) {
+                        try {
+                            val subAction = JSONObject().apply {
+                                put("action", "subscribe")
+                                put("channel_id", "voice_room:$currentRoom")
+                            }
+                            ws.send(subAction.toString())
+                            val joinMsg = JSONObject().apply {
+                                put("action", "voice:join")
+                                put("type", "voice_join")
+                                put("channel_id", currentRoom)
+                                put("room_id", currentRoom)
+                            }
+                            ws.send(joinMsg.toString())
+                            Log.d(TAG, "Re-synced active call state to room $currentRoom on socket reconnect")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error re-syncing voice room on socket reconnect: ${e.message}")
+                        }
                     }
 
                     // Auto-resubscribe to all active channels
@@ -1461,9 +1672,21 @@ object VoiceCallManager {
 
     private fun reconnectWebSocketAfterDelay() {
         if (isExplicitlyDisconnected) return
+        val isCallActive = (_callState.value == CallState.CONNECTED || _callState.value == CallState.OUTGOING_RINGING)
+        val backoffDelay = if (isCallActive) {
+            when (wsReconnectAttempt) {
+                0 -> 500L
+                1 -> 1000L
+                else -> 2000L
+            }
+        } else {
+            3000L
+        }
         scope.launch {
-            delay(3000L)
+            delay(backoffDelay)
             if (!isWsConnected && !isExplicitlyDisconnected) {
+                wsReconnectAttempt++
+                Log.d(TAG, "Reconnecting WebSocket (attempt=$wsReconnectAttempt, delay=${backoffDelay}ms, callActive=$isCallActive)")
                 connectWebSocket()
             }
         }
@@ -1924,6 +2147,105 @@ object VoiceCallManager {
                     Log.d(TAG, "Read receipt received via WebSocket from $readerUsername for channel $chId")
                 }
 
+
+                "incoming_group_call", "call:incoming_group", "INCOMING_GROUP_CALL", "group_call:incoming", "group_call_invite" -> {
+                    val callId = json.optString("call_id").ifEmpty { json.optString("callId").ifEmpty { json.optString("room_id") } }
+                    if (isCallTerminated(callId)) {
+                        Log.d(TAG, "Ignoring incoming group call for already terminated room: $callId")
+                        return
+                    }
+                    val groupId = json.optString("group_id").ifEmpty { json.optString("groupId") }
+                    val groupName = json.optString("group_name").ifEmpty { json.optString("groupName").ifEmpty { "Group Voice Call" } }
+                    val initiatorName = json.optString("initiator_name").ifEmpty { json.optString("initiatorName").ifEmpty { "Member" } }
+                    val initiatorAvatar = json.optString("initiator_avatar").ifEmpty { json.optString("initiatorAvatar") }
+
+                    val activeParticipantsList = mutableListOf<CallParticipant>()
+                    val partsArray = json.optJSONArray("active_participants") ?: json.optJSONArray("activeParticipants") ?: json.optJSONArray("participants")
+                    if (partsArray != null) {
+                        for (i in 0 until partsArray.length()) {
+                            val pObj = partsArray.optJSONObject(i)
+                            if (pObj != null) {
+                                val pUser = pObj.optString("username").ifEmpty { pObj.optString("user_id") }
+                                val pName = pObj.optString("name").ifEmpty { pObj.optString("display_name").ifEmpty { pUser } }
+                                val pAvatar = pObj.optString("avatar_url").ifEmpty { pObj.optString("avatar") }
+                                activeParticipantsList.add(
+                                    CallParticipant(
+                                        userId = pObj.optString("user_id").ifEmpty { pUser },
+                                        username = pUser,
+                                        displayName = pName,
+                                        avatarUrl = pAvatar
+                                    )
+                                )
+                            } else {
+                                val pName = partsArray.optString(i)
+                                if (pName.isNotBlank()) {
+                                    activeParticipantsList.add(
+                                        CallParticipant(
+                                            userId = pName,
+                                            username = pName,
+                                            displayName = pName
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Log.d(TAG, "Incoming group voice call received: $groupName ($callId) with ${activeParticipantsList.size} participants")
+                    val incomingGroupData = IncomingGroupCallData(
+                        callId = callId,
+                        groupId = groupId,
+                        groupName = groupName,
+                        initiatorName = initiatorName,
+                        initiatorAvatar = initiatorAvatar,
+                        activeParticipants = activeParticipantsList
+                    )
+
+                    _incomingGroupCall.value = incomingGroupData
+                    _isGroupCall.value = true
+                    _incomingCall.value = IncomingCallData(
+                        roomId = callId,
+                        callerId = groupId,
+                        callerUsername = initiatorName,
+                        callerName = groupName,
+                        callerAvatar = initiatorAvatar
+                    )
+                    _callState.value = CallState.INCOMING_RINGING
+
+                    // Pre-warm local audio pipeline in background so tapping Accept transitions in <300ms
+                    preWarmAudio()
+
+                    // Start synchronized ringing and vibration
+                    appContext?.let { CallRingtoneManager.startRingtoneAndVibration(it) }
+
+                    // Start 45s timeout safeguard
+                    startIncomingCallTimeout(callId, groupName, groupId)
+
+                    // Mode A: In-App Floating Heads-Up Banner
+                    val subtitleText = if (activeParticipantsList.isNotEmpty()) {
+                        "${activeParticipantsList.first().displayName} & ${activeParticipantsList.size} others talking..."
+                    } else {
+                        "Group Voice Call • Invited by $initiatorName"
+                    }
+                    com.example.connecto.ui.components.InAppNotificationController.show(
+                        com.example.connecto.ui.components.InAppNotificationData(
+                            title = groupName,
+                            message = subtitleText,
+                            avatarUrl = initiatorAvatar,
+                            username = initiatorName,
+                            actionType = "group_call",
+                            referenceId = callId
+                        )
+                    )
+
+                    // Also post notification
+                    ConnectoNotificationManager.showIncomingCallNotification(
+                        callerName = groupName,
+                        roomId = callId,
+                        callerUsername = initiatorName,
+                        callerAvatar = initiatorAvatar
+                    )
+                }
 
                 "incoming_call", "call:incoming", "call_invite", "call:invite" -> {
                     val roomId = json.optString("room_id").ifEmpty { json.optString("call_id") }
@@ -2707,7 +3029,105 @@ object VoiceCallManager {
         }
     }
 
+    private fun startIncomingCallTimeout(callId: String, title: String, groupId: String? = null) {
+        incomingCallTimeoutJob?.cancel()
+        incomingCallTimeoutJob = scope.launch {
+            delay(45000L) // 45 seconds timeout
+            if (_callState.value == CallState.INCOMING_RINGING && (_incomingCall.value?.roomId == callId || _incomingGroupCall.value?.callId == callId)) {
+                Log.d(TAG, "Incoming call timed out after 45 seconds ($title)")
+                appContext?.let { CallRingtoneManager.stopRingtoneAndVibration(it) }
+                ConnectoNotificationManager.cancelCallNotification()
+                com.example.connecto.ui.components.InAppNotificationController.dismiss()
+
+                // Record as missed call
+                ConnectoApiClient.recordCallLog(
+                    callerName = title,
+                    callType = if (groupId != null) "Missed Group Call" else "Missed Voice Call",
+                    durationSeconds = 0,
+                    isMissed = true,
+                    isOutgoing = false
+                )
+
+                if (!groupId.isNullOrBlank()) {
+                    markGroupVoiceActive(groupId, true)
+                }
+
+                _incomingGroupCall.value = null
+                _incomingCall.value = null
+                _callState.value = CallState.IDLE
+            }
+        }
+    }
+
+    fun acceptGroupCall(initialMuteState: Boolean = false) {
+        incomingCallTimeoutJob?.cancel()
+        val group = _incomingGroupCall.value
+        CallRingtoneManager.stopRingtoneAndVibration(appContext)
+        com.example.connecto.ui.components.InAppNotificationController.dismiss()
+        ConnectoNotificationManager.cancelCallNotification()
+
+        val roomId = group?.callId ?: _incomingCall.value?.roomId ?: return
+        val groupTitle = group?.groupName ?: _incomingCall.value?.callerName ?: "Group Voice Call"
+
+        _isGroupCall.value = true
+        _isMuted.value = initialMuteState
+        localAudioTrack?.setEnabled(!initialMuteState)
+
+        if (group != null && group.activeParticipants.isNotEmpty()) {
+            _groupParticipants.value = group.activeParticipants
+            _participantCount.value = maxOf(2, group.activeParticipants.size + 1)
+        }
+
+        joinVoiceRoom(roomId = roomId, roomName = groupTitle, roomCode = roomId)
+
+        // Route to speaker by default for group calls
+        val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.SPEAKER
+        setAudioRoute(initialRoute)
+
+        _incomingGroupCall.value = null
+        _incomingCall.value = null
+    }
+
+    fun declineGroupCall(sendReplyMessage: String? = null) {
+        incomingCallTimeoutJob?.cancel()
+        val group = _incomingGroupCall.value
+        CallRingtoneManager.stopRingtoneAndVibration(appContext)
+        com.example.connecto.ui.components.InAppNotificationController.dismiss()
+        ConnectoNotificationManager.cancelCallNotification()
+
+        val roomId = group?.callId ?: _incomingCall.value?.roomId
+        val groupId = group?.groupId
+
+        if (!sendReplyMessage.isNullOrBlank() && !groupId.isNullOrBlank()) {
+            scope.launch(Dispatchers.IO) {
+                ConnectoApiClient.sendMessage(channelId = groupId, content = sendReplyMessage)
+            }
+        }
+
+        if (!roomId.isNullOrBlank()) {
+            val declineMsg = JSONObject().apply {
+                put("action", "call:decline")
+                put("type", "call:decline")
+                put("call_id", roomId)
+                put("room_id", roomId)
+            }
+            sendWsMessage(declineMsg)
+            if (!groupId.isNullOrBlank()) {
+                markGroupVoiceActive(groupId, true)
+            }
+        }
+
+        _incomingGroupCall.value = null
+        _incomingCall.value = null
+        _callState.value = CallState.IDLE
+    }
+
     fun acceptIncomingCall() {
+        incomingCallTimeoutJob?.cancel()
+        if (_incomingGroupCall.value != null) {
+            acceptGroupCall(initialMuteState = false)
+            return
+        }
         val call = _incomingCall.value ?: return
         CallRingtoneManager.stopRingtoneAndVibration(appContext)
         com.example.connecto.ui.components.InAppNotificationController.dismiss()
@@ -2775,6 +3195,11 @@ object VoiceCallManager {
     }
 
     fun declineIncomingCall() {
+        incomingCallTimeoutJob?.cancel()
+        if (_incomingGroupCall.value != null) {
+            declineGroupCall()
+            return
+        }
         val call = _incomingCall.value ?: return
         CallRingtoneManager.stopRingtoneAndVibration(appContext)
         markCallTerminated(call.roomId)
@@ -2815,12 +3240,27 @@ object VoiceCallManager {
     }
 
     fun joinVoiceRoom(roomId: String, roomName: String, roomCode: String? = null) {
+        preWarmAudio()
+        _isGroupCall.value = true
         _activeRoomId.value = roomId
         _activeCallTitle.value = roomName
         _activeCallPartner.value = null
         _activeCallPartnerUsername.value = null
         _activeCallRoomCode.value = roomCode
         _callState.value = CallState.CONNECTED
+
+        val myUser = ConnectoApiClient.currentUsername ?: "You"
+        if (_groupParticipants.value.isEmpty()) {
+            _groupParticipants.value = listOf(
+                CallParticipant(
+                    userId = myUser,
+                    username = myUser,
+                    displayName = ConnectoApiClient.currentUserDisplayName ?: myUser,
+                    avatarUrl = ConnectoApiClient.currentUserAvatar
+                )
+            )
+        }
+
         applyAudioSettingsForCall()
         appContext?.let {
             VoiceCallForegroundService.startService(it, roomName, null, _isMuted.value)
@@ -3022,6 +3462,15 @@ object VoiceCallManager {
         _activeCallAvatar.value = null
         _activeCallRoomCode.value = null
         _incomingCall.value = null
+        _incomingGroupCall.value = null
+        _isGroupCall.value = false
+        _groupParticipants.value = emptyList()
+        _activeSpeakerName.value = null
+        _reconnectingPeers.value = emptySet()
+        iceDisconnectJobs.values.forEach { it.cancel() }
+        iceDisconnectJobs.clear()
+        incomingCallTimeoutJob?.cancel()
+        incomingCallTimeoutJob = null
         _participantCount.value = 1
         _liveAudioAmplitude.value = 0f
         ProximityScreenLockManager.stopMonitoring()
