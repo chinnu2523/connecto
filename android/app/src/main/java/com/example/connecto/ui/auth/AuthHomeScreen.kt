@@ -1,6 +1,7 @@
 package com.example.connecto.ui.auth
 
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -43,6 +44,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
@@ -110,6 +112,7 @@ import com.example.connecto.security.BiometricAuthManager
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.theme.isAppInLightTheme
+import com.example.connecto.ui.theme.pressScaleEffect
 import com.example.connecto.ui.designsystem.ConnectoTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -162,6 +165,13 @@ fun AuthHomeScreen(
     var isSignUp by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var forceShowValidationErrors by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = isSignUp) {
+        isSignUp = false
+        errorMessage = null
+        forceShowValidationErrors = false
+    }
 
     // Sign Up Form states
     var email by remember { mutableStateOf("") }
@@ -255,7 +265,6 @@ fun AuthHomeScreen(
     var pending2FaMethod by remember { mutableStateOf("email") }
     var showLegalTermsDialog by remember { mutableStateOf(false) }
     var legalTermsInitialTab by remember { mutableIntStateOf(0) }
-    var forceShowValidationErrors by remember { mutableStateOf(false) }
 
     val emailPattern = Regex("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$")
 
@@ -386,202 +395,96 @@ fun AuthHomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // ===== LOGO =====
-            ConnectoLogo()
+            if (!isSignUp) {
+                // ===== LOGO =====
+                ConnectoLogo()
 
-            Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-            // ===== APP NAME =====
-            Text(
-                text = "CONNECTO-FUN",
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                letterSpacing = 2.sp
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // ===== TAGLINE PILL =====
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Shield,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
+                // ===== APP NAME =====
                 Text(
-                    text = "GAMERS & FRIENDS COMMUNITY",
-                    fontSize = 11.sp,
+                    text = "CONNECTO-FUN",
+                    fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 0.5.sp
+                    color = MaterialTheme.colorScheme.onBackground,
+                    letterSpacing = 2.sp
                 )
-            }
 
-            Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-            // ===== FORM CONTAINER =====
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(26.dp))
-                    .padding(8.dp)
-            ) {
-                Column {
-                    // Modern Fluid Tab Switcher Pill with Spring Physics Indicator
-                    BoxWithConstraints(
+                // ===== TAGLINE PILL =====
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Shield,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "GAMERS & FRIENDS COMMUNITY",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(28.dp))
+            } else {
+                // ===== DEDICATED CREATE ACCOUNT HEADER =====
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            isSignUp = false
+                            errorMessage = null
+                            forceShowValidationErrors = false
+                        },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                            .padding(4.dp)
+                            .size(42.dp)
+                            .pressScaleEffect(onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                isSignUp = false
+                                errorMessage = null
+                                forceShowValidationErrors = false
+                            })
                     ) {
-                        val pillWidth = maxWidth / 2
-                        val indicatorOffset by animateDpAsState(
-                            targetValue = if (!isSignUp) 0.dp else pillWidth,
-                            animationSpec = tween(
-                                durationMillis = 280,
-                                easing = EaseInOutCubic
-                            ),
-                            label = "authTabPillOffset"
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back to Sign In",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(24.dp)
                         )
-
-                        // Sliding Active Pill Background
-                        Box(
-                            modifier = Modifier
-                                .offset(x = indicatorOffset)
-                                .width(pillWidth)
-                                .fillMaxHeight()
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Brush.horizontalGradient(gradientColors))
-                        )
-
-                        // Tab Buttons (SIGN IN on left, SIGN UP on right)
-                        Row(modifier = Modifier.fillMaxSize()) {
-                            // SIGN IN TAB
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .clickable {
-                                        if (isSignUp) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            isSignUp = false
-                                            errorMessage = null
-                                            forceShowValidationErrors = false
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Outlined.Login,
-                                        contentDescription = null,
-                                        tint = if (!isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "SIGN IN",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (!isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        letterSpacing = 0.6.sp
-                                    )
-                                }
-                            }
-
-                            // SIGN UP TAB
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .clickable {
-                                        if (!isSignUp) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            isSignUp = true
-                                            errorMessage = null
-                                            forceShowValidationErrors = false
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.PersonAdd,
-                                        contentDescription = null,
-                                        tint = if (isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "SIGN UP",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        letterSpacing = 0.6.sp
-                                    )
-                                }
-                            }
-                        }
                     }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Contextual Security & Ease-of-use Micro-Badge
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
                         Text(
-                            text = if (isSignUp) "Fast 30-sec Setup" else "Instant & Secure",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            text = "Create Account",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
                         )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.Shield,
-                                contentDescription = null,
-                                tint = gradientColors.first(),
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "End-to-End Encrypted",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = gradientColors.first()
-                            )
-                        }
+                        Text(
+                            text = "Fill in the required details to join Connecto",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(18.dp))
 
             // ===== IN-PLACE ERROR BANNER (UI FIX #01 - Clean In-Place Errors) =====
             AnimatedVisibility(
@@ -1111,24 +1014,9 @@ fun AuthHomeScreen(
                         Spacer(modifier = Modifier.height(10.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Shield,
-                                    contentDescription = null,
-                                    tint = gradientColors.first(),
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Keystore 256-bit AES",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
                             Text(
                                 text = "Forgot Password?",
                                 color = gradientColors.first(),
@@ -1329,44 +1217,47 @@ fun AuthHomeScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // ===== CONTINUE AS GUEST BUTTON =====
-            OutlinedButton(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    com.example.connecto.network.ConnectoApiClient.currentUsername = "guest"
-                    com.example.connecto.network.ConnectoApiClient.currentUserId = "guest_sandbox_user"
-                    com.example.connecto.network.ConnectoApiClient.currentUserDisplayName = "Guest Explorer"
-                    com.example.connecto.network.ConnectoApiClient.currentUserEmail = "guest@connecto.fun"
-                    com.example.connecto.network.ConnectoApiClient.sessionToken = "guest_token_sandbox"
-                    com.example.connecto.network.ConnectoApiClient.updateAdminState(false)
-                    onAuthSuccess("guest")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
-                ),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                )
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Outlined.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
+            // ===== CONTINUE AS GUEST BUTTON (Only on Sign In) =====
+            if (!isSignUp) {
+                Spacer(modifier = Modifier.height(14.dp))
+                OutlinedButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        com.example.connecto.network.ConnectoApiClient.currentUsername = "guest"
+                        com.example.connecto.network.ConnectoApiClient.currentUserId = "guest_sandbox_user"
+                        com.example.connecto.network.ConnectoApiClient.currentUserDisplayName = "Guest Explorer"
+                        com.example.connecto.network.ConnectoApiClient.currentUserEmail = "guest@connecto.fun"
+                        com.example.connecto.network.ConnectoApiClient.sessionToken = "guest_token_sandbox"
+                        com.example.connecto.network.ConnectoApiClient.updateAdminState(false)
+                        onAuthSuccess("guest")
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "CONTINUE AS GUEST",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        letterSpacing = 0.5.sp
-                    )
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Outlined.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "CONTINUE AS GUEST",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
                 }
             }
 
@@ -1437,18 +1328,6 @@ fun AuthHomeScreen(
                             .padding(horizontal = 4.dp, vertical = 4.dp)
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // ===== FEATURE CHIPS =====
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                FeatureChip(icon = Icons.AutoMirrored.Outlined.Chat, label = "WebSocket Chat")
-                FeatureChip(icon = Icons.Outlined.Security, label = "Encrypted Security")
-                FeatureChip(icon = Icons.Outlined.Call, label = "WebRTC Voice")
             }
         }
     }
@@ -1737,33 +1616,5 @@ private fun AuthTextField(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun FeatureChip(icon: ImageVector, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
     }
 }

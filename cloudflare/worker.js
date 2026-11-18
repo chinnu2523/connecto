@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.5.3",
-        version_name: "v5.5.3",
-        version_code: 167,
-        build: 167,
-        sha256: "de0ca67ac1a646552d23875c8c04f61bf500cce64afff9437764394e5b84ced0",
+        version: "5.5.4",
+        version_name: "v5.5.4",
+        version_code: 168,
+        build: 168,
+        sha256: "a2bac569554708c2f68d4cb60817eb30363a695e103bacb5497b1691153bfcbb",
         filename: "connecto-fun.apk",
-        size_bytes: 38074073,
+        size_bytes: 38070572,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -595,18 +595,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.5.3/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.5.2/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.5.4/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.5.3/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.5.3-b167-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.5.4-b168-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.5.3");
-          res.headers.set("X-Connecto-Build", "167");
+          res.headers.set("X-Connecto-Version", "v5.5.4");
+          res.headers.set("X-Connecto-Build", "168");
           return res;
         }
 
@@ -618,7 +618,7 @@ Sitemap: https://connecto.fun/sitemap.xml
               const resp = await fetch(currentFetchUrl, {
                 redirect: "manual",
                 headers: {
-                  "User-Agent": "Connecto-Cloud-Worker/5.3.0"
+                  "User-Agent": "Connecto-Cloud-Worker/5.5.4"
                 }
               });
               if (resp.status >= 300 && resp.status < 400) {
@@ -642,8 +642,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.5.3");
-              downloadHeaders.set("X-Connecto-Build", "167");
+              downloadHeaders.set("X-Connecto-Version", "v5.5.4");
+              downloadHeaders.set("X-Connecto-Build", "168");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -658,7 +658,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.5.3/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.5.4/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2028,14 +2028,17 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.5.3",
-        version_code: 167,
-        size_bytes: 38074073,
+        version_name: "5.5.4",
+        version_code: 168,
+        size_bytes: 38070572,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Streamlined Clean Authentication Flow: Removed top segmented Sign In / Sign Up pill switcher, removed Keystore 256-bit AES text, and eliminated bottom protocol chips for a clean, minimalist Sign In screen",
+          "Dedicated Create Account Interface: Tapping 'Create an account' opens a dedicated registration interface with back header, live debounced verification, email OTP validation, and full profile onboarding",
+          "Contextual Guest Isolation: 'Continue as Guest' is strictly available on Sign In and hidden during account creation",
           "App-Wide Tactile Button Animations & Smooth Opening/Closing Slide Transitions: Engineered tactile spring press animations and micro-compressions across all buttons, cards, list rows, top bar actions, and dialog triggers with tactile haptic feedback. Implemented fluid horizontal sliding screen transitions for opening and closing direct chats and profile sub-pages (Security, Voice & Audio, Biometric Lock, Appearance, Notifications, Help & Support), and animated spring slide-up and scale entrances for confirmation and alert dialogs",
           "Dimensional Portal Theme Transition & Pure Monochrome Toggle: Re-engineered the theme switch transition into an immersive dimensional portal opening and expanding in strictly Black & White originating directly from the physical coordinates of the toggle switch, featuring a swirling radial singularity core, primary event horizon ring, dual concentric vortex depth rings, 6 spinning portal horizon blades, and an outer gravitational shockwave ripple. Purged cyan/amber accents from the theme icon in favor of crisp Black & White, removed the descriptive subtitle under 'Display Theme', removed the 'Black'/'White' pill badge beside the toggle, and restyled the toggle switch strictly in high-contrast monochrome Black & White",
           "Messages Tab Speed-Dial FAB & 3-Dots Menu: Introduced a responsive Floating Action Button (FAB) at the bottom right of the Messages conversations feed with an animated 135° rotation and spring-animated speed-dial actions (New Direct Chat, New Group, Voice Group) with dim background scrim. Implemented a header 3-dots menu providing quick access to New Chat, New Group, Voice Group, Mark All as Read (with unread badge recalculation), and instant chat syncing",
@@ -7305,13 +7308,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.5.3",
-      version_name: "v5.5.3",
-      version_code: 167,
-      build: 167,
-      sha256: "de0ca67ac1a646552d23875c8c04f61bf500cce64afff9437764394e5b84ced0",
+      version: "5.5.4",
+      version_name: "v5.5.4",
+      version_code: 168,
+      build: 168,
+      sha256: "a2bac569554708c2f68d4cb60817eb30363a695e103bacb5497b1691153bfcbb",
       filename: "connecto-fun.apk",
-      size_bytes: 38074073,
+      size_bytes: 38070572,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7325,10 +7328,25 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v5.5.3",
+          version: "v5.5.4",
           date: "Nov 18, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v5.5.4: Streamlined Authentication Flow & Dedicated Registration Interface",
+          summary: "Polished the initial authentication experience by removing top segmented pill buttons, eliminating Keystore 256-bit AES clutter, and removing bottom protocol chips for a clean Sign In view. Introduced a dedicated registration interface with back header navigation and strictly hidden guest mode.",
+          highlights: [
+            "Streamlined Clean Sign In Screen: Removed top segmented Sign In / Sign Up pill switcher, removed 'Keystore 256-bit AES' clutter text, and eliminated bottom protocol chips (WebSocket Chat, Encrypted Security, WebRTC Voice) for a minimalist sign-in experience.",
+            "Dedicated Create Account Interface: Tapping 'Create an account' smoothly navigates to a dedicated registration interface with dedicated back-navigation header, live username and email availability verification, email OTP verification, 18+ age calculation, and terms agreement.",
+            "Contextual Guest Isolation: 'Continue as Guest' is strictly isolated to the Sign In interface and completely hidden in Create Account mode.",
+            "Android Native App v5.5.4 (Build 168 • 36.3 MB): SHA-256 a2bac569554708c2f68d4cb60817eb30363a695e103bacb5497b1691153bfcbb."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
+          version: "v5.5.3",
+          date: "Nov 18, 2026",
+          category: "feature",
+          tag: "Production",
           title: "Connecto v5.5.3: App-Wide Tactile Button Animations & Smooth Opening/Closing Slide Transitions",
           summary: "Engineered tactile spring press animations and micro-compressions across all buttons, cards, list rows, top bar actions, and dialog triggers with tactile haptic feedback. Implemented fluid horizontal sliding screen transitions for opening and closing direct chats and profile sub-pages (Security, Voice & Audio, Biometric Lock, Appearance, Notifications, Help & Support), and animated spring slide-up and scale entrances for confirmation and alert dialogs.",
           highlights: [
