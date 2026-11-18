@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.5.9",
-        version_name: "v5.5.9",
-        version_code: 173,
-        build: 173,
-        sha256: "eb87ed714ff6cdd80f96edb845e5bc9bf2ac4b01933e8b0b9ac4ff9369b3c445",
+        version: "5.6.0",
+        version_name: "v5.6.0",
+        version_code: 174,
+        build: 174,
+        sha256: "4b0b7a3d69130a3f82c37d422cf09818f3f0ad5b0267b0cc67b59a36630f6440",
         filename: "connecto-fun.apk",
-        size_bytes: 38053398,
+        size_bytes: 38059272,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -218,6 +218,7 @@ Sitemap: https://connecto.fun/sitemap.xml
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Real-Time DM Header Presence & Signature Read Receipts (v5.6.0): Subscribed Direct Chat screen header to centralized WebSocket/Presence StateFlow (isUserOnline evaluated consistently across DM list and chat header, eliminating presence inversion bug where online contacts appeared offline). Replaced generic tick checkmarks with Connecto signature delivery receipts: 8dp pulsing ring for SENDING, 6dp solid dot for SENT, glowing double dots for DELIVERED, and recipient's mini circular avatar underneath the latest read message for SEEN.",
           "Fixed Unpin Gesture Delay (v5.5.9): Resolved stale pointerInput closures with rememberUpdatedState and live state evaluation.",
           "Full Dark Theme & Stitch Search Bar (v5.5.8): Obsidian dark canvas (#0A0B0E) across Messages, dedicated Stitch search bar with count badge, and clean header without group/3-dots buttons.",
           "Integrated Message Tab Top Search Bar: Prominently placed, real-time searchable header input with match count badge, deep friend/chat/message query filtering, and 1-tap instant clear.",
@@ -597,18 +598,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.5.9/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.5.8/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.6.0/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.5.9/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.5.9-b173-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.6.0-b174-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.5.9");
-          res.headers.set("X-Connecto-Build", "173");
+          res.headers.set("X-Connecto-Version", "v5.6.0");
+          res.headers.set("X-Connecto-Build", "174");
           return res;
         }
 
@@ -644,8 +645,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.5.9");
-              downloadHeaders.set("X-Connecto-Build", "173");
+              downloadHeaders.set("X-Connecto-Version", "v5.6.0");
+              downloadHeaders.set("X-Connecto-Build", "174");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2031,14 +2032,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.5.9",
-        version_code: 173,
-        size_bytes: 38053398,
+        version_name: "5.6.0",
+        version_code: 174,
+        size_bytes: 38059272,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Real-Time DM Header Presence & Signature Read Receipts (v5.6.0): Subscribed Direct Chat screen header to centralized WebSocket/Presence StateFlow (isUserOnline evaluated consistently across DM list and chat header, eliminating presence inversion bug where online contacts appeared offline). Replaced generic tick checkmarks with Connecto signature delivery receipts: 8dp pulsing ring for SENDING, 6dp solid dot for SENT, glowing double dots for DELIVERED, and recipient's mini circular avatar underneath the latest read message for SEEN.",
           "Fixed Conversation Unpin Gesture Delay & Stale State (v5.5.9): Resolved root cause where swiping right to unpin a conversation failed to register immediately due to stale lambda closure capture in pointerInput without rememberUpdatedState. Added rememberUpdatedState for all swipe actions, keyed pointerInput on both chatId and isPinned, evaluated live state directly in onTogglePin, and added pre-reorder offset reset to eliminate placement glitches.",
           "Tier-1 Messages & Channels Refactor (v5.5.8): Full rich obsidian dark black theme (#0A0B0E) in the Messages tab, removed top Group button and 3-dots menu from header, implemented permanent dedicated Stitch-styled Search Bar with instant filtering and match badges, and removed 'Connecto Workspace' brand header from the Channels left navigation drawer.",
           "Flagship-Level Motion & UI Micro-Interactions (v5.5.7): Animated Bottom Tab Bar with spring-physics sliding top pill indicator (20x3dp), active icon bounce and ambient radial glow, and tab press feedback. Direct Messages Speed-Dial FAB fan-out with full-screen blur backdrop scrim, spring-rotating FAB icon (45°), and elevated borderless speed-dial chips. Sliding background pill on segmented controls (All | Direct | Groups and Call history filters). Polished Channel Chat (#general) with right-aligned outgoing bubbles without avatar, pinned bottom-right timestamps, message entry spring animations, and subtle input bar focus glow. FAQ accordion with 180° rotating chevrons and smooth expansion in Help & Support, guaranteed colored initial avatars on Calls screen, and staggered list reveal animations.",
@@ -7320,13 +7322,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.5.9",
-      version_name: "v5.5.9",
-      version_code: 173,
-      build: 173,
-      sha256: "eb87ed714ff6cdd80f96edb845e5bc9bf2ac4b01933e8b0b9ac4ff9369b3c445",
+      version: "5.6.0",
+      version_name: "v5.6.0",
+      version_code: 174,
+      build: 174,
+      sha256: "4b0b7a3d69130a3f82c37d422cf09818f3f0ad5b0267b0cc67b59a36630f6440",
       filename: "connecto-fun.apk",
-      size_bytes: 38053398,
+      size_bytes: 38059272,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7340,10 +7342,25 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v5.5.9",
+          version: "v5.6.0",
           date: "Nov 18, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v5.6.0: Real-Time DM Header Presence & Signature Read Receipts",
+          summary: "Subscribed Direct Chat screen header to centralized WebSocket/Presence StateFlow (isUserOnline evaluated consistently across DM list and chat header, eliminating presence inversion bug where online contacts appeared offline). Replaced generic tick checkmarks with Connecto signature delivery receipts: 8dp pulsing ring for SENDING, 6dp solid dot for SENT, glowing double dots for DELIVERED, and recipient's mini circular avatar underneath the latest read message for SEEN.",
+          highlights: [
+            "Unified Real-Time Presence: Subscribed DM chat header directly to live presence StateFlow; normalized presence evaluation across DM list and chat header using active socket heartbeat (60s).",
+            "Signature Delivery Status Receipts: Stripped single/double checkmarks; implemented morphing indicators: 8dp pulsing ring for SENDING, 6dp solid dot for SENT, and glowing double dots for DELIVERED.",
+            "Mini-Avatar Read System: Replaced blue tick clutter on every message by hiding delivery dots on older read messages and rendering recipient's 16dp mini circular avatar underneath the latest read message.",
+            "Android Native App v5.6.0 (Build 174 • 36.3 MB): SHA-256 4b0b7a3d69130a3f82c37d422cf09818f3f0ad5b0267b0cc67b59a36630f6440."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
+          version: "v5.5.9",
+          date: "Nov 18, 2026",
+          category: "feature",
+          tag: "Production",
           title: "Connecto v5.5.9: Fixed Conversation Unpin Gesture Delay",
           summary: "Resolved root cause where swiping right to unpin a conversation failed to register immediately due to stale lambda closure capture in pointerInput without rememberUpdatedState. Added rememberUpdatedState for all swipe actions, keyed pointerInput on both chatId and isPinned, evaluated live state directly in onTogglePin, and added pre-reorder offset reset to eliminate placement glitches.",
           highlights: [

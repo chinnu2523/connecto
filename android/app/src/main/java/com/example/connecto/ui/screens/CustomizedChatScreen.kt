@@ -674,6 +674,91 @@ private fun DirectChatOnlineBeacon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun ConnectoDeliverySendingRing(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "sending_pulse")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(700, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(700, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+    Box(
+        modifier = modifier
+            .size(8.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.alpha = alpha
+            }
+            .border(1.2.dp, Color(0xFF64748B), CircleShape)
+    )
+}
+
+@Composable
+fun ConnectoDeliveryDeliveredDots(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(5.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF38BDF8))
+        )
+        Box(
+            modifier = Modifier
+                .size(5.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF38BDF8))
+        )
+    }
+}
+
+fun evaluateIsUserOnline(
+    username: String?,
+    userId: String? = null,
+    presenceMap: Map<String, Boolean> = emptyMap(),
+    friends: List<FriendItem> = emptyList(),
+    fallbackFriend: FriendItem? = null
+): Boolean {
+    val cleanUser = username?.trim()?.lowercase()?.removePrefix("@") ?: ""
+    val cleanId = userId?.trim()?.lowercase() ?: ""
+
+    // 1. Check live WebSocket presence state flow
+    if (cleanUser.isNotBlank() && presenceMap[cleanUser] == true) return true
+    if (cleanId.isNotBlank() && presenceMap[cleanId] == true) return true
+
+    // 2. Check VoiceCallManager in-memory heartbeat / lastSeen within 60s
+    if (VoiceCallManager.isUserOnline(cleanUser) || VoiceCallManager.isUserOnline(cleanId)) return true
+
+    // 3. Check friends list item
+    val friendInList = friends.firstOrNull { f ->
+        (cleanId.isNotBlank() && f.id.equals(cleanId, ignoreCase = true)) ||
+        (cleanUser.isNotBlank() && f.handle.trim().lowercase().removePrefix("@") == cleanUser)
+    }
+    if (friendInList?.isOnline == true) return true
+
+    // 4. Fallback friend snapshot if present
+    if (fallbackFriend?.isOnline == true) return true
+
+    return false
+}
+
+@Composable
 fun CustomizedChatScreen(
     currentUsername: String,
     onOpenProfile: () -> Unit,
@@ -715,10 +800,11 @@ fun CustomizedChatScreen(
     val messageDrafts = remember { mutableStateMapOf<String, String>() }
     var replyingTo by remember { mutableStateOf<CustomMessageItem?>(null) }
 
-    // Active Call State
+    // Active Call State & Presence
     val callState by VoiceCallManager.callState.collectAsState()
     val activeCallTitle by VoiceCallManager.activeCallTitle.collectAsState()
     val activeCallPartner by VoiceCallManager.activeCallPartner.collectAsState()
+    val livePresenceMap by VoiceCallManager.presenceState.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -1609,6 +1695,14 @@ fun CustomizedChatScreen(
                         bannerUrl = f.friendBannerUrl ?: cachedFriend?.bannerUrl,
                         lastMessageTimestamp = lastTs
                     )
+                }
+
+                // Synchronize live online presence with VoiceCallManager
+                for (item in mapped) {
+                    if (item.isOnline) {
+                        VoiceCallManager.setUserPresence(item.handle, true)
+                        VoiceCallManager.setUserPresence(item.id, true)
+                    }
                 }
 
                 // Cache to persistent local SQLite database for zero-latency launches
@@ -2557,7 +2651,14 @@ fun CustomizedChatScreen(
                             val freshAvatar = prof.avatarUrl
                             val freshName = prof.displayName.ifBlank { prof.username }
                             val freshBio = prof.bio ?: ""
-                            val freshOnline = prof.isOnline
+                            val wasAlreadyOnline = evaluateIsUserOnline(
+                                username = cleanLower,
+                                userId = currentOpeningFriendId,
+                                presenceMap = livePresenceMap,
+                                friends = friendsList,
+                                fallbackFriend = selectedFriend
+                            )
+                            val freshOnline = if (wasAlreadyOnline) true else prof.isOnline
 
                             // STRICT GUARD: Only mutate selectedFriend if the user is STILL viewing this exact same friend!
                             val activeClean = selectedFriend?.handle?.removePrefix("@")?.trim()?.lowercase()
@@ -4580,7 +4681,13 @@ fun CustomizedChatScreen(
                                     }
                                 }
                         ) {
-                            val isSelectedOnline = selectedFriend?.isOnline == true
+                            val isSelectedOnline = if (isGroupChat) false else evaluateIsUserOnline(
+                                username = selectedFriend?.handle,
+                                userId = selectedFriend?.id,
+                                presenceMap = livePresenceMap,
+                                friends = friendsList,
+                                fallbackFriend = selectedFriend
+                            )
 
                             if (isGroupChat) {
                                 if (!selectedFriend?.avatarUrl.isNullOrBlank()) {
@@ -4645,7 +4752,7 @@ fun CustomizedChatScreen(
                                             modifier = Modifier
                                                 .size(7.dp)
                                                 .clip(CircleShape)
-                                                .background(if (isSelectedOnline) OnlineGreen else Color.Gray)
+                                                .background(if (isSelectedOnline) Color(0xFF10B981) else Color(0xFF6B7280))
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                     }
@@ -4653,11 +4760,11 @@ fun CustomizedChatScreen(
                                         val count = selectedFriend?.memberCount ?: selectedFriend?.members?.size ?: 0
                                         "$count members • Group Chat"
                                     } else {
-                                        if (isFriendTyping) "typing..." else if (isSelectedOnline) "Online" else "Offline"
+                                        if (isFriendTyping) "typing..." else if (isSelectedOnline) "Online • Direct Chat" else "Offline • Direct Chat"
                                     }
                                     Text(
                                         text = subText,
-                                        color = if (!isGroupChat && isFriendTyping) MaterialTheme.colorScheme.primary else if (!isGroupChat && isSelectedOnline) OnlineGreen else headerSubColor,
+                                        color = if (!isGroupChat && isFriendTyping) MaterialTheme.colorScheme.primary else if (!isGroupChat && isSelectedOnline) Color(0xFF10B981) else headerSubColor,
                                         fontSize = 12.sp,
                                         fontWeight = if (!isGroupChat && isFriendTyping) FontWeight.Bold else FontWeight.Normal,
                                         maxLines = 1,
@@ -5498,7 +5605,14 @@ fun CustomizedChatScreen(
                                                     customSizeDp = 48.dp,
                                                     customFontSizeSp = 18
                                                 )
-                                                if (friend.isOnline) {
+                                                val isFriendOnline = evaluateIsUserOnline(
+                                                    username = friend.handle,
+                                                    userId = friend.id,
+                                                    presenceMap = livePresenceMap,
+                                                    friends = friendsList,
+                                                    fallbackFriend = friend
+                                                )
+                                                if (isFriendOnline) {
                                                     Box(
                                                         modifier = Modifier
                                                             .align(Alignment.BottomEnd)
@@ -6418,6 +6532,9 @@ fun CustomizedChatScreen(
                                 val deduplicatedMessages = remember(friendMessages) {
                                     friendMessages.distinctBy { it.id.removePrefix("notif_ws_").removePrefix("notif_") }
                                 }
+                                val latestReadMessageId = remember(deduplicatedMessages) {
+                                    deduplicatedMessages.filter { it.isMe && it.isRead }.lastOrNull()?.id
+                                }
                                 LazyColumn(
                                     state = listState,
                                     modifier = Modifier
@@ -6539,6 +6656,9 @@ fun CustomizedChatScreen(
                                                     isSelected = selectedMessageForAction?.id == msg.id,
                                                     showAvatar = showAvatar,
                                                     showSenderName = showSenderName,
+                                                    isLatestRead = (msg.id == latestReadMessageId) && (selectedFriend?.isGroup != true),
+                                                    recipientAvatarUrl = selectedFriend?.avatarUrl,
+                                                    recipientName = selectedFriend?.name ?: "Friend",
                                                     onMessageClick = {
                                                         if (selectedMessageForAction != null) {
                                                             selectedMessageForAction = if (selectedMessageForAction?.id == msg.id) null else msg
@@ -7404,6 +7524,9 @@ fun CustomChatBubble(
     isSelected: Boolean = false,
     showAvatar: Boolean = true,
     showSenderName: Boolean = true,
+    isLatestRead: Boolean = false,
+    recipientAvatarUrl: String? = null,
+    recipientName: String = "Friend",
     onMessageClick: (() -> Unit)? = null,
     onMessageLongPress: (CustomMessageItem) -> Unit = {},
     onReact: ((CustomMessageItem, String) -> Unit)? = null,
@@ -7663,15 +7786,6 @@ fun CustomChatBubble(
                         modifier = Modifier.align(Alignment.End),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (message.isMe && !message.isRead) {
-                            Text(
-                                text = "1",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFFFFB300), // Distinct amber unread indicator "1"
-                                modifier = Modifier.padding(end = 4.dp)
-                            )
-                        }
                         Text(
                             text = formatIsoTime(message.time),
                             fontSize = 10.sp,
@@ -7680,23 +7794,25 @@ fun CustomChatBubble(
                             } else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (message.isMe) {
-                            Spacer(modifier = Modifier.width(4.dp))
-                            val isDelivered = message.isDelivered
-                            val isRead = message.isRead
-                            val tickIcon = if (isRead || isDelivered) Icons.Default.DoneAll else Icons.Default.Check
-                            val tickTint = if (isRead) {
-                                Color(0xFF0284C7) // Read receipt (distinct azure double tick)
-                            } else if (isDelivered) {
-                                if (isWhiteBubble) Color(0xCC000000) else effectiveOwnText.copy(alpha = 0.85f) // Delivered (double tick)
+                            Spacer(modifier = Modifier.width(5.dp))
+                            val isPending = message.id.startsWith("opt-") || message.id.startsWith("temp_")
+                            if (isPending) {
+                                // SENDING: subtle pulsing hollow ring (8px diameter, #64748B)
+                                ConnectoDeliverySendingRing()
+                            } else if (message.isRead) {
+                                // READ / SEEN: hide delivery dots on read messages (recipient mini avatar shown below)
+                            } else if (message.isDelivered) {
+                                // DELIVERED: glowing double-dot indicator (#38BDF8)
+                                ConnectoDeliveryDeliveredDots()
                             } else {
-                                if (isWhiteBubble) Color(0x99000000) else effectiveOwnText.copy(alpha = 0.70f) // Sent to server, recipient offline/data off (single tick)
+                                // SENT: single crisp solid dot (6px diameter, #94A3B8)
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF94A3B8))
+                                )
                             }
-                            Icon(
-                                imageVector = tickIcon,
-                                contentDescription = if (isRead) "Read" else if (isDelivered) "Delivered" else "Sent",
-                                tint = tickTint,
-                                modifier = Modifier.size(13.dp)
-                            )
                         }
                     }
                 }
@@ -7751,6 +7867,49 @@ fun CustomChatBubble(
                             .align(Alignment.End)
                             .padding(2.dp)
                     )
+                }
+            }
+
+            // Signature Seen Mini-Avatar (placed under the most recent read message)
+            if (message.isMe && isLatestRead) {
+                AnimatedVisibility(
+                    visible = isLatestRead,
+                    enter = scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
+                    exit = scaleOut() + fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 2.dp, end = 2.dp)
+                            .size(16.dp)
+                            .clip(CircleShape)
+                            .border(1.5.dp, Color(0xFF38BDF8), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (!recipientAvatarUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = recipientAvatarUrl,
+                                contentDescription = "Seen by $recipientName",
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0xFF0284C7)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = recipientName.take(1).uppercase(),
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

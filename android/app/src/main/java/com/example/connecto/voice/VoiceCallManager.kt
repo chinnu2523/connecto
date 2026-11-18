@@ -284,6 +284,29 @@ object VoiceCallManager {
     )
     val userPresenceUpdates: SharedFlow<Pair<String, Boolean>> = _userPresenceUpdates.asSharedFlow()
 
+    // Centralized real-time presence map: username/user_id -> Pair(isOnline, lastSeenTimestampMillis)
+    val userPresenceMap = java.util.concurrent.ConcurrentHashMap<String, Pair<Boolean, Long>>()
+    private val _presenceState = kotlinx.coroutines.flow.MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val presenceState: kotlinx.coroutines.flow.StateFlow<Map<String, Boolean>> = _presenceState.asStateFlow()
+
+    fun setUserPresence(usernameOrId: String, isOnline: Boolean) {
+        val clean = usernameOrId.trim().lowercase().removePrefix("@")
+        if (clean.isBlank()) return
+        userPresenceMap[clean] = Pair(isOnline, System.currentTimeMillis())
+        _userPresenceUpdates.tryEmit(clean to isOnline)
+        _presenceState.value = _presenceState.value.toMutableMap().apply { put(clean, isOnline) }
+    }
+
+    fun isUserOnline(usernameOrId: String?): Boolean {
+        if (usernameOrId.isNullOrBlank()) return false
+        val clean = usernameOrId.trim().lowercase().removePrefix("@")
+        val entry = userPresenceMap[clean] ?: return false
+        val (online, timestamp) = entry
+        if (!online) return false
+        val isFresh = (System.currentTimeMillis() - timestamp) <= 60_000L
+        return online || isFresh
+    }
+
     // @mention notification events
     data class MentionEvent(val fromUser: String, val channelId: String, val channelName: String, val messageId: String, val content: String)
     private val _mentionEvents = MutableSharedFlow<MentionEvent>(
@@ -1735,13 +1758,13 @@ object VoiceCallManager {
                     }
                 }
 
-                "presence_update" -> {
+                "presence_update", "presence:update", "user:presence", "user_presence", "user_online" -> {
                     val pUser = json.optString("username").ifEmpty { json.optString("user_id") }
                     val isOnline = json.optBoolean("is_online", json.optString("status").equals("online", ignoreCase = true))
                     Log.d(TAG, "Presence update received: user=$pUser, is_online=$isOnline")
                     if (pUser.isNotBlank()) {
                         val clean = pUser.lowercase().removePrefix("@")
-                        _userPresenceUpdates.tryEmit(clean to isOnline)
+                        setUserPresence(clean, isOnline)
                         appContext?.let { ctx ->
                             try {
                                 ConnectoDatabaseHelper.getInstance(ctx).updateFriendOnlineStatus(clean, isOnline)
@@ -1759,6 +1782,7 @@ object VoiceCallManager {
                     val displayName = json.optString("display_name").ifEmpty { json.optString("displayName").ifEmpty { username } }
                     val isStealth = json.optBoolean("is_stealth", false)
                     if (username.isNotBlank() && !isStealth) {
+                        setUserPresence(username, true)
                         _typingEvents.tryEmit(TypingEvent(username, displayName, chId, isTyping = true))
                         // Update legacy activeTypingUser for backward compat
                         ConnectoApiClient.activeTypingUser = displayName

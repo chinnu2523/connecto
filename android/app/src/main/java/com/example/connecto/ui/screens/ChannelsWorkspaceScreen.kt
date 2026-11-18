@@ -2788,16 +2788,11 @@ private fun ChannelMessageCard(
                                     color = if (isWhiteBubble) Color(0x99000000) else Color.White.copy(alpha = 0.75f)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    imageVector = if (isPending) Icons.Rounded.Schedule else Icons.Rounded.DoneAll,
-                                    contentDescription = null,
-                                    tint = if (isWhiteBubble) {
-                                        if (isPending) Color(0x66000000) else Color(0xCC000000)
-                                    } else {
-                                        if (isPending) Color.White.copy(alpha = 0.60f) else Color(0xFF67E8F9)
-                                    },
-                                    modifier = Modifier.size(13.dp)
-                                )
+                                if (isPending) {
+                                    ConnectoDeliverySendingRing()
+                                } else {
+                                    ConnectoDeliveryDeliveredDots()
+                                }
                             }
                         }
                     }
