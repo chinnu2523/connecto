@@ -9,11 +9,16 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,96 +32,200 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.connecto.ui.designsystem.ConnectoTheme
 import kotlinx.coroutines.delay
 
 // ---------------------------------------------------------------------------
-// 1. SHIMMER LOADING BOX
-//    GPU-safe: animates only background position (no layout props)
+// 1. GPU-ACCELERATED SHIMMER ENGINE & SKELETON PRIMITIVES
+//    Diagonal sweep (left-to-right, 1200ms linear loop, locked 60fps)
+//    Dark mode: baseColor = #131620, highlightColor = #1E2433
+//    Light mode: baseColor = #E2E8F0, highlightColor = #F1F5F9
 // ---------------------------------------------------------------------------
 
 @Composable
-fun ShimmerBox(
-    modifier: Modifier = Modifier,
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp)
-) {
+fun rememberConnectoShimmerBrush(
+    isDark: Boolean = ConnectoTheme.colors.isDark
+): Brush {
+    val baseColor = if (isDark) Color(0xFF131620) else Color(0xFFE2E8F0)
+    val highlightColor = if (isDark) Color(0xFF1E2433) else Color(0xFFF1F5F9)
     val shimmerColors = listOf(
-        Color(0xFF1C1E2A),
-        Color(0xFF2A2D3E),
-        Color(0xFF1C1E2A)
+        baseColor,
+        highlightColor,
+        baseColor
     )
 
-    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
-    val shimmerOffsetX by infiniteTransition.animateFloat(
+    val infiniteTransition = rememberInfiniteTransition(label = "connectoShimmerEngine")
+    val shimmerOffset by infiniteTransition.animateFloat(
         initialValue = -800f,
-        targetValue = 800f,
+        targetValue = 1400f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 1200, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "shimmerX"
+        label = "shimmerOffset"
     )
 
+    return Brush.linearGradient(
+        colors = shimmerColors,
+        start = Offset(shimmerOffset, 0f),
+        end = Offset(shimmerOffset + 480f, 320f)
+    )
+}
+
+/**
+ * Core reusable primitive: SkeletonBox.
+ * GPU-safe: animates only background gradient offset (zero layout invalidation).
+ */
+@Composable
+fun SkeletonBox(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(8.dp),
+    isDark: Boolean = ConnectoTheme.colors.isDark
+) {
+    val brush = rememberConnectoShimmerBrush(isDark = isDark)
     Box(
         modifier = modifier
             .clip(shape)
-            .background(
-                brush = Brush.linearGradient(
-                    colors = shimmerColors,
-                    start = Offset(shimmerOffsetX, 0f),
-                    end = Offset(shimmerOffsetX + 600f, 400f)
-                )
-            )
+            .background(brush)
+    )
+}
+
+/**
+ * Reusable ShimmerPlaceholder primitive.
+ */
+@Composable
+fun ShimmerPlaceholder(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(8.dp),
+    isDark: Boolean = ConnectoTheme.colors.isDark
+) {
+    SkeletonBox(modifier = modifier, shape = shape, isDark = isDark)
+}
+
+/**
+ * Reusable SkeletonCircle primitive.
+ */
+@Composable
+fun SkeletonCircle(
+    size: Dp,
+    modifier: Modifier = Modifier,
+    isDark: Boolean = ConnectoTheme.colors.isDark
+) {
+    SkeletonBox(
+        modifier = modifier.size(size),
+        shape = CircleShape,
+        isDark = isDark
+    )
+}
+
+/**
+ * Modifier extension to apply shimmer placeholder background to any composable.
+ */
+fun Modifier.shimmerPlaceholder(
+    shape: Shape = RoundedCornerShape(8.dp),
+    isDark: Boolean = true
+): Modifier = composed {
+    val brush = rememberConnectoShimmerBrush(isDark = isDark)
+    this.clip(shape).background(brush)
+}
+
+/**
+ * Backwards-compatible ShimmerBox mapping to SkeletonBox with the unified 60fps GPU brush.
+ */
+@Composable
+fun ShimmerBox(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(12.dp)
+) {
+    SkeletonBox(
+        modifier = modifier,
+        shape = shape
     )
 }
 
 // ---------------------------------------------------------------------------
-// 2. SHIMMER CONVERSATION CARD SKELETON
-//    Placeholder shown while conversations are loading
+// 2. SHIMMER CONVERSATION CARD SKELETON (Exact Geometry Match)
+//    48px circle, 110x14px name, 190x12px preview, 38x10px top-right bar
 // ---------------------------------------------------------------------------
 
 @Composable
-fun ShimmerConversationItem(modifier: Modifier = Modifier) {
+fun ShimmerConversationItem(
+    modifier: Modifier = Modifier,
+    isDark: Boolean = ConnectoTheme.colors.isDark
+) {
+    val isLight = !isDark
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(Color(0xFF12141A))
-            .padding(16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isLight) Color.White else Color(0xFF0A0B0E))
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar circle
-            ShimmerBox(
+            // 48px circle on the left
+            SkeletonBox(
                 modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(24.dp)
+                shape = CircleShape,
+                isDark = isDark
             )
-            // Text lines
-            androidx.compose.foundation.layout.Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(
+                modifier = Modifier.weight(1f)
             ) {
-                ShimmerBox(
-                    modifier = Modifier
-                        .fillMaxWidth(0.55f)
-                        .height(12.dp),
-                    shape = RoundedCornerShape(6.dp)
-                )
-                ShimmerBox(
-                    modifier = Modifier
-                        .fillMaxWidth(0.85f)
-                        .height(10.dp),
-                    shape = RoundedCornerShape(5.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // 110px x 14px rounded bar for the name
+                    SkeletonBox(
+                        modifier = Modifier.size(width = 110.dp, height = 14.dp),
+                        shape = RoundedCornerShape(4.dp),
+                        isDark = isDark
+                    )
+                    // 38px x 10px bar on the top-right
+                    SkeletonBox(
+                        modifier = Modifier.size(width = 38.dp, height = 10.dp),
+                        shape = RoundedCornerShape(4.dp),
+                        isDark = isDark
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                // 190px x 12px rounded bar for the message preview
+                SkeletonBox(
+                    modifier = Modifier.size(width = 190.dp, height = 12.dp),
+                    shape = RoundedCornerShape(4.dp),
+                    isDark = isDark
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun ShimmerConversationsList(
+    modifier: Modifier = Modifier,
+    count: Int = 6,
+    isDark: Boolean = ConnectoTheme.colors.isDark
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        repeat(count) {
+            ShimmerConversationItem(isDark = isDark)
         }
     }
 }
@@ -134,7 +243,7 @@ fun ShimmerVoiceRoomCard(modifier: Modifier = Modifier) {
             .background(Color(0xFF12141A))
             .padding(20.dp)
     ) {
-        androidx.compose.foundation.layout.Column(
+        Column(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             ShimmerBox(
@@ -162,52 +271,50 @@ fun ShimmerVoiceRoomCard(modifier: Modifier = Modifier) {
 }
 
 // ---------------------------------------------------------------------------
-// 3b. SHIMMER CHAT MESSAGE BUBBLE & FEED SKELETON
+// 3b. SHIMMER CHAT MESSAGE BUBBLE & FEED SKELETON (Exact Geometry Match)
+//     6 alternating bubbles, border-radius: 18px, widths: 140-240px, heights: 42-68px
 // ---------------------------------------------------------------------------
 
 @Composable
 fun ShimmerChatMessageItem(
-    isOwn: Boolean = false,
-    modifier: Modifier = Modifier
+    isOutgoing: Boolean = false,
+    widthDp: Dp = if (isOutgoing) 210.dp else 190.dp,
+    heightDp: Dp = if (isOutgoing) 54.dp else 48.dp,
+    modifier: Modifier = Modifier,
+    isDark: Boolean = ConnectoTheme.colors.isDark
 ) {
+    val bubbleShape = RoundedCornerShape(18.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
-        contentAlignment = if (isOwn) Alignment.CenterEnd else Alignment.CenterStart
+        contentAlignment = if (isOutgoing) Alignment.CenterEnd else Alignment.CenterStart
     ) {
-        if (isOwn) {
-            ShimmerBox(
+        if (isOutgoing) {
+            SkeletonBox(
                 modifier = Modifier
-                    .fillMaxWidth(0.65f)
-                    .height(52.dp),
-                shape = RoundedCornerShape(topStart = 18.dp, topEnd = 4.dp, bottomStart = 18.dp, bottomEnd = 18.dp)
+                    .width(widthDp)
+                    .height(heightDp),
+                shape = bubbleShape,
+                isDark = isDark
             )
         } else {
             Row(
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                ShimmerBox(
-                    modifier = Modifier.size(36.dp),
-                    shape = RoundedCornerShape(18.dp)
+                SkeletonBox(
+                    modifier = Modifier.size(34.dp),
+                    shape = CircleShape,
+                    isDark = isDark
                 )
-                androidx.compose.foundation.layout.Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    ShimmerBox(
-                        modifier = Modifier
-                            .width(80.dp)
-                            .height(10.dp),
-                        shape = RoundedCornerShape(5.dp)
-                    )
-                    ShimmerBox(
-                        modifier = Modifier
-                            .fillMaxWidth(0.72f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(topStart = 4.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 18.dp)
-                    )
-                }
+                SkeletonBox(
+                    modifier = Modifier
+                        .width(widthDp)
+                        .height(heightDp),
+                    shape = bubbleShape,
+                    isDark = isDark
+                )
             }
         }
     }
@@ -215,25 +322,41 @@ fun ShimmerChatMessageItem(
 
 @Composable
 fun ShimmerMessageFeed(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isDark: Boolean = ConnectoTheme.colors.isDark
 ) {
-    androidx.compose.foundation.layout.Column(
+    // 6 alternating incoming (left-aligned) and outgoing (right-aligned) rounded bubble placeholders
+    // border-radius: 18px, varying widths between 140px and 240px, heights between 42px and 68px
+    val bubbleSpecs = listOf(
+        Pair(false, Pair(190.dp, 48.dp)), // 1. incoming
+        Pair(true, Pair(230.dp, 58.dp)),  // 2. outgoing
+        Pair(false, Pair(150.dp, 42.dp)), // 3. incoming
+        Pair(true, Pair(200.dp, 64.dp)),  // 4. outgoing
+        Pair(false, Pair(240.dp, 68.dp)), // 5. incoming
+        Pair(true, Pair(170.dp, 44.dp))   // 6. outgoing
+    )
+
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        ShimmerChatMessageItem(isOwn = false)
-        ShimmerChatMessageItem(isOwn = true)
-        ShimmerChatMessageItem(isOwn = false)
-        ShimmerChatMessageItem(isOwn = true)
-        ShimmerChatMessageItem(isOwn = false)
+        bubbleSpecs.forEach { (isOut, size) ->
+            ShimmerChatMessageItem(
+                isOutgoing = isOut,
+                widthDp = size.first,
+                heightDp = size.second,
+                isDark = isDark
+            )
+        }
     }
 }
 
 @Composable
 fun ShimmerChannelItem(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isDark: Boolean = ConnectoTheme.colors.isDark
 ) {
     Row(
         modifier = modifier
@@ -242,41 +365,51 @@ fun ShimmerChannelItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ShimmerBox(
+        SkeletonBox(
             modifier = Modifier.size(20.dp),
-            shape = RoundedCornerShape(6.dp)
+            shape = RoundedCornerShape(6.dp),
+            isDark = isDark
         )
-        androidx.compose.foundation.layout.Column(
+        Column(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.weight(1f)
         ) {
-            ShimmerBox(
+            SkeletonBox(
                 modifier = Modifier
                     .width(100.dp)
                     .height(12.dp),
-                shape = RoundedCornerShape(6.dp)
+                shape = RoundedCornerShape(6.dp),
+                isDark = isDark
             )
-            ShimmerBox(
+            SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth(0.6f)
                     .height(10.dp),
-                shape = RoundedCornerShape(5.dp)
+                shape = RoundedCornerShape(5.dp),
+                isDark = isDark
             )
         }
     }
 }
 
+// ---------------------------------------------------------------------------
+// 3c. SHIMMER CALL ITEM & LIST SKELETON
+// ---------------------------------------------------------------------------
+
 @Composable
 fun ShimmerCallItem(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isDark: Boolean = ConnectoTheme.colors.isDark
 ) {
     val callCardShape = RoundedCornerShape(16.dp)
+    val cardBg = if (isDark) Color(0xFF131620) else Color.White
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(callCardShape)
-            .background(Color(0xFF161922))
-            .padding(12.dp)
+            .background(cardBg)
+            .border(1.dp, if (isDark) Color(0x0DFFFFFF) else Color(0x0F000000), callCardShape)
+            .padding(14.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -285,36 +418,42 @@ fun ShimmerCallItem(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                // Avatar circle
-                ShimmerBox(
-                    modifier = Modifier.size(42.dp),
-                    shape = RoundedCornerShape(21.dp)
+                // Avatar circle (44dp)
+                SkeletonBox(
+                    modifier = Modifier.size(44.dp),
+                    shape = CircleShape,
+                    isDark = isDark
                 )
-                androidx.compose.foundation.layout.Column(
+                Column(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    ShimmerBox(
+                    // Contact name bar
+                    SkeletonBox(
                         modifier = Modifier
                             .width(130.dp)
                             .height(14.dp),
-                        shape = RoundedCornerShape(4.dp)
+                        shape = RoundedCornerShape(4.dp),
+                        isDark = isDark
                     )
-                    ShimmerBox(
+                    // Call type/timestamp bar
+                    SkeletonBox(
                         modifier = Modifier
-                            .width(90.dp)
-                            .height(10.dp),
-                        shape = RoundedCornerShape(4.dp)
+                            .width(85.dp)
+                            .height(11.dp),
+                        shape = RoundedCornerShape(4.dp),
+                        isDark = isDark
                     )
                 }
             }
-            // Action button circle
-            ShimmerBox(
+            // Action button circle (36dp)
+            SkeletonBox(
                 modifier = Modifier.size(36.dp),
-                shape = RoundedCornerShape(18.dp)
+                shape = CircleShape,
+                isDark = isDark
             )
         }
     }
@@ -323,14 +462,122 @@ fun ShimmerCallItem(
 @Composable
 fun ShimmerCallLogsList(
     modifier: Modifier = Modifier,
-    count: Int = 5
+    count: Int = 6,
+    isDark: Boolean = ConnectoTheme.colors.isDark
 ) {
-    androidx.compose.foundation.layout.Column(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         repeat(count) {
-            ShimmerCallItem()
+            ShimmerCallItem(isDark = isDark)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 3d. SHIMMER USER & FRIEND PROFILE SKELETON (Exact Geometry Match)
+//     Cover banner (125dp), avatar cutout (80dp), action buttons & nav items
+// ---------------------------------------------------------------------------
+
+@Composable
+fun ShimmerProfileSkeleton(
+    modifier: Modifier = Modifier,
+    isDark: Boolean = ConnectoTheme.colors.isDark
+) {
+    val cardShape = RoundedCornerShape(20.dp)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // 1. Hero Cover Banner with Avatar cutout
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(170.dp)
+        ) {
+            // Cover banner placeholder (125dp)
+            SkeletonBox(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(125.dp),
+                shape = cardShape,
+                isDark = isDark
+            )
+            // Circular Avatar Cutout (80dp) overlapping banner cleanly by 50%
+            Box(
+                modifier = Modifier
+                    .offset(x = 16.dp, y = 85.dp)
+                    .size(80.dp)
+            ) {
+                SkeletonBox(
+                    modifier = Modifier.fillMaxSize(),
+                    shape = CircleShape,
+                    isDark = isDark
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // 2. Name & Handle bar placeholders
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            // 160px x 20px rounded bar for display name
+            SkeletonBox(
+                modifier = Modifier.size(width = 160.dp, height = 20.dp),
+                shape = RoundedCornerShape(6.dp),
+                isDark = isDark
+            )
+            // 90px x 14px rounded bar for @username
+            SkeletonBox(
+                modifier = Modifier.size(width = 90.dp, height = 14.dp),
+                shape = RoundedCornerShape(4.dp),
+                isDark = isDark
+            )
+            // 220px x 12px rounded bar for bio preview
+            SkeletonBox(
+                modifier = Modifier.size(width = 220.dp, height = 12.dp),
+                shape = RoundedCornerShape(4.dp),
+                isDark = isDark
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 3. Quick Action Buttons Row (4 action buttons matching Call/Video/Chat/Lock)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            repeat(4) {
+                SkeletonBox(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    isDark = isDark
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // 4. Settings / Navigation List Items (matching FriendProfileNavButtons)
+        repeat(3) {
+            SkeletonBox(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(68.dp),
+                shape = cardShape,
+                isDark = isDark
+            )
         }
     }
 }

@@ -1114,9 +1114,9 @@ fun HomeChatScreen(
                                 if (displayedFavourites.isEmpty() && isLoadingDashboard) {
                                     Column(
                                         modifier = Modifier.fillMaxWidth().padding(12.dp),
-                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        repeat(3) { ShimmerConversationItem() }
+                                        repeat(6) { ShimmerConversationItem(isDark = colors.isDark) }
                                     }
                                 } else if (displayedFavourites.isEmpty() && searchQuery.isNotEmpty()) {
                                     Text(

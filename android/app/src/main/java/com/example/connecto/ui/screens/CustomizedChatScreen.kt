@@ -791,6 +791,7 @@ fun CustomizedChatScreen(
 ) {
     var selectedFriend by remember { mutableStateOf<FriendItem?>(null) }
     var selectedFriendProfileData by remember { mutableStateOf<ProfileDataDto?>(null) }
+    var isLoadingFriendProfile by remember { mutableStateOf(false) }
     val friendProfilesCache = remember { mutableStateMapOf<String, ProfileDataDto>() }
     var friendProfileSelectedTab by remember { mutableStateOf("settings") } // "settings", "customization", "actions"
     var isFriendProfileOpen by remember { mutableStateOf(false) }
@@ -3008,9 +3009,13 @@ fun CustomizedChatScreen(
             val cached = friendProfilesCache[cleanLower]
             if (cached != null) {
                 selectedFriendProfileData = cached
-            } else if (selectedFriendProfileData != null && !selectedFriendProfileData?.username.equals(cleanLower, ignoreCase = true)) {
-                // Instantly purge stale profile from previous friend so friend1 data is NEVER shown for friend2
-                selectedFriendProfileData = null
+                isLoadingFriendProfile = false
+            } else {
+                if (selectedFriendProfileData != null && !selectedFriendProfileData?.username.equals(cleanLower, ignoreCase = true)) {
+                    // Instantly purge stale profile from previous friend so friend1 data is NEVER shown for friend2
+                    selectedFriendProfileData = null
+                }
+                isLoadingFriendProfile = true
             }
             try {
                 val res = ConnectoApiClient.getProfile(clean)
@@ -3032,9 +3037,12 @@ fun CustomizedChatScreen(
                 }
             } catch (e: Exception) {
                 // Non-fatal
+            } finally {
+                isLoadingFriendProfile = false
             }
         } else if (currentFriend == null) {
             selectedFriendProfileData = null
+            isLoadingFriendProfile = false
         }
     }
 
@@ -5401,11 +5409,11 @@ fun CustomizedChatScreen(
                             } else {
                                 item(key = "friends_initial_loading") {
                                     Column(
-                                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                                     ) {
-                                        repeat(4) {
-                                            ShimmerConversationItem()
+                                        repeat(6) {
+                                            ShimmerConversationItem(isDark = !isLight)
                                         }
                                     }
                                 }
@@ -6062,6 +6070,7 @@ fun CustomizedChatScreen(
                             FriendProfileScreen(
                                 friend = friendObj,
                                 profData = profData,
+                                isLoading = isLoadingFriendProfile && profData == null,
                                 isChatLocked = isChatLocked,
                                 isChatMuted = isChatMuted,
                                 chatWallpaperId = chatWallpaperId,
@@ -6496,13 +6505,20 @@ fun CustomizedChatScreen(
                                     .weight(1f)
                                     .fillMaxWidth()
                             ) {
-                            if (isLoadingMessages && friendMessages.isEmpty()) {
-                                ShimmerMessageFeed(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 4.dp, vertical = 8.dp)
-                                )
-                            } else if (friendMessages.isEmpty()) {
+                                val showMessagesSkeleton = isLoadingMessages && friendMessages.isEmpty()
+                                androidx.compose.animation.Crossfade(
+                                    targetState = showMessagesSkeleton,
+                                    animationSpec = tween(durationMillis = 160),
+                                    label = "directChatMessagesCrossfade"
+                                ) { isSkeleton ->
+                                    if (isSkeleton) {
+                                        ShimmerMessageFeed(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(horizontal = 4.dp, vertical = 8.dp),
+                                            isDark = !isLight
+                                        )
+                                    } else if (friendMessages.isEmpty()) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -6872,6 +6888,7 @@ fun CustomizedChatScreen(
                                     }
                                 }
                                 } // end DisableSelection
+                                }
                             }
 
                             // Long-Press Backdrop Dimming: Translucent dark backdrop overlay behind selected message & floating menus

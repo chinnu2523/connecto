@@ -223,14 +223,17 @@ fun ConnectoLoadingIndicator(
 
 /**
  * Connecto Shimmer Modifier for Skeleton Loading.
+ * Locked 60fps GPU-accelerated diagonal sweep (left-to-right, 1200ms linear loop).
+ * Dark mode: baseColor = #131620, highlightColor = #1E2433
+ * Light mode: baseColor = #E2E8F0, highlightColor = #F1F5F9
  */
 @Composable
 fun connectoShimmerBrush(): Brush {
     val colors = LocalConnectoColors.current
     val transition = rememberInfiniteTransition(label = "shimmerTransition")
     val translateAnim by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
+        initialValue = -600f,
+        targetValue = 1400f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 1200, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
@@ -238,13 +241,13 @@ fun connectoShimmerBrush(): Brush {
         label = "shimmerTranslate"
     )
 
-    val baseColor = if (colors.isDark) Color(0xFF1F2937) else Color(0xFFE2E8F0)
-    val highlightColor = if (colors.isDark) Color(0xFF374151) else Color(0xFFF1F5F9)
+    val baseColor = if (colors.isDark) Color(0xFF131620) else Color(0xFFE2E8F0)
+    val highlightColor = if (colors.isDark) Color(0xFF1E2433) else Color(0xFFF1F5F9)
 
     return Brush.linearGradient(
         colors = listOf(baseColor, highlightColor, baseColor),
-        start = Offset.Zero,
-        end = Offset(x = translateAnim, y = translateAnim)
+        start = Offset(x = translateAnim, y = 0f),
+        end = Offset(x = translateAnim + 480f, y = 320f)
     )
 }
 

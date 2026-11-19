@@ -1698,13 +1698,20 @@ fun ChannelsWorkspaceScreen(
                         .weight(1f)
                         .fillMaxWidth()
                 ) {
-                    if (isLoadingMessages && messages.isEmpty()) {
-                        ShimmerMessageFeed(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 4.dp, vertical = 8.dp)
-                        )
-                    } else if (messages.isEmpty()) {
+                    val showChannelSkeleton = isLoadingMessages && messages.isEmpty()
+                    androidx.compose.animation.Crossfade(
+                        targetState = showChannelSkeleton,
+                        animationSpec = tween(durationMillis = 160),
+                        label = "channelMessagesCrossfade"
+                    ) { isSkeleton ->
+                        if (isSkeleton) {
+                            ShimmerMessageFeed(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                                isDark = colors.isDark
+                            )
+                        } else if (messages.isEmpty()) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -2123,6 +2130,7 @@ fun ChannelsWorkspaceScreen(
                             }
                         }
                     }
+                }
 
                     // Floating "Scroll to Bottom" FAB
                     val canScrollDown by remember {

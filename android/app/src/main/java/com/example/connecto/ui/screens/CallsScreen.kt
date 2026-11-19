@@ -898,88 +898,98 @@ fun CallsScreen(
 
                 if (filteredLogs.isEmpty()) {
                     item(key = "calls_empty_state") {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 56.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isInitialLoading) {
+                        val showCallsSkeleton = isInitialLoading && liveCallLogs.isEmpty()
+                        androidx.compose.animation.Crossfade(
+                            targetState = showCallsSkeleton,
+                            animationSpec = tween(durationMillis = 160),
+                            label = "callsEmptyStateCrossfade"
+                        ) { isSkeleton ->
+                            if (isSkeleton) {
                                 com.example.connecto.ui.theme.ShimmerCallLogsList(
-                                    modifier = Modifier.padding(horizontal = 4.dp),
-                                    count = 5
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 4.dp, vertical = 8.dp),
+                                    count = 6,
+                                    isDark = colors.isDark
                                 )
                             } else {
-                                val emptyPulseTransition = rememberInfiniteTransition(label = "emptyPhonePulse")
-                                val emptyPhoneScale by emptyPulseTransition.animateFloat(
-                                    initialValue = 1.0f,
-                                    targetValue = 1.06f,
-                                    animationSpec = infiniteRepeatable(
-                                        animation = tween(2000, easing = FastOutSlowInEasing),
-                                        repeatMode = RepeatMode.Reverse
-                                    ),
-                                    label = "pulseScale"
-                                )
-                                var emptyEntranceVisible by remember { mutableStateOf(false) }
-                                LaunchedEffect(Unit) {
-                                    emptyEntranceVisible = true
-                                }
-                                val emptyAlpha by animateFloatAsState(
-                                    targetValue = if (emptyEntranceVisible) 1f else 0f,
-                                    animationSpec = tween(400, easing = FastOutSlowInEasing),
-                                    label = "emptyFadeIn"
-                                )
-
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.graphicsLayer { alpha = emptyAlpha }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 56.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(56.dp)
-                                            .graphicsLayer {
-                                                scaleX = emptyPhoneScale
-                                                scaleY = emptyPhoneScale
-                                            }
-                                            .clip(CircleShape)
-                                            .background(if (colors.isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFF1F5F9)),
-                                        contentAlignment = Alignment.Center
+                                    val emptyPulseTransition = rememberInfiniteTransition(label = "emptyPhonePulse")
+                                    val emptyPhoneScale by emptyPulseTransition.animateFloat(
+                                        initialValue = 1.0f,
+                                        targetValue = 1.06f,
+                                        animationSpec = infiniteRepeatable(
+                                            animation = tween(2000, easing = FastOutSlowInEasing),
+                                            repeatMode = RepeatMode.Reverse
+                                        ),
+                                        label = "pulseScale"
+                                    )
+                                    var emptyEntranceVisible by remember { mutableStateOf(false) }
+                                    LaunchedEffect(Unit) {
+                                        emptyEntranceVisible = true
+                                    }
+                                    val emptyAlpha by animateFloatAsState(
+                                        targetValue = if (emptyEntranceVisible) 1f else 0f,
+                                        animationSpec = tween(400, easing = FastOutSlowInEasing),
+                                        label = "emptyFadeIn"
+                                    )
+
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.graphicsLayer { alpha = emptyAlpha }
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Call,
-                                            contentDescription = null,
-                                            tint = colors.textSecondary,
-                                            modifier = Modifier.size(26.dp)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(56.dp)
+                                                .graphicsLayer {
+                                                    scaleX = emptyPhoneScale
+                                                    scaleY = emptyPhoneScale
+                                                }
+                                                .clip(CircleShape)
+                                                .background(if (colors.isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFF1F5F9)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Call,
+                                                contentDescription = null,
+                                                tint = colors.textSecondary,
+                                                modifier = Modifier.size(26.dp)
+                                            )
+                                        }
+                                        val emptyTitle = if (callSearchQuery.isNotBlank()) {
+                                            "No calls found"
+                                        } else when (selectedFilter) {
+                                            "Incoming" -> "No incoming calls"
+                                            "Outgoing" -> "No outgoing calls yet"
+                                            "Missed" -> "No missed calls"
+                                            else -> "No call history yet"
+                                        }
+                                        val emptySubtitle = if (callSearchQuery.isNotBlank()) {
+                                            "No call logs match \"$callSearchQuery\""
+                                        } else when (selectedFilter) {
+                                            "Incoming" -> "Incoming calls from others will appear here"
+                                            "Outgoing" -> "Calls you place will appear here"
+                                            "Missed" -> "Missed calls will appear here"
+                                            else -> "Outgoing and incoming voice calls will appear here"
+                                        }
+                                        Text(
+                                            text = emptyTitle,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = colors.textPrimary
+                                        )
+                                        Text(
+                                            text = emptySubtitle,
+                                            fontSize = 12.sp,
+                                            color = colors.textSecondary
                                         )
                                     }
-                                    val emptyTitle = if (callSearchQuery.isNotBlank()) {
-                                        "No calls found"
-                                    } else when (selectedFilter) {
-                                        "Incoming" -> "No incoming calls"
-                                        "Outgoing" -> "No outgoing calls yet"
-                                        "Missed" -> "No missed calls"
-                                        else -> "No call history yet"
-                                    }
-                                    val emptySubtitle = if (callSearchQuery.isNotBlank()) {
-                                        "No call logs match \"$callSearchQuery\""
-                                    } else when (selectedFilter) {
-                                        "Incoming" -> "Incoming calls from others will appear here"
-                                        "Outgoing" -> "Calls you place will appear here"
-                                        "Missed" -> "Missed calls will appear here"
-                                        else -> "Outgoing and incoming voice calls will appear here"
-                                    }
-                                    Text(
-                                        text = emptyTitle,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = colors.textPrimary
-                                    )
-                                    Text(
-                                        text = emptySubtitle,
-                                        fontSize = 12.sp,
-                                        color = colors.textSecondary
-                                    )
                                 }
                             }
                         }

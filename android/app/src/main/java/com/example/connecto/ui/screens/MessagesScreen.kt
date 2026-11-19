@@ -257,8 +257,8 @@ fun MessagesScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (isLoading) {
-                    // Show shimmer skeletons while loading
-                    items(3) {
+                    // Show 6 shimmer skeletons while loading
+                    items(6) {
                         ShimmerConversationItem()
                     }
                 } else {

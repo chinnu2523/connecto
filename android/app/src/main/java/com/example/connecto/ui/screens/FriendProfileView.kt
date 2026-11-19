@@ -253,6 +253,7 @@ fun FriendProfileScreen(
     onOpenDirectChat: () -> Unit,
     onViewPhoto: () -> Unit,
     isAdmin: Boolean = true,
+    isLoading: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -994,13 +995,25 @@ fun FriendProfileScreen(
                         }
                     }
 
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp)
-                    ) {
+                    val showProfileSkeleton = isLoading && validatedProf == null
+                    androidx.compose.animation.Crossfade(
+                        targetState = showProfileSkeleton,
+                        animationSpec = tween(durationMillis = 160),
+                        label = "friendProfileOverviewCrossfade"
+                    ) { isSkeleton ->
+                        if (isSkeleton) {
+                            com.example.connecto.ui.theme.ShimmerProfileSkeleton(
+                                modifier = Modifier.fillMaxSize(),
+                                isDark = !isLight
+                            )
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
+                                contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp)
+                            ) {
                         // 1. HERO COVER BANNER & AVATAR
                         item(key = "friend_profile_hero") {
                             val bannerUrl = validatedProf?.bannerUrl ?: friend.bannerUrl
@@ -1338,6 +1351,8 @@ fun FriendProfileScreen(
                             }
                         }
                     }
+                }
+                }
                 }
             }
         }
