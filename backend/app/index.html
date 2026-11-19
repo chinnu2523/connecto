@@ -37525,6 +37525,15 @@ html[data-theme="dark"] #saveProfileBtn {
       document.getElementById('incomingCallModal').style.display = 'none';
       if (!incomingCallData) return;
 
+      try {
+        if (webVoiceAudioCtx && webVoiceAudioCtx.state === 'suspended') {
+          webVoiceAudioCtx.resume().catch(() => {});
+        }
+        if (voiceAudioContext && voiceAudioContext.state === 'suspended') {
+          voiceAudioContext.resume().catch(() => {});
+        }
+      } catch(e) {}
+
       activeCallPeer = incomingCallData.caller || incomingCallData.caller_username || incomingCallData.caller_name;
       activeCallId = incomingCallData.call_id || incomingCallData.room_id;
       isCaller = false;
@@ -37580,8 +37589,21 @@ html[data-theme="dark"] #saveProfileBtn {
 
       let iceConfig = {
         iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
+          { urls: [
+            'stun:stun.cloudflare.com:3478',
+            'stun:stun.l.google.com:19302',
+            'stun:stun1.l.google.com:19302'
+          ]},
+          {
+            urls: [
+              'turn:openrelay.metered.ca:80',
+              'turn:openrelay.metered.ca:443',
+              'turn:openrelay.metered.ca:443?transport=tcp',
+              'turns:openrelay.metered.ca:443?transport=tcp'
+            ],
+            username: 'openrelay',
+            credential: 'openrelay'
+          }
         ]
       };
       try {
@@ -37597,6 +37619,7 @@ html[data-theme="dark"] #saveProfileBtn {
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         localStream.getTracks().forEach(track => {
+          track.enabled = true;
           peerConnection.addTrack(track, localStream);
         });
       } catch (micErr) {
@@ -37607,13 +37630,19 @@ html[data-theme="dark"] #saveProfileBtn {
             const ctx = new AudioCtx();
             const dest = ctx.createMediaStreamDestination();
             localStream = dest.stream;
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            localStream.getTracks().forEach(track => {
+              track.enabled = true;
+              peerConnection.addTrack(track, localStream);
+            });
           }
         } catch(e) {}
       }
 
       peerConnection.ontrack = (event) => {
         console.log('[WEBRTC] Remote audio track received!');
+        if (event.track) {
+          event.track.enabled = true;
+        }
         if (!remoteAudioEl) {
           remoteAudioEl = document.createElement('audio');
           remoteAudioEl.autoplay = true;
@@ -37626,7 +37655,16 @@ html[data-theme="dark"] #saveProfileBtn {
         }
         remoteAudioEl.muted = false;
         remoteAudioEl.volume = 1.0;
-        remoteAudioEl.play().catch(e => console.log('[AUDIO_PLAY]', e));
+        remoteAudioEl.play().catch(e => {
+          console.log('[AUDIO_PLAY]', e);
+          const resumeAudio = () => {
+            if (remoteAudioEl) remoteAudioEl.play().catch(() => {});
+            window.removeEventListener('click', resumeAudio);
+            window.removeEventListener('touchstart', resumeAudio);
+          };
+          window.addEventListener('click', resumeAudio, { once: true });
+          window.addEventListener('touchstart', resumeAudio, { once: true });
+        });
         setCallConnectedState();
       };
 
@@ -38041,6 +38079,15 @@ html[data-theme="dark"] #saveProfileBtn {
       }
       
       try {
+        if (webVoiceAudioCtx && webVoiceAudioCtx.state === 'suspended') {
+          webVoiceAudioCtx.resume().catch(() => {});
+        }
+        if (voiceAudioContext && voiceAudioContext.state === 'suspended') {
+          voiceAudioContext.resume().catch(() => {});
+        }
+      } catch(e) {}
+
+      try {
         const res = await fetch(`/api/voice/rooms/${roomId}/join`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -38129,6 +38176,9 @@ html[data-theme="dark"] #saveProfileBtn {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (AudioCtx) {
           voiceAudioContext = new AudioCtx();
+          if (voiceAudioContext.state === 'suspended') {
+            await voiceAudioContext.resume().catch(() => {});
+          }
           const source = voiceAudioContext.createMediaStreamSource(voiceMicStream);
           voiceAnalyser = voiceAudioContext.createAnalyser();
           voiceAnalyser.fftSize = 256;

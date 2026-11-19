@@ -550,7 +550,14 @@ object VoiceCallManager {
     private val isTeardownInProgress = java.util.concurrent.atomic.AtomicBoolean(false)
     private val disposedPcs: MutableSet<PeerConnection> = Collections.synchronizedSet(Collections.newSetFromMap(IdentityHashMap<PeerConnection, Boolean>()))
     private val remoteDescriptionReadyPcs: MutableSet<PeerConnection> = Collections.synchronizedSet(Collections.newSetFromMap(IdentityHashMap<PeerConnection, Boolean>()))
-    private fun isRemoteDescriptionReady(pc: PeerConnection): Boolean = remoteDescriptionReadyPcs.contains(pc) && pc.remoteDescription != null
+    private val relayFallbackTriggered = ConcurrentHashMap<String, Boolean>()
+    private fun isRemoteDescriptionReady(pc: PeerConnection): Boolean {
+        return try {
+            !disposedPcs.contains(pc) && remoteDescriptionReadyPcs.contains(pc) && pc.remoteDescription != null
+        } catch (_: Throwable) {
+            false
+        }
+    }
     private var peerConnectionFactory: PeerConnectionFactory? = null
     private var localAudioSource: AudioSource? = null
     private var localAudioTrack: RtcAudioTrack? = null
@@ -867,8 +874,11 @@ object VoiceCallManager {
             startLocalAudio()
 
             val rtcConfig = getRtcConfig()
+            var pcRef: PeerConnection? = null
             val observer = object : PeerConnection.Observer {
                 override fun onIceCandidate(candidate: IceCandidate) {
+                    val currentPc = pcRef
+                    if (currentPc != null && disposedPcs.contains(currentPc)) return
                     val roomId = _activeRoomId.value ?: return
                     Log.d(TAG, "WebRTC ICE candidate generated for peer: $peerId (${candidate.sdpMid})")
                     try {
@@ -897,6 +907,8 @@ object VoiceCallManager {
                 override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>?) {}
 
                 override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState) {
+                    val currentPc = pcRef
+                    if (currentPc != null && disposedPcs.contains(currentPc)) return
                     Log.d(TAG, "WebRTC ICE connection state for peer $peerId: $newState")
                     when (newState) {
                         PeerConnection.IceConnectionState.CONNECTED, PeerConnection.IceConnectionState.COMPLETED -> {
@@ -954,10 +966,15 @@ object VoiceCallManager {
                 }
 
                 override fun onAddStream(stream: MediaStream) {
+                    val currentPc = pcRef
+                    if (currentPc != null && disposedPcs.contains(currentPc)) return
+                    applyAudioSettingsForCall()
                     Log.d(TAG, "WebRTC onAddStream from peer $peerId: ${stream.audioTracks.size} audio tracks")
                     for (audioTrack in stream.audioTracks) {
-                        audioTrack.setEnabled(true)
-                        audioTrack.setVolume(1.0)
+                        try {
+                            audioTrack.setEnabled(true)
+                            audioTrack.setVolume(1.0)
+                        } catch (_: Throwable) {}
                     }
                 }
 
@@ -972,22 +989,30 @@ object VoiceCallManager {
                 }
 
                 override fun onAddTrack(receiver: RtpReceiver, mediaStreams: Array<out MediaStream>) {
+                    val currentPc = pcRef
+                    if (currentPc != null && disposedPcs.contains(currentPc)) return
+                    applyAudioSettingsForCall()
                     val track = receiver.track()
                     Log.d(TAG, "WebRTC onAddTrack from peer $peerId, kind=${track?.kind()}")
                     if (track is RtcAudioTrack) {
-                        track.setEnabled(true)
-                        track.setVolume(1.0)
+                        try {
+                            track.setEnabled(true)
+                            track.setVolume(1.0)
+                        } catch (_: Throwable) {}
                     }
                     for (stream in mediaStreams) {
                         for (audioTrack in stream.audioTracks) {
-                            audioTrack.setEnabled(true)
-                            audioTrack.setVolume(1.0)
+                            try {
+                                audioTrack.setEnabled(true)
+                                audioTrack.setVolume(1.0)
+                            } catch (_: Throwable) {}
                         }
                     }
                 }
             }
 
             val pc = factory.createPeerConnection(rtcConfig, observer) ?: return null
+            pcRef = pc
             ensureLocalAudioTrackAttached(pc)
             peerConnections[peerId] = pc
             Log.d(TAG, "WebRTC PeerConnection registered for peer: $peerId")
@@ -1043,9 +1068,30 @@ object VoiceCallManager {
         }
     }
 
+    fun triggerIceRestartWithRelay(peerId: String, pc: PeerConnection) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                if (disposedPcs.contains(pc) || pc.signalingState() == PeerConnection.SignalingState.CLOSED) return@launch
+                val relayConfig = getRtcConfig().apply {
+                    iceTransportsType = PeerConnection.IceTransportsType.RELAY
+                }
+                try {
+                    pc.setConfiguration(relayConfig)
+                    Log.d(TAG, "Reconfigured PeerConnection for $peerId with IceTransportsType.RELAY")
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Failed to setConfiguration to RELAY: ${t.message}")
+                }
+                triggerIceRestart(peerId, pc)
+            } catch (t: Throwable) {
+                Log.e(TAG, "Error in triggerIceRestartWithRelay: ${t.message}", t)
+            }
+        }
+    }
+
     fun triggerIceRestart(peerId: String, pc: PeerConnection) {
         scope.launch(Dispatchers.IO) {
             try {
+                if (disposedPcs.contains(pc) || pc.signalingState() == PeerConnection.SignalingState.CLOSED) return@launch
                 ensureLocalAudioTrackAttached(pc)
                 val constraints = MediaConstraints().apply {
                     mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
@@ -1054,30 +1100,35 @@ object VoiceCallManager {
                 }
                 pc.createOffer(object : SdpObserver {
                     override fun onCreateSuccess(sessionDescription: SessionDescription) {
-                        pc.setLocalDescription(object : SdpObserver {
-                            override fun onSetSuccess() {
-                                val roomId = _activeRoomId.value ?: return
-                                Log.d(TAG, "Zero-Drop WebRTC ICE restart offer dispatched for peer: $peerId")
-                                val offerMsg = JSONObject().apply {
-                                    put("type", "voice_offer")
-                                    put("action", "call:offer")
-                                    put("channel_id", roomId)
-                                    put("room_id", roomId)
-                                    put("call_id", roomId)
-                                    put("target_user_id", peerId)
-                                    put("target", peerId)
-                                    put("target_user", peerId)
-                                    put("ice_restart", true)
-                                    put("sdp", mangleSdpForLowLatency(sessionDescription.description))
+                        if (disposedPcs.contains(pc) || pc.signalingState() == PeerConnection.SignalingState.CLOSED) return
+                        try {
+                            pc.setLocalDescription(object : SdpObserver {
+                                override fun onSetSuccess() {
+                                    val roomId = _activeRoomId.value ?: return
+                                    Log.d(TAG, "Zero-Drop WebRTC ICE restart offer dispatched for peer: $peerId")
+                                    val offerMsg = JSONObject().apply {
+                                        put("type", "voice_offer")
+                                        put("action", "call:offer")
+                                        put("channel_id", roomId)
+                                        put("room_id", roomId)
+                                        put("call_id", roomId)
+                                        put("target_user_id", peerId)
+                                        put("target", peerId)
+                                        put("target_user", peerId)
+                                        put("ice_restart", true)
+                                        put("sdp", mangleSdpForLowLatency(sessionDescription.description))
+                                    }
+                                    sendWsMessage(offerMsg)
                                 }
-                                sendWsMessage(offerMsg)
-                            }
-                            override fun onSetFailure(s: String?) {
-                                Log.e(TAG, "WebRTC setLocalDescription for ICE restart failed: $s")
-                            }
-                            override fun onCreateSuccess(p0: SessionDescription?) {}
-                            override fun onCreateFailure(p0: String?) {}
-                        }, sessionDescription)
+                                override fun onSetFailure(s: String?) {
+                                    Log.e(TAG, "WebRTC setLocalDescription for ICE restart failed: $s")
+                                }
+                                override fun onCreateSuccess(p0: SessionDescription?) {}
+                                override fun onCreateFailure(p0: String?) {}
+                            }, sessionDescription)
+                        } catch (t: Throwable) {
+                            Log.e(TAG, "Exception calling setLocalDescription for ICE restart: ${t.message}")
+                        }
                     }
                     override fun onCreateFailure(s: String?) {
                         Log.e(TAG, "WebRTC createOffer for ICE restart failed: $s")
@@ -1093,62 +1144,83 @@ object VoiceCallManager {
 
     fun handleWebRtcOffer(senderPeerId: String, sdpDescription: String) {
         scope.launch(Dispatchers.IO) {
-            val pc = getOrCreatePeerConnection(senderPeerId) ?: return@launch
-            ensureLocalAudioTrackAttached(pc)
-            val remoteDesc = SessionDescription(SessionDescription.Type.OFFER, sdpDescription)
-            pc.setRemoteDescription(object : SdpObserver {
-                override fun onSetSuccess() {
-                    remoteDescriptionReadyPcs.add(pc)
-                    drainQueuedCandidates(senderPeerId, pc)
-                    val constraints = MediaConstraints().apply {
-                        mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
-                        mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"))
-                    }
-                    pc.createAnswer(object : SdpObserver {
-                        override fun onCreateSuccess(sessionDescription: SessionDescription) {
-                            pc.setLocalDescription(object : SdpObserver {
-                                override fun onSetSuccess() {
-                                    val roomId = _activeRoomId.value ?: return
-                                    Log.d(TAG, "WebRTC Answer created and local description set for peer: $senderPeerId")
-                                    val answerMsg = JSONObject().apply {
-                                        put("type", "voice_answer")
-                                        put("action", "call:answer")
-                                        put("channel_id", roomId)
-                                        put("room_id", roomId)
-                                        put("call_id", roomId)
-                                        put("target_user_id", senderPeerId)
-                                        put("target", senderPeerId)
-                                        put("target_user", senderPeerId)
-                                        put("sdp", mangleSdpForLowLatency(sessionDescription.description))
+            try {
+                val pc = getOrCreatePeerConnection(senderPeerId) ?: return@launch
+                if (disposedPcs.contains(pc)) return@launch
+                val sigState = pc.signalingState()
+                if (sigState == PeerConnection.SignalingState.CLOSED) return@launch
+                if (sigState != PeerConnection.SignalingState.STABLE && sigState != PeerConnection.SignalingState.HAVE_LOCAL_OFFER) {
+                    Log.w(TAG, "handleWebRtcOffer: ignoring offer from $senderPeerId in signalingState: $sigState")
+                    return@launch
+                }
+                ensureLocalAudioTrackAttached(pc)
+                val remoteDesc = SessionDescription(SessionDescription.Type.OFFER, sdpDescription)
+                pc.setRemoteDescription(object : SdpObserver {
+                    override fun onSetSuccess() {
+                        if (disposedPcs.contains(pc) || pc.signalingState() == PeerConnection.SignalingState.CLOSED) return
+                        remoteDescriptionReadyPcs.add(pc)
+                        drainQueuedCandidates(senderPeerId, pc)
+                        val constraints = MediaConstraints().apply {
+                            mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
+                            mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"))
+                        }
+                        try {
+                            pc.createAnswer(object : SdpObserver {
+                                override fun onCreateSuccess(sessionDescription: SessionDescription) {
+                                    if (disposedPcs.contains(pc) || pc.signalingState() == PeerConnection.SignalingState.CLOSED) return
+                                    try {
+                                        pc.setLocalDescription(object : SdpObserver {
+                                            override fun onSetSuccess() {
+                                                val roomId = _activeRoomId.value ?: return
+                                                Log.d(TAG, "WebRTC Answer created and local description set for peer: $senderPeerId")
+                                                val answerMsg = JSONObject().apply {
+                                                    put("type", "voice_answer")
+                                                    put("action", "call:answer")
+                                                    put("channel_id", roomId)
+                                                    put("room_id", roomId)
+                                                    put("call_id", roomId)
+                                                    put("target_user_id", senderPeerId)
+                                                    put("target", senderPeerId)
+                                                    put("target_user", senderPeerId)
+                                                    put("sdp", mangleSdpForLowLatency(sessionDescription.description))
+                                                }
+                                                sendWsMessage(answerMsg)
+                                            }
+
+                                            override fun onSetFailure(s: String?) {
+                                                Log.e(TAG, "WebRTC setLocalDescription for answer failure: $s")
+                                            }
+
+                                            override fun onCreateSuccess(p0: SessionDescription?) {}
+                                            override fun onCreateFailure(p0: String?) {}
+                                        }, sessionDescription)
+                                    } catch (t: Throwable) {
+                                        Log.e(TAG, "Exception calling setLocalDescription for answer: ${t.message}")
                                     }
-                                    sendWsMessage(answerMsg)
                                 }
 
-                                override fun onSetFailure(s: String?) {
-                                    Log.e(TAG, "WebRTC setLocalDescription for answer failure: $s")
+                                override fun onCreateFailure(s: String?) {
+                                    Log.e(TAG, "WebRTC createAnswer failure: $s")
                                 }
 
-                                override fun onCreateSuccess(p0: SessionDescription?) {}
-                                override fun onCreateFailure(p0: String?) {}
-                            }, sessionDescription)
+                                override fun onSetSuccess() {}
+                                override fun onSetFailure(p0: String?) {}
+                            }, constraints)
+                        } catch (t: Throwable) {
+                            Log.e(TAG, "Exception calling createAnswer: ${t.message}")
                         }
+                    }
 
-                        override fun onCreateFailure(s: String?) {
-                            Log.e(TAG, "WebRTC createAnswer failure: $s")
-                        }
+                    override fun onSetFailure(s: String?) {
+                        Log.e(TAG, "WebRTC setRemoteDescription for offer failure: $s")
+                    }
 
-                        override fun onSetSuccess() {}
-                        override fun onSetFailure(p0: String?) {}
-                    }, constraints)
-                }
-
-                override fun onSetFailure(s: String?) {
-                    Log.e(TAG, "WebRTC setRemoteDescription for offer failure: $s")
-                }
-
-                override fun onCreateSuccess(p0: SessionDescription?) {}
-                override fun onCreateFailure(p0: String?) {}
-            }, remoteDesc)
+                    override fun onCreateSuccess(p0: SessionDescription?) {}
+                    override fun onCreateFailure(p0: String?) {}
+                }, remoteDesc)
+            } catch (t: Throwable) {
+                Log.e(TAG, "handleWebRtcOffer error: ${t.message}", t)
+            }
         }
     }
 
@@ -1203,25 +1275,40 @@ object VoiceCallManager {
 
     fun handleWebRtcAnswer(senderPeerId: String, sdpDescription: String, senderUsername: String? = null) {
         scope.launch(Dispatchers.IO) {
-            val pc = getPeerConnectionForPeer(senderPeerId, senderUsername) ?: run {
-                Log.w(TAG, "handleWebRtcAnswer: No PeerConnection found for $senderPeerId / $senderUsername (existing: ${peerConnections.keys()})")
-                return@launch
+            try {
+                val pc = getPeerConnectionForPeer(senderPeerId, senderUsername) ?: run {
+                    Log.w(TAG, "handleWebRtcAnswer: No PeerConnection found for $senderPeerId / $senderUsername (existing: ${peerConnections.keys()})")
+                    return@launch
+                }
+                if (disposedPcs.contains(pc)) return@launch
+                val sigState = pc.signalingState()
+                if (sigState == PeerConnection.SignalingState.STABLE) {
+                    Log.w(TAG, "handleWebRtcAnswer: Ignoring redundant answer for $senderPeerId: connection is already STABLE")
+                    return@launch
+                }
+                if (sigState != PeerConnection.SignalingState.HAVE_LOCAL_OFFER) {
+                    Log.w(TAG, "handleWebRtcAnswer: Cannot set remote answer in state: $sigState")
+                    return@launch
+                }
+                val remoteDesc = SessionDescription(SessionDescription.Type.ANSWER, sdpDescription)
+                pc.setRemoteDescription(object : SdpObserver {
+                    override fun onSetSuccess() {
+                        if (disposedPcs.contains(pc) || pc.signalingState() == PeerConnection.SignalingState.CLOSED) return
+                        Log.d(TAG, "WebRTC setRemoteDescription for answer succeeded from: $senderPeerId ($senderUsername)")
+                        remoteDescriptionReadyPcs.add(pc)
+                        drainQueuedCandidates(senderPeerId, pc, senderUsername)
+                    }
+
+                    override fun onSetFailure(s: String?) {
+                        Log.e(TAG, "WebRTC setRemoteDescription for answer failed: $s")
+                    }
+
+                    override fun onCreateSuccess(p0: SessionDescription?) {}
+                    override fun onCreateFailure(p0: String?) {}
+                }, remoteDesc)
+            } catch (t: Throwable) {
+                Log.e(TAG, "handleWebRtcAnswer error: ${t.message}", t)
             }
-            val remoteDesc = SessionDescription(SessionDescription.Type.ANSWER, sdpDescription)
-            pc.setRemoteDescription(object : SdpObserver {
-                override fun onSetSuccess() {
-                    Log.d(TAG, "WebRTC setRemoteDescription for answer succeeded from: $senderPeerId ($senderUsername)")
-                    remoteDescriptionReadyPcs.add(pc)
-                    drainQueuedCandidates(senderPeerId, pc, senderUsername)
-                }
-
-                override fun onSetFailure(s: String?) {
-                    Log.e(TAG, "WebRTC setRemoteDescription for answer failed: $s")
-                }
-
-                override fun onCreateSuccess(p0: SessionDescription?) {}
-                override fun onCreateFailure(p0: String?) {}
-            }, remoteDesc)
         }
     }
 
@@ -1237,8 +1324,12 @@ object VoiceCallManager {
                 val pc = getPeerConnectionForPeer(senderPeerId, senderUsername)
                 if (pc != null && isRemoteDescriptionReady(pc)) {
                     drainQueuedCandidates(senderPeerId, pc, senderUsername)
-                    pc.addIceCandidate(iceCandidate)
-                    Log.d(TAG, "WebRTC added live ICE candidate from: $senderPeerId ($senderUsername)")
+                    try {
+                        pc.addIceCandidate(iceCandidate)
+                        Log.d(TAG, "WebRTC added live ICE candidate from: $senderPeerId ($senderUsername)")
+                    } catch (t: Throwable) {
+                        Log.w(TAG, "Failed adding live ICE candidate: ${t.message}")
+                    }
                 } else {
                     val key = (senderUsername?.ifBlank { null } ?: senderPeerId).trim().lowercase().removePrefix("@")
                     val list = queuedIceCandidates.getOrPut(key) { java.util.Collections.synchronizedList(mutableListOf()) }
@@ -1254,18 +1345,22 @@ object VoiceCallManager {
     private fun startStatsPolling(peerId: String) {
         statsJob?.cancel()
         statsJob = scope.launch(Dispatchers.IO) {
+            val connectedSinceMs = System.currentTimeMillis()
             while (isActive) {
                 delay(2000)
                 val pc = peerConnections[peerId] ?: break
                 if (disposedPcs.contains(pc)) break
                 try {
+                    if (pc.signalingState() == PeerConnection.SignalingState.CLOSED) break
                     pc.getStats { report ->
                         if (!isActive || disposedPcs.contains(pc)) return@getStats
                         try {
+                            if (pc.signalingState() == PeerConnection.SignalingState.CLOSED) return@getStats
                             var rttMs = 0.0
                             var jitterMs = 0.0
                             var packetsLost = 0
                             var packetsReceived = 0
+                            var bytesReceived = 0L
                             var candidateType = "unknown"
                             for (stats in report.statsMap.values) {
                                 when (stats.type) {
@@ -1278,6 +1373,11 @@ object VoiceCallManager {
                                         val rx = (stats.members["packetsReceived"] as? Long)?.toInt()
                                             ?: (stats.members["packetsReceived"] as? Int)
                                         if (rx != null) packetsReceived = rx
+                                        val bytesRx = (stats.members["bytesReceived"] as? Long)
+                                            ?: (stats.members["bytesReceived"] as? Int)?.toLong()
+                                            ?: (stats.members["bytesReceived"] as? Double)?.toLong()
+                                            ?: 0L
+                                        bytesReceived += bytesRx
                                         if (packetsLost == 0) {
                                             (stats.members["packetsLost"] as? Int)?.let { packetsLost = it }
                                         }
@@ -1305,7 +1405,19 @@ object VoiceCallManager {
                             val lossPct = if (totalPackets > 0) (packetsLost.toDouble() / totalPackets) * 100.0 else (if (packetsLost > 0) 5.0 else 0.0)
                             val dto = CallStatsDto(rttMs, jitterMs, packetsLost, packetsReceived, lossPct, candidateType)
                             _callStats.value = dto
-                            Log.d(TAG, "WebRTC stats: RTT=${rttMs.toInt()}ms jitter=${jitterMs.toInt()}ms loss=$packetsLost lossPct=${String.format(Locale.US, "%.1f", lossPct)}% candidate=$candidateType")
+                            Log.d(TAG, "WebRTC stats: RTT=${rttMs.toInt()}ms jitter=${jitterMs.toInt()}ms loss=$packetsLost lossPct=${String.format(Locale.US, "%.1f", lossPct)}% candidate=$candidateType bytesRx=$bytesReceived")
+
+                            // Auto-Recovery Diagnostic Fallback:
+                            // If connected for >= 3 seconds (iceConnectionState == CONNECTED) but bytesReceived == 0,
+                            // automatically trigger a single restartIce() with IceTransportsType.RELAY
+                            val connectedDuration = System.currentTimeMillis() - connectedSinceMs
+                            val iceState = pc.iceConnectionState()
+                            if ((iceState == PeerConnection.IceConnectionState.CONNECTED || iceState == PeerConnection.IceConnectionState.COMPLETED) &&
+                                connectedDuration >= 3000L && bytesReceived == 0L && relayFallbackTriggered[peerId] != true) {
+                                relayFallbackTriggered[peerId] = true
+                                Log.w(TAG, "Audio silence detected for peer $peerId (connected for ${connectedDuration}ms with 0 bytesReceived). Forcing TURN Relay ICE restart...")
+                                triggerIceRestartWithRelay(peerId, pc)
+                            }
                         } catch (e: Exception) {
                             Log.w(TAG, "Error parsing WebRTC stats: ${e.message}")
                         }
@@ -1330,11 +1442,13 @@ object VoiceCallManager {
             pc = peerConnections.remove(peerId)
             if (pc != null) {
                 remoteDescriptionReadyPcs.remove(pc)
+                relayFallbackTriggered.remove(peerId)
                 val aliasKeys = peerConnections.entries.filter { it.value === pc }.map { it.key }
                 aliasKeys.forEach { peerConnections.remove(it) }
+                disposedPcs.add(pc)
             }
         }
-        if (pc != null && !disposedPcs.contains(pc)) {
+        if (pc != null) {
             try {
                 for (sender in pc.senders) {
                     try { pc.removeTrack(sender) } catch (_: Throwable) {}
@@ -1344,14 +1458,12 @@ object VoiceCallManager {
                 Log.w(TAG, "Error closing left peer PC: ${t.message}")
             }
             scope.launch(Dispatchers.IO) {
-                if (!disposedPcs.contains(pc)) {
-                    disposedPcs.add(pc)
-                    try {
-                        pc.dispose()
-                        Log.d(TAG, "Disposed PeerConnection for left peer: $peerId")
-                    } catch (e: Throwable) {
-                        Log.e(TAG, "Error disposing left peer PC: ${e.message}")
-                    }
+                delay(250L)
+                try {
+                    pc.dispose()
+                    Log.d(TAG, "Disposed PeerConnection for left peer: $peerId")
+                } catch (e: Throwable) {
+                    Log.e(TAG, "Error disposing left peer PC: ${e.message}")
                 }
             }
         }
@@ -1361,6 +1473,7 @@ object VoiceCallManager {
         stopStatsPolling()
         queuedIceCandidates.clear()
         remoteDescriptionReadyPcs.clear()
+        relayFallbackTriggered.clear()
         try {
             // 1. Immediately disable local audio track to prevent audio processing threads
             // from pushing frames into closing peer connections.
@@ -1378,6 +1491,7 @@ object VoiceCallManager {
             synchronized(webRtcTeardownLock) {
                 uniquePcs = peerConnections.values.filterNotNull().toSet()
                 peerConnections.clear()
+                disposedPcs.addAll(uniquePcs)
                 trackToDispose = localAudioTrack
                 localAudioTrack = null
                 sourceToDispose = localAudioSource
@@ -1386,31 +1500,27 @@ object VoiceCallManager {
 
             // 3. Immediately close each unique PeerConnection without holding locks (non-blocking)
             for (pc in uniquePcs) {
-                if (!disposedPcs.contains(pc)) {
-                    try {
-                        for (sender in pc.senders) {
-                            try {
-                                pc.removeTrack(sender)
-                            } catch (_: Throwable) {}
-                        }
-                        pc.close()
-                    } catch (t: Throwable) {
-                        Log.w(TAG, "Error closing PeerConnection: ${t.message}")
+                try {
+                    for (sender in pc.senders) {
+                        try {
+                            pc.removeTrack(sender)
+                        } catch (_: Throwable) {}
                     }
+                    pc.close()
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Error closing PeerConnection: ${t.message}")
                 }
             }
 
             // 4. Heavy native disposal offloaded to background IO thread (NEVER blocks Main UI thread)
             scope.launch(Dispatchers.IO) {
+                delay(250L)
                 for (pc in uniquePcs) {
-                    if (!disposedPcs.contains(pc)) {
-                        disposedPcs.add(pc)
-                        try {
-                            pc.dispose()
-                            Log.d(TAG, "PeerConnection successfully disposed in background IO")
-                        } catch (t: Throwable) {
-                            Log.e(TAG, "Error disposing PeerConnection in background: ${t.message}")
-                        }
+                    try {
+                        pc.dispose()
+                        Log.d(TAG, "PeerConnection successfully disposed in background IO")
+                    } catch (t: Throwable) {
+                        Log.e(TAG, "Error disposing PeerConnection in background: ${t.message}")
                     }
                 }
 
@@ -3512,6 +3622,7 @@ object VoiceCallManager {
         _currentAudioRoute.value = AudioRoute.EARPIECE
         _isSpeakerOn.value = false
         queuedIceCandidates.clear()
+        relayFallbackTriggered.clear()
 
         // 2. Dismiss notifications and cancel foreground service immediately
         try {
