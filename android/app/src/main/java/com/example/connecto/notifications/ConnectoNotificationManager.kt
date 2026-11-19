@@ -49,6 +49,7 @@ object ConnectoNotificationManager {
     const val CHANNEL_CHANNELS_GROUPS = "connecto_channels_groups"
     const val CHANNEL_INCOMING_CALLS = "connecto_incoming_calls"
     const val CHANNEL_ACTIVE_CALL_SERVICE = "connecto_active_call_service"
+    const val CHANNEL_SILENT_MESSAGES = "connecto_silent_messages"
 
     // Backward-compatible channel aliases
     const val CHANNEL_CALLS = CHANNEL_INCOMING_CALLS
@@ -266,12 +267,26 @@ object ConnectoNotificationManager {
                 setShowBadge(true)
             }
 
+            // 6. Silent & Low-Priority Messages Channel (Zero sound, zero vibration)
+            val silentMessagesChannel = NotificationChannel(
+                CHANNEL_SILENT_MESSAGES,
+                "Silent Messages",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Silent messages and muted chat delivery"
+                setShowBadge(false)
+                enableVibration(false)
+                setSound(null, null)
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PRIVATE
+            }
+
             val channelsToRegister = mutableListOf(
                 directMessagesChannel,
                 channelsGroupsChannel,
                 incomingCallsChannel,
                 activeCallServiceChannel,
-                socialChannel
+                socialChannel,
+                silentMessagesChannel
             )
 
             // Register dedicated channels for custom trending notification sounds (Faah, Chin Tapak, etc.)
@@ -791,7 +806,9 @@ object ConnectoNotificationManager {
         channelOrDmId: String,
         senderAvatar: String? = null,
         senderUsername: String? = null,
-        messageId: String? = null
+        messageId: String? = null,
+        isSilent: Boolean = false,
+        isWhisper: Boolean = false
     ) {
         val context = appContext ?: return
         if (!hasNotificationPermission()) return
@@ -812,7 +829,7 @@ object ConnectoNotificationManager {
             channelOrDmId.trim().lowercase().removePrefix("#")
         }
 
-        val cleanText = messageText.trim()
+        val cleanText = if (isWhisper) "🫧 Sent a whisper" else messageText.trim()
         val notifSig = "${cleanSenderKey}_${conversationId}_$cleanText"
         if (hasRecentlyNotified(notifSig)) {
             Log.d(TAG, "Suppressed duplicate notification for: $notifSig")
@@ -845,15 +862,16 @@ object ConnectoNotificationManager {
                 )
 
                 val selectedSoundId = NotificationPreferences.getSelectedSoundId(context)
-                val targetChannelId = getOrCreateMessageChannelForSound(context, selectedSoundId, isDm)
-                val soundUri = NotificationSoundManager.getSoundUri(context, selectedSoundId)
-                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                val vibrationPattern = longArrayOf(0, 250, 200, 250)
+                val targetChannelId = if (isSilent) CHANNEL_SILENT_MESSAGES else getOrCreateMessageChannelForSound(context, selectedSoundId, isDm)
+                val soundUri = if (isSilent) null else (NotificationSoundManager.getSoundUri(context, selectedSoundId)
+                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                val vibrationPattern = if (isSilent) null else longArrayOf(0, 250, 200, 250)
+                val priorityLevel = if (isSilent) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_HIGH
 
-                // Biometric Lock Chat Session Privacy Redaction
+                // Biometric Lock Chat Session & Secret Vault Privacy Redaction
                 if (isLocked) {
                     val lockedTitle = "Connecto"
-                    val lockedBody = "🔒 Locked chat • New encrypted message"
+                    val lockedBody = "Connecto • New message"
                     val lockedSubText = "🔒 End-to-End Encrypted"
 
                     val markReadIntent = Intent(context, DirectReplyReceiver::class.java).apply {
@@ -880,7 +898,7 @@ object ConnectoNotificationManager {
                         .setContentTitle(lockedTitle)
                         .setContentText(lockedBody)
                         .setSubText(lockedSubText)
-                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setPriority(priorityLevel)
                         .setCategory(NotificationCompat.CATEGORY_MESSAGE)
                         .setAutoCancel(true)
                         .setContentIntent(pendingIntent)
@@ -894,7 +912,7 @@ object ConnectoNotificationManager {
                     val publicNotif = NotificationCompat.Builder(context, targetChannelId)
                         .setSmallIcon(R.mipmap.ic_launcher)
                         .setContentTitle("Connecto")
-                        .setContentText("🔒 Locked chat • New encrypted message")
+                        .setContentText("Connecto • New message")
                         .build()
                     lockedBuilder.setPublicVersion(publicNotif)
 

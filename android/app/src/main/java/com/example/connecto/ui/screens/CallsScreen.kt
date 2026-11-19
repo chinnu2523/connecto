@@ -58,6 +58,7 @@ import androidx.compose.material.icons.automirrored.filled.CallMissed
 import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.DeleteOutline
@@ -1323,34 +1324,89 @@ fun CallsScreen(
             }
         }
 
-        // Prominent Floating Action Button for Group Voice Call (Zero Gradients, Solid Emerald #10B981)
-        ExtendedFloatingActionButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                showCreateVoiceGroupDialog = true
-            },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.GroupAdd,
-                    contentDescription = "New Group Call",
-                    tint = Color.White
-                )
-            },
-            text = {
-                Text(
-                    text = "Group Voice Call",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.5.sp,
-                    color = Color.White
-                )
-            },
-            containerColor = Color(0xFF10B981),
-            contentColor = Color.White,
-            shape = RoundedCornerShape(16.dp),
+        // Floating Action Buttons for Guest Rooms & Group Voice Calls
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 20.dp, end = 16.dp)
-        )
+                .padding(bottom = 20.dp, end = 16.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Option 1: Ephemeral Zero-Install Guest Room (Indigo #6366F1)
+            ExtendedFloatingActionButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    coroutineScope.launch {
+                        try {
+                            val res = com.example.connecto.network.ConnectoApiClient.createGuestRoom()
+                            if (res.isSuccess) {
+                                val room = res.getOrThrow()
+                                val shareUrl = room.roomUrl.ifBlank { "https://connecto.fun/room/${room.roomCode}" }
+                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                val clip = android.content.ClipData.newPlainText("Connecto Guest Room", shareUrl)
+                                clipboard?.setPrimaryClip(clip)
+                                Toast.makeText(context, "Guest Room created! Link copied: $shareUrl", Toast.LENGTH_SHORT).show()
+
+                                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(android.content.Intent.EXTRA_SUBJECT, "Join my Connecto Guest Room")
+                                    putExtra(android.content.Intent.EXTRA_TEXT, "Join my instant zero-install room on Connecto: $shareUrl")
+                                }
+                                context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Guest Room Link"))
+                            } else {
+                                Toast.makeText(context, "Could not create guest room. Please try again.", Toast.LENGTH_SHORT).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.MeetingRoom,
+                        contentDescription = "Create Guest Room",
+                        tint = Color.White
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Guest Room",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = Color.White
+                    )
+                },
+                containerColor = Color(0xFF6366F1),
+                contentColor = Color.White,
+                shape = RoundedCornerShape(16.dp)
+            )
+
+            // Option 2: Group Voice Call (Emerald #10B981)
+            ExtendedFloatingActionButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    showCreateVoiceGroupDialog = true
+                },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.GroupAdd,
+                        contentDescription = "New Group Call",
+                        tint = Color.White
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Group Voice Call",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.5.sp,
+                        color = Color.White
+                    )
+                },
+                containerColor = Color(0xFF10B981),
+                contentColor = Color.White,
+                shape = RoundedCornerShape(16.dp)
+            )
+        }
 
         if (showAddFriendDialog) {
             AddFriendDialog(

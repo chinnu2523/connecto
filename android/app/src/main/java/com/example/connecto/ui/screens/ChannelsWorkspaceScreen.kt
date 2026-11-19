@@ -3172,36 +3172,97 @@ private fun ChannelMessageCard(
                             }
                         }
 
-                        // Message Text or Image Preview
-                        if (isImageContent) {
-                            AsyncImage(
-                                model = message.content.trim(),
-                                contentDescription = "Attached image",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(max = 220.dp)
-                                    .clip(RoundedCornerShape(10.dp))
+                        val isWhisper = message.isWhisper
+                        var isWhisperRevealed by remember(message.id) { mutableStateOf(false) }
+                        val whisperBlurRadius by animateDpAsState(
+                            targetValue = if (!isWhisper || isWhisperRevealed) 0.dp else 12.dp,
+                            animationSpec = tween(180, easing = EaseOutCubic),
+                            label = "channelWhisperBlur"
+                        )
+
+                        Box(
+                            modifier = Modifier.then(
+                                if (isWhisper) {
+                                    Modifier.pointerInput(message.id) {
+                                        detectTapGestures(
+                                            onPress = {
+                                                try {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                } catch (_: Exception) {}
+                                                isWhisperRevealed = true
+                                                try {
+                                                    tryAwaitRelease()
+                                                } finally {
+                                                    isWhisperRevealed = false
+                                                }
+                                            }
+                                        )
+                                    }
+                                } else Modifier
                             )
-                        } else {
-                            val channelCleanContent = cleanMessageContentForDisplay(message.content, "")
-                            if (searchHighlightQuery.isNotBlank() && channelCleanContent.contains(searchHighlightQuery, ignoreCase = true)) {
-                                SubstringHighlightedText(
-                                    text = channelCleanContent,
-                                    query = searchHighlightQuery,
-                                    style = TextStyle(
-                                        fontSize = 13.5.sp,
-                                        color = if (isMe) ownBubbleText else friendBubbleText,
-                                        lineHeight = 19.sp
+                        ) {
+                            Box(
+                                modifier = if (isWhisper && whisperBlurRadius > 0.dp) Modifier.blur(whisperBlurRadius) else Modifier
+                            ) {
+                                // Message Text or Image Preview
+                                if (isImageContent) {
+                                    AsyncImage(
+                                        model = message.content.trim(),
+                                        contentDescription = "Attached image",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(max = 220.dp)
+                                            .clip(RoundedCornerShape(10.dp))
                                     )
-                                )
-                            } else {
-                                Text(
-                                    text = channelCleanContent,
-                                    fontSize = 13.5.sp,
-                                    color = if (isMe) ownBubbleText else friendBubbleText,
-                                    lineHeight = 19.sp
-                                )
+                                } else {
+                                    val channelCleanContent = cleanMessageContentForDisplay(message.content, "")
+                                    if (searchHighlightQuery.isNotBlank() && channelCleanContent.contains(searchHighlightQuery, ignoreCase = true)) {
+                                        SubstringHighlightedText(
+                                            text = channelCleanContent,
+                                            query = searchHighlightQuery,
+                                            style = TextStyle(
+                                                fontSize = 13.5.sp,
+                                                color = if (isMe) ownBubbleText else friendBubbleText,
+                                                lineHeight = 19.sp
+                                            )
+                                        )
+                                    } else {
+                                        Text(
+                                            text = channelCleanContent,
+                                            fontSize = 13.5.sp,
+                                            color = if (isMe) ownBubbleText else friendBubbleText,
+                                            lineHeight = 19.sp
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (isWhisper && !isWhisperRevealed) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0x33000000)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(Color(0xB3181C28))
+                                            .border(androidx.compose.foundation.BorderStroke(1.dp, Color(0x33FFFFFF)), RoundedCornerShape(12.dp))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = "🫧 Hold to reveal",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -3217,6 +3278,12 @@ private fun ChannelMessageCard(
                                     fontSize = 10.sp,
                                     color = Color.White.copy(alpha = 0.75f)
                                 )
+                                if (message.isSilent) {
+                                    Text(
+                                        text = " 🔕",
+                                        fontSize = 10.sp
+                                    )
+                                }
                                 Spacer(modifier = Modifier.width(4.dp))
                                 if (isPending) {
                                     ConnectoDeliverySendingRing()

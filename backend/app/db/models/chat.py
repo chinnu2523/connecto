@@ -72,12 +72,25 @@ class Message(Base):
     reply_to_id = Column(String(36), nullable=True)
     reply_to_content = Column(Text, nullable=True)
     reply_to_author = Column(String(256), nullable=True)
+    is_silent = Column(Boolean, default=False, nullable=True)
+    is_whisper = Column(Boolean, default=False, nullable=True)
+    is_vault_hidden = Column(Boolean, default=False, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now, index=True)
 
     channel = relationship("Channel", back_populates="messages")
     sender = relationship("User")
 
 Index("idx_messages_channel_created", Message.channel_id, Message.created_at.desc())
+
+class GuestRoom(Base):
+    __tablename__ = "guest_rooms"
+    room_code = Column(String(32), primary_key=True)
+    host_user_id = Column(String(64), nullable=False)
+    title = Column(String(256), nullable=False)
+    allow_voice = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
 
 class Friendship(Base):
     __tablename__ = "friendships"

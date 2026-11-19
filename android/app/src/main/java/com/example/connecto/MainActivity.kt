@@ -279,6 +279,7 @@ class MainActivity : FragmentActivity() {
         try {
             ConnectoNotificationManager.isAppInForeground = false
             com.example.connecto.voice.VoiceCallManager.onAppBackgrounded()
+            com.example.connecto.security.SecretVaultManager.lockVault()
         } catch (t: Throwable) {
             android.util.Log.e("MainActivity", "onStop presence error: ${t.message}")
         }
@@ -746,6 +747,7 @@ fun ConnectoApp(
                 override fun onStop(owner: androidx.lifecycle.LifecycleOwner) {
                     try {
                         com.example.connecto.voice.VoiceCallManager.onAppBackgrounded()
+                        com.example.connecto.security.SecretVaultManager.lockVault()
                     } catch (t: Throwable) {
                         android.util.Log.e("MainActivity", "ProcessLifecycle onStop error: ${t.message}")
                     }

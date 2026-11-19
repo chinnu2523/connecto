@@ -187,7 +187,9 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                 val createdAt = data["created_at"]?.ifBlank { null }
                     ?: SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date())
 
-                val safeBodyPreview = com.example.connecto.ui.screens.cleanMessageContentForDisplay(body, "New message")
+                val isSilent = data["is_silent"]?.equals("true", ignoreCase = true) == true || data["is_silent"] == "1"
+                val isWhisper = data["is_whisper"]?.equals("true", ignoreCase = true) == true || data["is_whisper"] == "1"
+                val safeBodyPreview = if (isWhisper) "🫧 Sent a whisper" else com.example.connecto.ui.screens.cleanMessageContentForDisplay(body, "New message")
 
                 // 1. Build MessageDto and persist to local SQLite database so history is cached when opened
                 val msgDto = MessageDto(
@@ -197,7 +199,9 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                     authorName = sender.ifBlank { cleanSender },
                     content = body,
                     createdAt = createdAt,
-                    authorAvatar = senderAvatar
+                    authorAvatar = senderAvatar,
+                    isSilent = isSilent,
+                    isWhisper = isWhisper
                 )
 
                 try {
@@ -287,7 +291,9 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                         channelOrDmId = channelId,
                         senderAvatar = senderAvatar,
                         senderUsername = senderUser,
-                        messageId = messageId
+                        messageId = messageId,
+                        isSilent = isSilent,
+                        isWhisper = isWhisper
                     )
                 }
             }

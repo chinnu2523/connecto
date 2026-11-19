@@ -70,6 +70,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -122,6 +123,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.AlternateEmail
+import androidx.compose.material.icons.filled.MeetingRoom
+import com.example.connecto.security.SecretVaultManager
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Email
@@ -633,7 +636,9 @@ data class CustomMessageItem(
     val replyToSenderName: String? = null,
     val replyToText: String? = null,
     val isOnline: Boolean = false,
-    val lastSeen: String? = null
+    val lastSeen: String? = null,
+    val isSilent: Boolean = false,
+    val isWhisper: Boolean = false
 )
 
 fun parseMessageTimestamp(timeStr: String?): Long {
@@ -1142,7 +1147,9 @@ fun CustomizedChatScreen(
                 replyToContent = decryptedReplyContent,
                 replyToAuthor = dto.replyToAuthor,
                 isEncrypted = isEnc,
-                timestampMillis = msgMillis
+                timestampMillis = msgMillis,
+                isSilent = dto.isSilent,
+                isWhisper = dto.isWhisper
             )
         }
 
@@ -1336,8 +1343,22 @@ fun CustomizedChatScreen(
     val userGroupsList = remember { mutableStateListOf<FriendItem>() }
     var messageTabFilter by rememberSaveable { mutableStateOf("ALL") } // "ALL", "DIRECT", "GROUPS"
 
+    val isVaultUnlocked by SecretVaultManager.isVaultUnlocked.collectAsState()
+
     val notifyUnreadChanged: () -> Unit = {
-        val total = friendsList.sumOf { it.unreadCount } + userGroupsList.sumOf { it.unreadCount }
+        val userPrefix = myUsername.lowercase()
+        val prefix = "${userPrefix}_chat_locked_"
+        val lockedIds = if (SecretVaultManager.isHideLockedChatsEnabled(context) && !isVaultUnlocked) {
+            friendPrefs.all.filter { it.key.startsWith(prefix) && it.value == true }
+                .map { it.key.removePrefix(prefix).lowercase() }
+                .toSet()
+        } else emptySet()
+
+        val total = friendsList.filter {
+            val clean = it.handle.removePrefix("@").trim().lowercase()
+            it.id.lowercase() !in lockedIds && clean !in lockedIds
+        }.sumOf { it.unreadCount } + userGroupsList.sumOf { it.unreadCount }
+
         onUnreadStatusChanged(total > 0)
         onUnreadCountChanged(total)
     }
@@ -2113,7 +2134,24 @@ fun CustomizedChatScreen(
             }
             // Filter out deleted chats unless currently in undo strip state
             val activeList = baseList.filter { it.id !in deletedChatIds || it.id in pendingDeleteChatIds }
-            val sortedList = activeList.sortedWith(
+
+            // Filter out locked chats if hide locked chats is enabled and vault is locked
+            val userPrefix = myUsername.lowercase()
+            val prefix = "${userPrefix}_chat_locked_"
+            val lockedIds = if (SecretVaultManager.isHideLockedChatsEnabled(context) && !isVaultUnlocked) {
+                friendPrefs.all.filter { it.key.startsWith(prefix) && it.value == true }
+                    .map { it.key.removePrefix(prefix).lowercase() }
+                    .toSet()
+            } else emptySet()
+
+            val visibleList = if (lockedIds.isNotEmpty()) {
+                activeList.filter { friend ->
+                    val clean = friend.handle.removePrefix("@").trim().lowercase()
+                    friend.id.lowercase() !in lockedIds && clean !in lockedIds
+                }
+            } else activeList
+
+            val sortedList = visibleList.sortedWith(
                 compareByDescending<FriendItem> { pinnedChatIds.contains(it.id) }
                     .thenByDescending { it.lastMessageTimestamp }
                     .thenBy { it.name.lowercase() }
@@ -2121,11 +2159,15 @@ fun CustomizedChatScreen(
             if (friendSearchQuery.isBlank()) sortedList
             else {
                 val q = friendSearchQuery.trim()
-                sortedList.filter {
-                    it.name.contains(q, ignoreCase = true) ||
-                    it.handle.contains(q, ignoreCase = true) ||
-                    it.lastMessage.contains(q, ignoreCase = true) ||
-                    it.bio.contains(q, ignoreCase = true)
+                if (SecretVaultManager.isSecretCodeMatch(context, q)) {
+                    emptyList()
+                } else {
+                    sortedList.filter {
+                        it.name.contains(q, ignoreCase = true) ||
+                        it.handle.contains(q, ignoreCase = true) ||
+                        it.lastMessage.contains(q, ignoreCase = true) ||
+                        it.bio.contains(q, ignoreCase = true)
+                    }
                 }
             }
         }
@@ -2205,9 +2247,28 @@ fun CustomizedChatScreen(
         isDmSearchFocused = false
     }
 
+    // Secret Vault Search Trigger with Haptic Tick
+    val isSecretCodeMatched = remember(friendSearchQuery) {
+        SecretVaultManager.isSecretCodeMatch(context, friendSearchQuery)
+    }
+    LaunchedEffect(isSecretCodeMatched) {
+        if (isSecretCodeMatched) {
+            try {
+                // Haptic feedback tick on secret code entry
+                android.os.Vibrator::class.java
+            } catch (_: Exception) {}
+        }
+    }
+
     // Two-Tier Search Engine: 300ms Debounced Cloud Message Search with automatic cancellation
     LaunchedEffect(friendSearchQuery) {
         val q = friendSearchQuery.trim()
+        if (SecretVaultManager.isSecretCodeMatch(context, q)) {
+            // Secret code matched: suppress cloud search and recent search saving completely
+            cloudMessageResults = emptyList()
+            isCloudSearching = false
+            return@LaunchedEffect
+        }
         if (q.length >= 2) {
             isCloudSearching = true
             kotlinx.coroutines.delay(300L) // 300ms debounce
@@ -2541,7 +2602,9 @@ fun CustomizedChatScreen(
                     replyToContent = decryptedReplyContent,
                     replyToAuthor = dto.replyToAuthor,
                     isEncrypted = isEnc,
-                    timestampMillis = parseMessageTimestamp(dto.createdAt)
+                    timestampMillis = parseMessageTimestamp(dto.createdAt),
+                    isSilent = dto.isSilent,
+                    isWhisper = dto.isWhisper
                 )
 
                 // If friend sent a message, they have received and read our prior sent messages
@@ -3069,7 +3132,9 @@ fun CustomizedChatScreen(
                                         replyToContent = decryptedReplyContent,
                                         replyToAuthor = dto.replyToAuthor,
                                         isEncrypted = isEnc,
-                                        timestampMillis = msgMillis
+                                        timestampMillis = msgMillis,
+                                        isSilent = dto.isSilent,
+                                        isWhisper = dto.isWhisper
                                     )
                                 }
 
@@ -5386,6 +5451,86 @@ fun CustomizedChatScreen(
                         .height(1.dp)
                         .background(if (!isLight) Color(0x0DFFFFFF) else Color(0x0F000000))
                 )
+
+                // Secret Vault Card Triggered by Secret Search Code
+                if (isSecretCodeMatched) {
+                    val haptic = LocalHapticFeedback.current
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(
+                                        Color(0xFF6366F1).copy(alpha = 0.22f),
+                                        Color(0xFF8B5CF6).copy(alpha = 0.22f)
+                                    )
+                                )
+                            )
+                            .border(1.dp, Color(0xFF6366F1).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                            .clickable {
+                                try {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                } catch (_: Exception) {}
+                                val activity = context.findFragmentActivity()
+                                if (activity != null) {
+                                    BiometricAuthManager.authenticate(
+                                        activity = activity,
+                                        title = "Unlock Secret Vault",
+                                        subtitle = "Authenticate to access hidden chats",
+                                        onSuccess = {
+                                            SecretVaultManager.unlockVault()
+                                            friendSearchQuery = ""
+                                            isDmSearchFocused = false
+                                            Toast.makeText(context, "Secret Vault unlocked 🔓", Toast.LENGTH_SHORT).show()
+                                        },
+                                        onError = { _, err ->
+                                            Toast.makeText(context, "Authentication failed: $err", Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                } else {
+                                    SecretVaultManager.unlockVault()
+                                    friendSearchQuery = ""
+                                    isDmSearchFocused = false
+                                }
+                            }
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF6366F1).copy(alpha = 0.3f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Secret Vault",
+                                    tint = Color(0xFF818CF8),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "🔒 Secret Vault • Tap to open",
+                                    fontSize = 14.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isLight) Color(0xFF0F172A) else Color.White
+                                )
+                                Text(
+                                    text = "Authenticate with biometric credentials to view hidden locked chats",
+                                    fontSize = 11.5.sp,
+                                    color = if (isLight) Color(0xFF64748B) else Color.White.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             val currentScreenState = when {
@@ -5482,6 +5627,44 @@ fun CustomizedChatScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
                     ) {
+                        if (isVaultUnlocked) {
+                            item(key = "secret_vault_active_banner") {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFF6366F1).copy(alpha = 0.15f))
+                                        .border(1.dp, Color(0xFF6366F1).copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            SecretVaultManager.lockVault()
+                                            Toast.makeText(context, "Secret Vault locked 🔒", Toast.LENGTH_SHORT).show()
+                                        }
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(text = "🔓", fontSize = 14.sp)
+                                        Text(
+                                            text = "Secret Vault Active • Tap to lock",
+                                            fontSize = 12.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color(0xFFA5B4FC)
+                                        )
+                                    }
+                                    Text(
+                                        text = "Lock",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF818CF8)
+                                    )
+                                }
+                            }
+                        }
+
                         // Message Tab Filter Button Group (Segmented Controls)
                         item(key = "friends_filter_button_group") {
                             val filterOptions = listOf(
@@ -6242,7 +6425,23 @@ fun CustomizedChatScreen(
                         label = "fabR3Scale"
                     )
 
-                    if (isFabExpanded || r3Alpha > 0.02f) {
+                    val r4Alpha by animateFloatAsState(
+                        targetValue = if (isFabExpanded) 1f else 0f,
+                        animationSpec = if (isFabExpanded) tween(200, delayMillis = 105, easing = EaseOutCubic) else tween(120),
+                        label = "fabR4Alpha"
+                    )
+                    val r4Y by animateFloatAsState(
+                        targetValue = if (isFabExpanded) 0f else 16f,
+                        animationSpec = if (isFabExpanded) spring(stiffness = 450f, dampingRatio = Spring.DampingRatioMediumBouncy) else tween(120),
+                        label = "fabR4Y"
+                    )
+                    val r4Scale by animateFloatAsState(
+                        targetValue = if (isFabExpanded) 1f else 0.85f,
+                        animationSpec = if (isFabExpanded) spring(stiffness = 450f, dampingRatio = Spring.DampingRatioMediumBouncy) else tween(120),
+                        label = "fabR4Scale"
+                    )
+
+                    if (isFabExpanded || r4Alpha > 0.02f || r3Alpha > 0.02f) {
                         Column(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
@@ -6254,7 +6453,78 @@ fun CustomizedChatScreen(
                             val haptic = LocalHapticFeedback.current
                             val isDark = !isLight
 
-                            // Option A: Voice Group / Audio Room (Top row, delay 70ms)
+                            // Option D: Ephemeral Zero-Install Guest Room (Top row, delay 105ms)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier
+                                    .graphicsLayer {
+                                        alpha = r4Alpha
+                                        translationY = r4Y.dp.toPx()
+                                        scaleX = r4Scale
+                                        scaleY = r4Scale
+                                    }
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) {
+                                        try {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        } catch (_: Exception) {}
+                                        isFabExpanded = false
+                                        coroutineScope.launch {
+                                            val res = ConnectoApiClient.createGuestRoom()
+                                            if (res.isSuccess) {
+                                                val room = res.getOrNull()
+                                                val shareUrl = room?.shareUrl ?: "https://connecto.fun/room/${room?.roomCode ?: ""}"
+                                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                                val clip = android.content.ClipData.newPlainText("Connecto Guest Room", shareUrl)
+                                                clipboard?.setPrimaryClip(clip)
+                                                Toast.makeText(context, "Guest Room created! Link copied: $shareUrl", Toast.LENGTH_SHORT).show()
+                                                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                    type = "text/plain"
+                                                    putExtra(android.content.Intent.EXTRA_SUBJECT, "Join my Connecto Guest Room")
+                                                    putExtra(android.content.Intent.EXTRA_TEXT, "Join my real-time voice and chat guest room on Connecto (no install required): $shareUrl")
+                                                }
+                                                context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Guest Room Link"))
+                                            } else {
+                                                Toast.makeText(context, "Failed to create guest room: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    }
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = if (isDark) Color(0xFF181C28) else Color.White,
+                                    shadowElevation = 6.dp,
+                                    border = if (isDark) androidx.compose.foundation.BorderStroke(1.dp, Color(0x1AFFFFFF)) else androidx.compose.foundation.BorderStroke(1.dp, Color(0x0F000000))
+                                ) {
+                                    Text(
+                                        text = "Guest Room",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (isDark) Color.White else Color(0xFF0F172A),
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF6366F1))
+                                        .shadow(6.dp, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MeetingRoom,
+                                        contentDescription = "New Guest Room",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            // Option A: Voice Group / Audio Room (Delay 70ms)
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -7854,8 +8124,9 @@ fun CustomizedChatScreen(
 
                             Spacer(modifier = Modifier.width(8.dp))
 
-                            // Dynamic Send Action Button
-                            val onSendMessage = {
+                            // Dynamic Send Action Button with Hold-to-Send Silent & Whisper support
+                            var showHoldToSendMenu by remember { mutableStateOf(false) }
+                            val onSendMessage: (Boolean, Boolean) -> Unit = { isSilent, isWhisper ->
                                 val targetToEdit = editingMessage
                                 if (targetToEdit != null) {
                                     val editTarget = targetToEdit
@@ -7913,11 +8184,16 @@ fun CustomizedChatScreen(
                                         replyToContent = currentReply?.content,
                                         replyToAuthor = currentReply?.senderName,
                                         isEncrypted = false,
-                                        timestampMillis = nowMillis
+                                        timestampMillis = nowMillis,
+                                        isSilent = isSilent,
+                                        isWhisper = isWhisper
                                     )
                                     val updatedList = (friendMessages + localItem).sortedBy { it.timestampMillis }
                                     friendMessages = updatedList
                                     isLoadingMessages = false
+
+                                    // Display preview text: for whispers, show 'Sent a whisper' in DM list
+                                    val previewText = if (isWhisper) "🫧 Sent a whisper" else userMsg
 
                                     // Move current friend/group to index 0 of conversations list with latest message and timestamp
                                     selectedFriend?.let { friend ->
@@ -7926,7 +8202,7 @@ fun CustomizedChatScreen(
                                         }
                                         if (fIdx != -1) {
                                             val updated = friendsList[fIdx].copy(
-                                                lastMessage = userMsg,
+                                                lastMessage = previewText,
                                                 timeAgo = "Just now",
                                                 unreadCount = 0,
                                                 lastMessageTimestamp = nowMillis
@@ -7935,8 +8211,8 @@ fun CustomizedChatScreen(
                                             friendsList.add(0, updated)
                                             val cleanHandle = updated.handle.removePrefix("@").trim().lowercase()
                                             readPrefs.edit()
-                                                .putString("last_msg_${updated.id}", userMsg)
-                                                .putString("last_msg_${cleanHandle}", userMsg)
+                                                .putString("last_msg_${updated.id}", previewText)
+                                                .putString("last_msg_${cleanHandle}", previewText)
                                                 .putString("last_time_${updated.id}", "Just now")
                                                 .putString("last_time_${cleanHandle}", "Just now")
                                                 .putLong("last_timestamp_${updated.id}", nowMillis)
@@ -7944,7 +8220,7 @@ fun CustomizedChatScreen(
                                                 .apply()
                                             coroutineScope.launch(Dispatchers.IO) {
                                                 try {
-                                                    dbHelper.updateFriendLastMessageAndUnread(updated.id, userMsg, "Just now", 0, nowMillis)
+                                                    dbHelper.updateFriendLastMessageAndUnread(updated.id, previewText, "Just now", 0, nowMillis)
                                                 } catch (_: Exception) {}
                                             }
                                             notifyUnreadChanged()
@@ -7952,7 +8228,7 @@ fun CustomizedChatScreen(
                                             val gIdx = userGroupsList.indexOfFirst { it.id == friend.id }
                                             if (gIdx != -1) {
                                                 val updated = userGroupsList[gIdx].copy(
-                                                    lastMessage = userMsg,
+                                                    lastMessage = previewText,
                                                     timeAgo = "Just now",
                                                     unreadCount = 0,
                                                     lastMessageTimestamp = nowMillis
@@ -7960,14 +8236,14 @@ fun CustomizedChatScreen(
                                                 userGroupsList.removeAt(gIdx)
                                                 userGroupsList.add(0, updated)
                                                 readPrefs.edit()
-                                                    .putString("last_msg_${updated.id}", userMsg)
+                                                    .putString("last_msg_${updated.id}", previewText)
                                                     .putString("last_time_${updated.id}", "Just now")
                                                     .putInt("unread_${updated.id}", 0)
                                                     .putLong("last_timestamp_${updated.id}", nowMillis)
                                                     .apply()
                                                 coroutineScope.launch(Dispatchers.IO) {
                                                     try {
-                                                        dbHelper.updateGroupLastMessageAndUnread(updated.id, userMsg, "Just now", 0, nowMillis)
+                                                        dbHelper.updateGroupLastMessageAndUnread(updated.id, previewText, "Just now", 0, nowMillis)
                                                     } catch (_: Exception) {}
                                                 }
                                                 notifyUnreadChanged()
@@ -8001,7 +8277,9 @@ fun CustomizedChatScreen(
                                                     authorAvatar = ConnectoApiClient.currentUserAvatarUrl,
                                                     replyToId = currentReply?.id,
                                                     replyToContent = currentReply?.content,
-                                                    replyToAuthor = currentReply?.senderName
+                                                    replyToAuthor = currentReply?.senderName,
+                                                    isSilent = isSilent,
+                                                    isWhisper = isWhisper
                                                 )
                                                 dbHelper.saveMessage(optDto)
                                                 dbHelper.saveMessages(if (isGrp) friend.id else canonicalName, listOf(optDto))
@@ -8018,7 +8296,9 @@ fun CustomizedChatScreen(
                                                 content = userMsg,
                                                 replyToId = currentReply?.id,
                                                 replyToContent = currentReply?.content,
-                                                replyToAuthor = currentReply?.senderName
+                                                replyToAuthor = currentReply?.senderName,
+                                                isSilent = isSilent,
+                                                isWhisper = isWhisper
                                             )
                                             if (sendRes.isSuccess) {
                                                 val sentDto = sendRes.getOrThrow()
@@ -8049,7 +8329,9 @@ fun CustomizedChatScreen(
                                                     replyToContent = sentDto.replyToContent ?: currentReply?.content,
                                                     replyToAuthor = sentDto.replyToAuthor ?: currentReply?.senderName,
                                                     isEncrypted = false,
-                                                    timestampMillis = if (sentMillis > 0) sentMillis else nowMillis
+                                                    timestampMillis = if (sentMillis > 0) sentMillis else nowMillis,
+                                                    isSilent = sentDto.isSilent,
+                                                    isWhisper = sentDto.isWhisper
                                                 )
                                                 val curList = friendMessages.toMutableList()
                                                 val optIdx = curList.indexOfFirst { it.id == tempId }
@@ -8088,66 +8370,167 @@ fun CustomizedChatScreen(
                             }
 
                             Box(
-                                modifier = Modifier
-                                    .size(46.dp)
-                                    .graphicsLayer {
-                                        scaleX = sendButtonScale
-                                        scaleY = sendButtonScale
-                                    }
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (typedMessage.isNotBlank()) {
-                                            if (isPureBlack || isLiquidGlassTheme) Brush.linearGradient(listOf(Color.White, Color(0xFFE4E4E7)))
-                                            else if (isGlassTheme) Brush.linearGradient(listOf(Color(0xFF38BDF8), Color(0xFF0284C7)))
-                                            else Brush.linearGradient(gradientColors)
-                                        } else {
-                                            if (isPureBlack || isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x26FFFFFF), Color(0x14FFFFFF)))
-                                            else if (isGlassTheme) Brush.verticalGradient(listOf(Color(0xD91E293B), Color(0xB3111827)))
-                                            else Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
-                                        }
-                                    )
-                                    .border(
-                                        width = if (isLiquidGlassTheme || isGlassTheme || isPureBlack) 1.2.dp else 1.dp,
-                                        brush = if (isPureBlack || isLiquidGlassTheme) {
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    if (typedMessage.isNotBlank()) Color.White else Color(0x66FFFFFF),
-                                                    if (typedMessage.isNotBlank()) Color(0x80FFFFFF) else Color(0x26FFFFFF)
-                                                )
-                                            )
-                                        } else if (isGlassTheme) {
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    if (typedMessage.isNotBlank()) Color(0xFFE0F2FE) else Color(0x6638BDF8),
-                                                    if (typedMessage.isNotBlank()) Color(0x8038BDF8) else Color(0x2038BDF8)
-                                                )
-                                            )
-                                        } else {
-                                            SolidColor(if (typedMessage.isNotBlank()) Color.Transparent else MaterialTheme.colorScheme.outline)
-                                        },
-                                        shape = CircleShape
-                                    )
-                                    .pressScaleEffect(
-                                        onClick = {
-                                            if (typedMessage.isNotBlank()) {
-                                                onSendMessage()
-                                            }
-                                        },
-                                        targetScale = 0.88f
-                                    ),
-                                contentAlignment = Alignment.Center
+                                modifier = Modifier.wrapContentSize(),
+                                contentAlignment = Alignment.BottomEnd
                             ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Send,
-                                    contentDescription = "Send",
-                                    tint = if (typedMessage.isNotBlank()) {
-                                        if (isPureBlack) Color.Black else contentOnGradient
-                                    } else {
-                                        if (isPureBlack || isLiquidGlassTheme) Color(0x66FFFFFF)
-                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                    },
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                val haptic = LocalHapticFeedback.current
+                                if (showHoldToSendMenu) {
+                                    val pillScale by animateFloatAsState(
+                                        targetValue = if (showHoldToSendMenu) 1f else 0.85f,
+                                        animationSpec = spring(stiffness = 380f, dampingRatio = 0.75f),
+                                        label = "holdPillScale"
+                                    )
+                                    val pillAlpha by animateFloatAsState(
+                                        targetValue = if (showHoldToSendMenu) 1f else 0f,
+                                        animationSpec = tween(160, easing = EaseOutCubic),
+                                        label = "holdPillAlpha"
+                                    )
+
+                                    androidx.compose.ui.window.Popup(
+                                        alignment = Alignment.TopEnd,
+                                        offset = androidx.compose.ui.unit.IntOffset(0, -220),
+                                        onDismissRequest = { showHoldToSendMenu = false }
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(18.dp),
+                                            color = Color(0xFF181C28),
+                                            shadowElevation = 10.dp,
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x1AFFFFFF)),
+                                            modifier = Modifier
+                                                .graphicsLayer {
+                                                    scaleX = pillScale
+                                                    scaleY = pillScale
+                                                    alpha = pillAlpha
+                                                }
+                                                .padding(bottom = 8.dp)
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(6.dp),
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                // Option 1: Send Silently
+                                                Row(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .clickable {
+                                                            try {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                            } catch (_: Exception) {}
+                                                            showHoldToSendMenu = false
+                                                            onSendMessage(true, false)
+                                                        }
+                                                        .padding(horizontal = 14.dp, vertical = 9.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                                ) {
+                                                    Text(text = "🔕", fontSize = 16.sp)
+                                                    Text(
+                                                        text = "Send Silently",
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = Color.White
+                                                    )
+                                                }
+
+                                                // Option 2: Send as Whisper
+                                                Row(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .clickable {
+                                                            try {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                            } catch (_: Exception) {}
+                                                            showHoldToSendMenu = false
+                                                            onSendMessage(false, true)
+                                                        }
+                                                        .padding(horizontal = 14.dp, vertical = 9.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                                ) {
+                                                    Text(text = "🫧", fontSize = 16.sp)
+                                                    Text(
+                                                        text = "Send as Whisper",
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = Color.White
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(46.dp)
+                                        .graphicsLayer {
+                                            scaleX = sendButtonScale
+                                            scaleY = sendButtonScale
+                                        }
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (typedMessage.isNotBlank()) {
+                                                if (isPureBlack || isLiquidGlassTheme) Brush.linearGradient(listOf(Color.White, Color(0xFFE4E4E7)))
+                                                else if (isGlassTheme) Brush.linearGradient(listOf(Color(0xFF38BDF8), Color(0xFF0284C7)))
+                                                else Brush.linearGradient(gradientColors)
+                                            } else {
+                                                if (isPureBlack || isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x26FFFFFF), Color(0x14FFFFFF)))
+                                                else if (isGlassTheme) Brush.verticalGradient(listOf(Color(0xD91E293B), Color(0xB3111827)))
+                                                else Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
+                                            }
+                                        )
+                                        .border(
+                                            width = if (isLiquidGlassTheme || isGlassTheme || isPureBlack) 1.2.dp else 1.dp,
+                                            brush = if (isPureBlack || isLiquidGlassTheme) {
+                                                Brush.linearGradient(
+                                                    listOf(
+                                                        if (typedMessage.isNotBlank()) Color.White else Color(0x66FFFFFF),
+                                                        if (typedMessage.isNotBlank()) Color(0x80FFFFFF) else Color(0x26FFFFFF)
+                                                    )
+                                                )
+                                            } else if (isGlassTheme) {
+                                                Brush.linearGradient(
+                                                    listOf(
+                                                        if (typedMessage.isNotBlank()) Color(0xFFE0F2FE) else Color(0x6638BDF8),
+                                                        if (typedMessage.isNotBlank()) Color(0x8038BDF8) else Color(0x2038BDF8)
+                                                    )
+                                                )
+                                            } else {
+                                                SolidColor(if (typedMessage.isNotBlank()) Color.Transparent else MaterialTheme.colorScheme.outline)
+                                            },
+                                            shape = CircleShape
+                                        )
+                                        .pointerInput(typedMessage) {
+                                            detectTapGestures(
+                                                onTap = {
+                                                    if (typedMessage.isNotBlank()) {
+                                                        onSendMessage(false, false)
+                                                    }
+                                                },
+                                                onLongPress = {
+                                                    if (typedMessage.isNotBlank()) {
+                                                        try {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        } catch (_: Exception) {}
+                                                        showHoldToSendMenu = true
+                                                    }
+                                                }
+                                            )
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = "Send",
+                                        tint = if (typedMessage.isNotBlank()) {
+                                            if (isPureBlack) Color.Black else contentOnGradient
+                                        } else {
+                                            if (isPureBlack || isLiquidGlassTheme) Color(0x66FFFFFF)
+                                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                        },
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
 
@@ -8622,41 +9005,102 @@ fun CustomChatBubble(
                         }
                     }
 
-                    val trimmedContent = message.content.trim()
-                    val isDirectImageUrl = trimmedContent.startsWith("http", ignoreCase = true) &&
-                        (trimmedContent.endsWith(".jpg", true) || trimmedContent.endsWith(".png", true) || trimmedContent.endsWith(".jpeg", true) || trimmedContent.endsWith(".webp", true))
+                    val isWhisper = message.isWhisper
+                    var isWhisperRevealed by remember(message.id) { mutableStateOf(false) }
+                    val whisperBlurRadius by animateDpAsState(
+                        targetValue = if (!isWhisper || isWhisperRevealed) 0.dp else 12.dp,
+                        animationSpec = tween(180, easing = EaseOutCubic),
+                        label = "whisperBlur"
+                    )
 
-                    if (isDirectImageUrl) {
-                        AsyncImage(
-                            model = trimmedContent,
-                            contentDescription = "Photo",
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 240.dp)
-                                .clip(RoundedCornerShape(12.dp))
+                    Box(
+                        modifier = Modifier.then(
+                            if (isWhisper) {
+                                Modifier.pointerInput(message.id) {
+                                    detectTapGestures(
+                                        onPress = {
+                                            try {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            } catch (_: Exception) {}
+                                            isWhisperRevealed = true
+                                            try {
+                                                tryAwaitRelease()
+                                            } finally {
+                                                isWhisperRevealed = false
+                                            }
+                                        }
+                                    )
+                                }
+                            } else Modifier
                         )
-                    } else {
-                        val safeBubbleContent = cleanMessageContentForDisplay(message.content, "")
-                        if (searchHighlightQuery.isNotBlank() && safeBubbleContent.contains(searchHighlightQuery, ignoreCase = true)) {
-                            SubstringHighlightedText(
-                                text = safeBubbleContent,
-                                query = searchHighlightQuery,
-                                style = TextStyle(
-                                    color = if (message.isMe) effectiveOwnText else friendText,
-                                    fontWeight = FontWeight.Normal,
-                                    fontSize = 14.sp,
-                                    lineHeight = 20.sp
+                    ) {
+                        Box(
+                            modifier = if (isWhisper && whisperBlurRadius > 0.dp) Modifier.blur(whisperBlurRadius) else Modifier
+                        ) {
+                            val trimmedContent = message.content.trim()
+                            val isDirectImageUrl = trimmedContent.startsWith("http", ignoreCase = true) &&
+                                (trimmedContent.endsWith(".jpg", true) || trimmedContent.endsWith(".png", true) || trimmedContent.endsWith(".jpeg", true) || trimmedContent.endsWith(".webp", true))
+
+                            if (isDirectImageUrl) {
+                                AsyncImage(
+                                    model = trimmedContent,
+                                    contentDescription = "Photo",
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 240.dp)
+                                        .clip(RoundedCornerShape(12.dp))
                                 )
-                            )
-                        } else {
-                            Text(
-                                text = safeBubbleContent,
-                                color = if (message.isMe) effectiveOwnText else friendText,
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 14.sp,
-                                lineHeight = 20.sp
-                            )
+                            } else {
+                                val safeBubbleContent = cleanMessageContentForDisplay(message.content, "")
+                                if (searchHighlightQuery.isNotBlank() && safeBubbleContent.contains(searchHighlightQuery, ignoreCase = true)) {
+                                    SubstringHighlightedText(
+                                        text = safeBubbleContent,
+                                        query = searchHighlightQuery,
+                                        style = TextStyle(
+                                            color = if (message.isMe) effectiveOwnText else friendText,
+                                            fontWeight = FontWeight.Normal,
+                                            fontSize = 14.sp,
+                                            lineHeight = 20.sp
+                                        )
+                                    )
+                                } else {
+                                    Text(
+                                        text = safeBubbleContent,
+                                        color = if (message.isMe) effectiveOwnText else friendText,
+                                        fontWeight = FontWeight.Normal,
+                                        fontSize = 14.sp,
+                                        lineHeight = 20.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        if (isWhisper && !isWhisperRevealed) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0x33000000)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xB3181C28))
+                                        .border(androidx.compose.foundation.BorderStroke(1.dp, Color(0x33FFFFFF)), RoundedCornerShape(12.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "🫧 Hold to reveal",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -8673,6 +9117,13 @@ fun CustomChatBubble(
                                 if (isWhiteBubble) Color(0x99000000) else effectiveOwnText.copy(alpha = 0.70f)
                             } else MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        if (message.isSilent) {
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "🔕",
+                                fontSize = 10.sp
+                            )
+                        }
                         if (message.isMe) {
                             Spacer(modifier = Modifier.width(5.dp))
                             val isPending = message.id.startsWith("opt-") || message.id.startsWith("temp_")

@@ -452,6 +452,29 @@ fun ProfileScreen(
     var autoLockOnBackground by remember(username) {
         mutableStateOf(prefs.getBoolean("auto_lock_background_$username", true))
     }
+    var hasSecretVaultCode by remember { mutableStateOf(com.example.connecto.security.SecretVaultManager.hasSecretCode(context)) }
+    var isHideLockedChats by remember { mutableStateOf(com.example.connecto.security.SecretVaultManager.isHideLockedChatsEnabled(context)) }
+    var showSetSecretCodeDialog by rememberSaveable { mutableStateOf(false) }
+    var newSecretCodeInput by rememberSaveable { mutableStateOf("") }
+    var confirmSecretCodeInput by rememberSaveable { mutableStateOf("") }
+
+    LaunchedEffect(username) {
+        try {
+            val res = ConnectoApiClient.getSecretVaultSettings()
+            if (res.isSuccess) {
+                val settings = res.getOrNull()
+                if (settings != null) {
+                    com.example.connecto.security.SecretVaultManager.syncSettingsFromBackend(
+                        context = context,
+                        codeHash = settings.secretVaultCodeHash,
+                        hideLocked = settings.hideLockedChats
+                    )
+                    hasSecretVaultCode = com.example.connecto.security.SecretVaultManager.hasSecretCode(context)
+                    isHideLockedChats = com.example.connecto.security.SecretVaultManager.isHideLockedChatsEnabled(context)
+                }
+            }
+        } catch (_: Exception) {}
+    }
     var isEmailLocked by remember(username) {
         val initialHasEmail = !ConnectoApiClient.currentUserEmail.isNullOrBlank() || prefs.getString("email_$username", null)?.isNotBlank() == true
         mutableStateOf(initialHasEmail)
@@ -2567,6 +2590,213 @@ fun ProfileScreen(
                                                         fontSize = 12.sp,
                                                         color = MaterialTheme.colorScheme.onSurface
                                                     )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 2.5 SECRET VAULT FOR LOCKED CHATS CARD
+                                item(key = "sub_security_secret_vault_section") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassCard(
+                                                shape = RoundedCornerShape(20.dp),
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                                                    else MaterialTheme.colorScheme.surface,
+                                                borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                                                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                                                    else MaterialTheme.colorScheme.primary
+                                            )
+                                            .padding(16.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(Color(0xFF6366F1).copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Lock,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF818CF8),
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "Secret Vault for Locked Chats",
+                                                        fontSize = 14.5.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Text(
+                                                        text = "Hidden behind DM search bar secret code",
+                                                        fontSize = 11.5.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), thickness = 1.dp)
+
+                                            // Row 1: Configure Secret Code
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "Secret Code",
+                                                        fontSize = 13.5.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Text(
+                                                        text = if (hasSecretVaultCode) "Secret code active (type in DM search to unlock)" else "No secret code set",
+                                                        fontSize = 11.5.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                                Button(
+                                                    onClick = {
+                                                        newSecretCodeInput = ""
+                                                        confirmSecretCodeInput = ""
+                                                        showSetSecretCodeDialog = true
+                                                    },
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = Color(0xFF6366F1),
+                                                        contentColor = Color.White
+                                                    ),
+                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                                ) {
+                                                    Text(
+                                                        text = if (hasSecretVaultCode) "Change Code" else "Set Code",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+
+                                            // Row 2: Hide Locked Chats Toggle
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "Hide Locked Chats from List",
+                                                        fontSize = 13.5.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Text(
+                                                        text = "100% hidden from DM list, search, and unread count",
+                                                        fontSize = 11.5.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                                Switch(
+                                                    checked = isHideLockedChats,
+                                                    onCheckedChange = { isChecked ->
+                                                        if (isChecked && !hasSecretVaultCode) {
+                                                            Toast.makeText(context, "Please set a Secret Code first", Toast.LENGTH_SHORT).show()
+                                                            showSetSecretCodeDialog = true
+                                                            return@Switch
+                                                        }
+                                                        isHideLockedChats = isChecked
+                                                        com.example.connecto.security.SecretVaultManager.setHideLockedChats(context, isChecked)
+                                                        coroutineScope.launch {
+                                                            val hash = com.example.connecto.security.SecretVaultManager.getSecretCodeHash(context)
+                                                            ConnectoApiClient.saveSecretVaultSettings(hash, isChecked)
+                                                        }
+                                                        Toast.makeText(
+                                                            context,
+                                                            if (isChecked) "Locked chats hidden from conversations list" else "Locked chats visible in conversations list",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    },
+                                                    colors = getMonochromeSwitchColors()
+                                                )
+                                            }
+
+                                            // Row 3: Biometric Recovery / Reset
+                                            if (hasSecretVaultCode) {
+                                                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), thickness = 1.dp)
+
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = "Biometric Recovery",
+                                                            fontSize = 13.5.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Text(
+                                                            text = "Forgot code? Verify biometrics to reset without account loss",
+                                                            fontSize = 11.5.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                    OutlinedButton(
+                                                        onClick = {
+                                                            val activity = context.findFragmentActivity()
+                                                            if (activity != null) {
+                                                                BiometricAuthManager.authenticate(
+                                                                    activity = activity,
+                                                                    title = "Reset Secret Vault Code",
+                                                                    subtitle = "Verify biometric or device credential to reset",
+                                                                    onSuccess = {
+                                                                        com.example.connecto.security.SecretVaultManager.resetSecretCode(context)
+                                                                        hasSecretVaultCode = false
+                                                                        isHideLockedChats = false
+                                                                        coroutineScope.launch {
+                                                                            ConnectoApiClient.saveSecretVaultSettings(null, false)
+                                                                        }
+                                                                        Toast.makeText(context, "Secret Vault code reset successfully", Toast.LENGTH_SHORT).show()
+                                                                    },
+                                                                    onError = { _, err ->
+                                                                        Toast.makeText(context, "Authentication failed: $err", Toast.LENGTH_SHORT).show()
+                                                                    }
+                                                                )
+                                                            }
+                                                        },
+                                                        shape = RoundedCornerShape(10.dp),
+                                                        border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f)),
+                                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.LockReset,
+                                                            contentDescription = null,
+                                                            tint = Color(0xFFEF4444),
+                                                            modifier = Modifier.size(16.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(
+                                                            text = "Reset Code",
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = Color(0xFFEF4444)
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
@@ -5951,6 +6181,81 @@ fun ProfileScreen(
                 pendingCropUri = null
             }
         )
+    }
+
+    if (showSetSecretCodeDialog) {
+        Dialog(onDismissRequest = { showSetSecretCodeDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
+                shadowElevation = 8.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "Configure Secret Vault Code",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Choose a secret word, phrase, or PIN. Typing this exact code in the DM Search Bar will silently reveal your Secret Vault.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    androidx.compose.material3.OutlinedTextField(
+                        value = newSecretCodeInput,
+                        onValueChange = { newSecretCodeInput = it },
+                        label = { Text("New Secret Code") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    androidx.compose.material3.OutlinedTextField(
+                        value = confirmSecretCodeInput,
+                        onValueChange = { confirmSecretCodeInput = it },
+                        label = { Text("Confirm Secret Code") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        androidx.compose.material3.TextButton(onClick = { showSetSecretCodeDialog = false }) {
+                            Text("Cancel")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                val code = newSecretCodeInput.trim()
+                                if (code.length < 3) {
+                                    Toast.makeText(context, "Code must be at least 3 characters", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                if (code != confirmSecretCodeInput.trim()) {
+                                    Toast.makeText(context, "Secret codes do not match", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                com.example.connecto.security.SecretVaultManager.setSecretCode(context, code)
+                                hasSecretVaultCode = true
+                                showSetSecretCodeDialog = false
+                                coroutineScope.launch {
+                                    val hash = com.example.connecto.security.SecretVaultManager.getSecretCodeHash(context)
+                                    ConnectoApiClient.saveSecretVaultSettings(hash, isHideLockedChats)
+                                }
+                                Toast.makeText(context, "Secret Vault code saved and backed up to cloud! 🔒", Toast.LENGTH_SHORT).show()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
+                        ) {
+                            Text("Save Code", color = Color.White)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (showForgotPasswordDialog) {

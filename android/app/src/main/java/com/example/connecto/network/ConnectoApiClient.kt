@@ -177,7 +177,39 @@ data class MessageDto(
     val replyToSenderName: String? = null,
     val replyToText: String? = null,
     val isOnline: Boolean = false,
-    val lastSeen: String? = null
+    val lastSeen: String? = null,
+    val isSilent: Boolean = false,
+    val isWhisper: Boolean = false,
+    val isVaultHidden: Boolean = false
+)
+
+data class GuestRoomHostDto(
+    val username: String,
+    val displayName: String,
+    val avatarUrl: String? = null
+)
+
+data class GuestRoomDto(
+    val roomCode: String,
+    val roomUrl: String,
+    val title: String,
+    val hostUserId: String? = null,
+    val hostUsername: String? = null,
+    val hostDisplayName: String? = null,
+    val allowVoice: Boolean = true,
+    val expiresAt: String? = null,
+    val host: GuestRoomHostDto? = null
+) {
+    val shareUrl: String get() = roomUrl
+}
+
+data class VaultSettingsDto(
+    val hasSecretVault: Boolean,
+    val secretVaultCodeHash: String?,
+    val hideLockedChats: Boolean,
+    val hideOnline: Boolean = false,
+    val hideLastSeen: Boolean = false,
+    val isStealth: Boolean = false
 )
 
 data class PinnedMessageDto(
@@ -2442,7 +2474,9 @@ object ConnectoApiClient {
                             replyToId = replyToId,
                             replyToContent = replyToContent,
                             replyToAuthor = replyToAuthor,
-                            isRead = if (obj.has("is_read")) obj.optBoolean("is_read") else null
+                            isRead = if (obj.has("is_read")) obj.optBoolean("is_read") else null,
+                            isSilent = obj.optBoolean("is_silent", false),
+                            isWhisper = obj.optBoolean("is_whisper", false)
                         )
                     )
                 }
@@ -2499,7 +2533,9 @@ object ConnectoApiClient {
         timerSeconds: Int? = null,
         replyToId: String? = null,
         replyToContent: String? = null,
-        replyToAuthor: String? = null
+        replyToAuthor: String? = null,
+        isSilent: Boolean = false,
+        isWhisper: Boolean = false
     ): Result<MessageDto> = withContext(Dispatchers.IO) {
         try {
             val cleanChannel = channelId.trim().lowercase().removePrefix("#")
@@ -2512,6 +2548,14 @@ object ConnectoApiClient {
                 put("nonce", UUID.randomUUID().toString())
                 if (timerSeconds != null && timerSeconds > 0) {
                     put("timer_seconds", timerSeconds)
+                }
+                if (isSilent) {
+                    put("is_silent", true)
+                    put("isSilent", true)
+                }
+                if (isWhisper) {
+                    put("is_whisper", true)
+                    put("isWhisper", true)
                 }
                 if (!replyToId.isNullOrBlank()) {
                     put("reply_to_id", replyToId)
@@ -2544,6 +2588,14 @@ object ConnectoApiClient {
                     put("username", myUsername)
                     put("author", myUsername)
                     put("avatar", "🎮")
+                    if (isSilent) {
+                        put("is_silent", true)
+                        put("isSilent", true)
+                    }
+                    if (isWhisper) {
+                        put("is_whisper", true)
+                        put("isWhisper", true)
+                    }
                     if (timerSeconds != null && timerSeconds > 0) {
                         put("timer_seconds", timerSeconds)
                     }
@@ -2618,7 +2670,9 @@ object ConnectoApiClient {
                         expiresAt = expAt,
                         replyToId = rId,
                         replyToContent = rContent,
-                        replyToAuthor = rAuthor
+                        replyToAuthor = rAuthor,
+                        isSilent = obj.optBoolean("is_silent", isSilent),
+                        isWhisper = obj.optBoolean("is_whisper", isWhisper)
                     )
                 )
             } else {
@@ -5841,6 +5895,134 @@ object ConnectoApiClient {
                 ?: authDeleteResp.exceptionOrNull()?.message
                 ?: "Failed to delete account"
             Result.failure(Exception(errorMessage))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // =========================================================================
+    // ZERO-INSTALL GUEST ROOMS
+    // =========================================================================
+
+    suspend fun createGuestRoom(title: String? = null, allowVoice: Boolean = true): Result<GuestRoomDto> = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().apply {
+                if (!title.isNullOrBlank()) put("title", title.trim())
+                put("allow_voice", allowVoice)
+            }.toString()
+
+            val resp = executeRequest("/api/guest-rooms", "POST", body, sessionToken)
+            if (resp.isSuccess) {
+                val json = JSONObject(resp.getOrThrow())
+                val dto = GuestRoomDto(
+                    roomCode = json.optString("room_code"),
+                    roomUrl = json.optString("room_url", "https://connecto.fun/room/${json.optString("room_code")}"),
+                    title = json.optString("title"),
+                    hostUserId = json.optString("host_user_id"),
+                    hostUsername = json.optString("host_username"),
+                    hostDisplayName = json.optString("host_display_name"),
+                    allowVoice = json.optBoolean("allow_voice", true),
+                    expiresAt = json.optString("expires_at")
+                )
+                Result.success(dto)
+            } else {
+                Result.failure(resp.exceptionOrNull() ?: Exception("Failed to create guest room"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getGuestRoom(roomCode: String): Result<GuestRoomDto> = withContext(Dispatchers.IO) {
+        try {
+            val code = roomCode.trim().uppercase()
+            val resp = executeRequest("/api/guest-rooms/$code", "GET", null, sessionToken)
+            if (resp.isSuccess) {
+                val json = JSONObject(resp.getOrThrow())
+                val rObj = json.optJSONObject("room") ?: json
+                val hostObj = rObj.optJSONObject("host")
+                val hostDto = if (hostObj != null) {
+                    GuestRoomHostDto(
+                        username = hostObj.optString("username"),
+                        displayName = hostObj.optString("display_name"),
+                        avatarUrl = hostObj.optString("avatar_url").takeIf { it.isNotBlank() }
+                    )
+                } else null
+
+                val dto = GuestRoomDto(
+                    roomCode = rObj.optString("room_code", code),
+                    roomUrl = rObj.optString("room_url", "https://connecto.fun/room/$code"),
+                    title = rObj.optString("title"),
+                    allowVoice = rObj.optBoolean("allow_voice", true),
+                    expiresAt = rObj.optString("expires_at"),
+                    host = hostDto
+                )
+                Result.success(dto)
+            } else {
+                Result.failure(resp.exceptionOrNull() ?: Exception("Guest room not found or closed"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun endGuestRoom(roomCode: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val code = roomCode.trim().uppercase()
+            val resp = executeRequest("/api/guest-rooms/$code/end", "POST", "{}", sessionToken)
+            if (resp.isSuccess) {
+                Result.success(true)
+            } else {
+                Result.failure(resp.exceptionOrNull() ?: Exception("Failed to end guest room"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // =========================================================================
+    // SECRET VAULT & PRIVACY SETTINGS
+    // =========================================================================
+
+    suspend fun getSecretVaultSettings(): Result<VaultSettingsDto> = withContext(Dispatchers.IO) {
+        try {
+            val resp = executeRequest("/api/user/settings", "GET", null, sessionToken)
+            if (resp.isSuccess) {
+                val json = JSONObject(resp.getOrThrow())
+                val dto = VaultSettingsDto(
+                    hasSecretVault = json.optBoolean("has_secret_vault", false),
+                    secretVaultCodeHash = json.optString("secret_vault_code_hash").takeIf { it.isNotBlank() && it != "null" },
+                    hideLockedChats = json.optBoolean("hide_locked_chats", false),
+                    hideOnline = json.optBoolean("hide_online", false),
+                    hideLastSeen = json.optBoolean("hide_last_seen", false),
+                    isStealth = json.optBoolean("is_stealth", false)
+                )
+                Result.success(dto)
+            } else {
+                Result.failure(resp.exceptionOrNull() ?: Exception("Failed to load settings"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun saveSecretVaultSettings(codeHash: String?, hideLockedChats: Boolean): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().apply {
+                if (codeHash != null) {
+                    put("secret_vault_code_hash", codeHash)
+                } else {
+                    put("secret_vault_code_hash", JSONObject.NULL)
+                }
+                put("hide_locked_chats", hideLockedChats)
+            }.toString()
+
+            val resp = executeRequest("/api/user/settings", "POST", body, sessionToken)
+            if (resp.isSuccess) {
+                Result.success(true)
+            } else {
+                Result.failure(resp.exceptionOrNull() ?: Exception("Failed to save vault settings"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

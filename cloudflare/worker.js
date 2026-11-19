@@ -11,6 +11,13 @@ import {
   getFallbackFriends,
   getFallbackMessages
 } from "./canonical_edge_data.js";
+import {
+  generateGuestToken,
+  verifyGuestToken,
+  purgeExpiredGuestRooms,
+  handleGuestRoomsApi,
+  renderGuestRoomHtml
+} from "./guest_rooms.js";
 
 // Cloudflare Worker: Connecto Intelligent Cloud Edge Gateway
 // Automated Failover: When Local Server is down, Cloud Server connects instantly
@@ -26,7 +33,8 @@ export default {
   async scheduled(event, env, ctx) {
     ctx.waitUntil(Promise.all([
       probeOriginHealth(env),
-      purgeExpiredSessions(env)
+      purgeExpiredSessions(env),
+      purgeExpiredGuestRooms(env)
     ]));
   },
 
@@ -96,6 +104,20 @@ Sitemap: https://connecto.fun/sitemap.xml
           "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization, X-D1-Key, X-Requested-With, X-User-Username",
           "Access-Control-Max-Age": "86400"
+        }
+      });
+    }
+
+    // 0a. Zero-Install Ephemeral Guest Rooms (connecto.fun/room/{roomCode})
+    if (url.pathname.startsWith("/room/")) {
+      const parts = url.pathname.split("/").filter(Boolean);
+      const roomCode = parts[1] || "";
+      return new Response(renderGuestRoomHtml(roomCode), {
+        status: 200,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Access-Control-Allow-Origin": "*"
         }
       });
     }
@@ -734,7 +756,11 @@ Sitemap: https://connecto.fun/sitemap.xml
       const isStoreWs = url.pathname.includes("/store/ws") ||
                         url.searchParams.get("channel") === "store_updates" ||
                         url.searchParams.get("client") === "our_store";
-      if (isStoreWs) {
+      const isGuestWs = url.pathname.includes("/room-") ||
+                        (url.searchParams.get("channel") || "").startsWith("room-") ||
+                        (url.searchParams.get("token") || "").startsWith("cf_guest_") ||
+                        url.searchParams.get("is_guest") === "true";
+      if (isStoreWs || isGuestWs) {
         const room = getRealtimeRoom(env);
         if (room) {
           return room.fetch(request);
@@ -2092,6 +2118,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
                          path === "/api/auth/check-email" ||
                          path === "/api/auth/forgot-password" || path === "/api/auth/verify-otp" || path === "/api/auth/reset-password" ||
                          path.startsWith("/api/store/") || path.startsWith("/api/v1/store/") ||
+                         path.startsWith("/api/guest-rooms") || path.startsWith("/api/v1/guest-rooms") ||
                          path.startsWith("/download/") || path.startsWith("/static/") || path.startsWith("/uploads/") ||
                          path.startsWith("/wallpapers/");
     if (!isPublicPath) {
@@ -4191,6 +4218,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       let hideOnline = 0;
       let hideLastSeen = 0;
       let isStealth = 0;
+      let vaultCodeHash = null;
+      let hideLocked = 0;
       if (env.DB) {
         const row = await env.DB.prepare(
           "SELECT hide_online, hide_last_seen, is_stealth FROM users WHERE id = ?"
@@ -4200,12 +4229,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           hideLastSeen = row.hide_last_seen || row.is_stealth || 0;
           isStealth = row.is_stealth || (hideOnline && hideLastSeen ? 1 : 0);
         }
+        const setRow = await env.DB.prepare(
+          "SELECT secret_vault_code_hash, hide_locked_chats FROM user_settings WHERE user_id = ?"
+        ).bind(user.id).first().catch(() => null);
+        if (setRow) {
+          vaultCodeHash = setRow.secret_vault_code_hash || null;
+          hideLocked = setRow.hide_locked_chats || 0;
+        }
       }
       return jsonResponse({
         status: "ok",
         hide_online: Boolean(hideOnline),
         hide_last_seen: Boolean(hideLastSeen),
-        is_stealth: Boolean(isStealth)
+        is_stealth: Boolean(isStealth),
+        has_secret_vault: Boolean(vaultCodeHash),
+        secret_vault_code_hash: vaultCodeHash,
+        hide_locked_chats: Boolean(hideLocked)
       });
     }
 
@@ -4218,9 +4257,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
       // Check current settings first
       let currentRow = null;
+      let currentSettings = null;
       if (env.DB) {
         currentRow = await env.DB.prepare(
           "SELECT hide_online, hide_last_seen, is_stealth FROM users WHERE id = ?"
+        ).bind(user.id).first().catch(() => null);
+        currentSettings = await env.DB.prepare(
+          "SELECT secret_vault_code_hash, hide_locked_chats FROM user_settings WHERE user_id = ?"
         ).bind(user.id).first().catch(() => null);
       }
 
@@ -4243,6 +4286,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       const hideLastSeenInt = hideLastSeen ? 1 : 0;
       const isStealthInt = (hideOnline && hideLastSeen) ? 1 : (isStealth ? 1 : 0);
 
+      let vaultHash = currentSettings?.secret_vault_code_hash || null;
+      let hideLocked = currentSettings?.hide_locked_chats ? 1 : 0;
+
+      if (body.secret_vault_code_hash !== undefined) {
+        vaultHash = body.secret_vault_code_hash ? String(body.secret_vault_code_hash).trim() : null;
+      }
+      if (body.hide_locked_chats !== undefined) {
+        hideLocked = (body.hide_locked_chats === true || body.hide_locked_chats === 1 || body.hide_locked_chats === "true") ? 1 : 0;
+      }
+
       if (env.DB) {
         // Save to users table
         await env.DB.prepare(
@@ -4251,14 +4304,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
         // Save to user_settings table
         await env.DB.prepare(`
-          INSERT INTO user_settings (user_id, hide_online, hide_last_seen, is_stealth, updated_at)
-          VALUES (?, ?, ?, ?, datetime('now'))
+          INSERT INTO user_settings (user_id, hide_online, hide_last_seen, is_stealth, secret_vault_code_hash, hide_locked_chats, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
           ON CONFLICT(user_id) DO UPDATE SET
             hide_online = excluded.hide_online,
             hide_last_seen = excluded.hide_last_seen,
             is_stealth = excluded.is_stealth,
+            secret_vault_code_hash = excluded.secret_vault_code_hash,
+            hide_locked_chats = excluded.hide_locked_chats,
             updated_at = datetime('now')
-        `).bind(user.id, hideOnlineInt, hideLastSeenInt, isStealthInt).run().catch(() => {});
+        `).bind(user.id, hideOnlineInt, hideLastSeenInt, isStealthInt, vaultHash, hideLocked).run().catch(() => {});
       }
 
       const room = getRealtimeRoom(env);
@@ -4286,11 +4341,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         hide_online: hideOnline,
         hide_last_seen: hideLastSeen,
         is_stealth: isStealth,
-        message: isStealth ? "Stealth privacy active" : "Presence settings updated"
+        has_secret_vault: Boolean(vaultHash),
+        secret_vault_code_hash: vaultHash,
+        hide_locked_chats: Boolean(hideLocked),
+        message: isStealth ? "Stealth privacy active" : "Privacy & settings updated"
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
     }
+  }
+
+  // 3j. Ephemeral Zero-Install Guest Rooms API (POST /api/guest-rooms, GET /api/guest-rooms/:code, etc.)
+  if (path.startsWith("/api/guest-rooms") || path.startsWith("/api/v1/guest-rooms")) {
+    return handleGuestRoomsApi(request, url, env, ctx, resolveUserFromRequest, jsonResponse, getRealtimeRoom, broadcastRealtime);
   }
 
   // 3j. Change Contact / Request OTP (Email or Phone)
@@ -11027,6 +11090,129 @@ export class ConnectoRealtimeRoom {
   }
 
   async handleWebSocket(server, request, url) {
+    const rawToken = url.searchParams.get("token") || "";
+
+    // 0a. Zero-Install Ephemeral Guest Room WebSocket Connection
+    if (rawToken && rawToken.startsWith("cf_guest_")) {
+      const guestAuth = await verifyGuestToken(rawToken, this.env);
+      if (guestAuth && guestAuth.isGuest) {
+        const guestUser = `guest_${guestAuth.guestId}`;
+        const guestChannel = `room-${guestAuth.roomCode}`.toLowerCase();
+        const meta = {
+          username: guestUser,
+          displayName: guestAuth.displayName || "Guest",
+          avatar: "👤",
+          channels: new Set([guestChannel, `voice_room:${guestChannel}`]),
+          currentVoiceRoom: null,
+          sessionTokenHash: "",
+          connectedAt: Date.now(),
+          isGuest: true,
+          roomCode: guestAuth.roomCode
+        };
+
+        this.sockets.add(server);
+        this.socketMeta.set(server, meta);
+
+        if (!this.userSockets.has(guestUser)) this.userSockets.set(guestUser, new Set());
+        this.userSockets.get(guestUser).add(server);
+
+        for (const ch of meta.channels) {
+          if (!this.channelSockets.has(ch)) this.channelSockets.set(ch, new Set());
+          this.channelSockets.get(ch).add(server);
+        }
+
+        try {
+          server.send(JSON.stringify({
+            type: "connected",
+            event: "connected",
+            mode: "cloud_guest_room",
+            user: guestUser,
+            username: guestUser,
+            display_name: meta.displayName,
+            channel: guestChannel,
+            room_code: guestAuth.roomCode,
+            is_guest: true,
+            timestamp: new Date().toISOString()
+          }));
+        } catch (_) {}
+
+        server.addEventListener("message", async (msgEvt) => {
+          try {
+            const raw = msgEvt.data;
+            if (!raw) return;
+            const data = typeof raw === "string" ? JSON.parse(raw) : {};
+
+            if (data.type === "ping" || data.action === "ping") {
+              server.send(JSON.stringify({ type: "pong", timestamp: Date.now() }));
+              return;
+            }
+
+            if (data.action === "voice_data" || data.type === "voice_data") {
+              const vChan = `voice_room:${guestChannel}`;
+              this.broadcastToChannel(vChan, {
+                type: "voice_data",
+                room_id: guestChannel,
+                sender_id: guestUser,
+                sender_username: guestUser,
+                sender_display_name: meta.displayName,
+                is_guest: true,
+                audio: data.audio
+              }, server);
+              return;
+            }
+
+            if (data.type === "message" || data.content || data.text) {
+              const content = (data.content || data.text || "").trim();
+              if (!content) return;
+              const msgId = "msg_g_" + Math.random().toString(36).substring(2, 10);
+              const nowIso = new Date().toISOString();
+              const isWhisper = Boolean(data.isWhisper || data.is_whisper);
+              const msgPayload = {
+                id: msgId,
+                channelId: guestChannel,
+                channel_id: guestChannel,
+                authorId: guestUser,
+                author_id: guestUser,
+                authorName: meta.displayName,
+                author_name: meta.displayName,
+                authorAvatar: "👤",
+                sender: guestUser,
+                sender_username: guestUser,
+                sender_display_name: meta.displayName,
+                content: content,
+                text: content,
+                is_guest: true,
+                isWhisper: isWhisper,
+                is_whisper: isWhisper,
+                createdAt: nowIso,
+                timestamp: nowIso
+              };
+
+              if (this.env && this.env.DB) {
+                this.env.DB.prepare(
+                  "INSERT INTO guest_room_messages (id, room_code, sender_name, is_guest, content, is_whisper, created_at) VALUES (?, ?, ?, 1, ?, ?, datetime('now'))"
+                ).bind(msgId, guestAuth.roomCode, meta.displayName, content, isWhisper ? 1 : 0).run().catch(() => {});
+              }
+
+              this.broadcastToChannel(guestChannel, {
+                type: "new_message",
+                channel_id: guestChannel,
+                message: msgPayload
+              });
+            }
+          } catch (_) {}
+        });
+
+        server.addEventListener("close", () => {
+          this.removeSocket(server);
+        });
+        server.addEventListener("error", () => {
+          this.removeSocket(server);
+        });
+        return;
+      }
+    }
+
     const isStoreWs = url.pathname.includes("/store/ws") ||
                       url.searchParams.get("channel") === "store_updates" ||
                       url.searchParams.get("client") === "our_store";
@@ -11116,7 +11302,6 @@ export class ConnectoRealtimeRoom {
       "test1": "/uploads/avatars/e0f32b345cd345349f86a73eead1257e.webp"
     };
 
-    const rawToken = url.searchParams.get("token") || "";
     let sessionTokenHash = "";
     if (rawToken) {
       try {
@@ -11966,6 +12151,9 @@ export class ConnectoRealtimeRoom {
           const rAuthor = data.replyToAuthor || data.replyToSenderName || data.reply_to_author || null;
           const rContent = data.replyToContent || data.replyToText || data.reply_to_content || null;
 
+          const isSilent = Boolean(data.isSilent || data.is_silent);
+          const isWhisper = Boolean(data.isWhisper || data.is_whisper);
+
           const msgObj = {
             id: msgId,
             channelId: targetCh,
@@ -11985,6 +12173,10 @@ export class ConnectoRealtimeRoom {
             sender_avatar_url: meta.avatar,
             content: rawContent,
             text: rawContent,
+            isSilent: isSilent,
+            is_silent: isSilent,
+            isWhisper: isWhisper,
+            is_whisper: isWhisper,
             createdAt: nowIso,
             created_at: nowIso,
             timestamp: nowIso,
@@ -12002,7 +12194,7 @@ export class ConnectoRealtimeRoom {
           };
 
           // Asynchronously persist to D1 without delaying WebSocket delivery
-          this.persistMessage(msgId, targetCh, meta.username, rawContent);
+          this.persistMessage(msgId, targetCh, meta.username, rawContent, isSilent, isWhisper);
 
           if (targetCh.startsWith("dm-") || targetCh.startsWith("dm_")) {
             const recipient = resolveDmRecipient(targetCh, meta.username, data.recipient || data.target);
@@ -12014,23 +12206,26 @@ export class ConnectoRealtimeRoom {
                 channel_name: targetCh,
                 message: msgObj
               });
+              const previewText = isWhisper ? "🫧 Sent a whisper" : rawContent;
               this.addNotification(recipient, {
                 id: "notif_" + msgId,
                 message_id: msgId,
                 type: "message",
                 title: meta.displayName || meta.username,
-                content: rawContent,
+                content: previewText,
                 sender_username: meta.username,
                 sender_avatar: meta.avatar,
-                reference_id: meta.username
+                reference_id: meta.username,
+                is_silent: isSilent,
+                is_whisper: isWhisper
               });
 
-              if (this.env && this.env.DB) {
+              if (this.env && this.env.DB && !isSilent) {
                 try {
                   const nId = "notif_ws_" + msgId;
                   this.env.DB.prepare(
                     "INSERT OR IGNORE INTO notifications (id, user_id, type, title, content, sender_username, sender_avatar, reference_id, is_read, created_at) VALUES (?, ?, 'message', ?, ?, ?, ?, ?, 0, datetime('now'))"
-                  ).bind(nId, recipient, meta.displayName || meta.username, rawContent, meta.username, meta.avatar, meta.username).run().catch(() => {});
+                  ).bind(nId, recipient, meta.displayName || meta.username, previewText, meta.username, meta.avatar, meta.username).run().catch(() => {});
                 } catch (_) {}
               }
             }
@@ -12412,11 +12607,18 @@ export class ConnectoRealtimeRoom {
     }
   }
 
-  persistMessage(id, channelId, sender, content) {
+  persistMessage(id, channelId, sender, content, isSilent = false, isWhisper = false) {
     if (!this.env || !this.env.DB) return;
     this.env.DB.prepare(
-      "INSERT INTO messages (id, channel_id, sender_id, content) VALUES (?, ?, ?, ?)"
-    ).bind(id, channelId, sender, content).run().catch(() => {});
+      "INSERT INTO messages (id, channel_id, sender_id, content, is_silent, is_whisper) VALUES (?, ?, ?, ?, ?, ?)"
+    ).bind(id, channelId, sender, content, isSilent ? 1 : 0, isWhisper ? 1 : 0).run().catch(() => {});
+
+    if (channelId.startsWith("room-")) {
+      const roomCode = channelId.substring(5).toUpperCase();
+      this.env.DB.prepare(
+        "INSERT INTO guest_room_messages (id, room_code, sender_name, is_guest, content, is_whisper, created_at) VALUES (?, ?, ?, 0, ?, ?, datetime('now'))"
+      ).bind(id, roomCode, sender, content, isWhisper ? 1 : 0).run().catch(() => {});
+    }
   }
 }
 
