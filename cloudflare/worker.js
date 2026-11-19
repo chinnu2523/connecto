@@ -4177,38 +4177,113 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   }
 
   // 3i. Stealth Mode API (Web & Android)
-  if (path === "/api/users/stealth" || path === "/api/user/stealth") {
+  // 3i. Privacy, Presence & Stealth Settings (/api/user/settings, /api/users/stealth)
+  if (path === "/api/users/stealth" || path === "/api/user/stealth" || path === "/api/user/settings" || path === "/api/users/settings") {
+    const user = await resolveUserFromRequest(request, env);
+    if (!user) {
+      return jsonResponse({ error: "Unauthorized", detail: "Active session required" }, 401);
+    }
+
+    if (method === "GET") {
+      let hideOnline = 0;
+      let hideLastSeen = 0;
+      let isStealth = 0;
+      if (env.DB) {
+        const row = await env.DB.prepare(
+          "SELECT hide_online, hide_last_seen, is_stealth FROM users WHERE id = ?"
+        ).bind(user.id).first().catch(() => null);
+        if (row) {
+          hideOnline = row.hide_online || row.is_stealth || 0;
+          hideLastSeen = row.hide_last_seen || row.is_stealth || 0;
+          isStealth = row.is_stealth || (hideOnline && hideLastSeen ? 1 : 0);
+        }
+      }
+      return jsonResponse({
+        status: "ok",
+        hide_online: Boolean(hideOnline),
+        hide_last_seen: Boolean(hideLastSeen),
+        is_stealth: Boolean(isStealth)
+      });
+    }
+
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
     try {
       const body = await request.json().catch(() => ({}));
-      const user = await resolveUserFromRequest(request, env);
-      if (!user) {
-        return jsonResponse({ error: "Unauthorized", detail: "Active session required" }, 401);
+      let hideOnline = false;
+      let hideLastSeen = false;
+      let isStealth = false;
+
+      // Check current settings first
+      let currentRow = null;
+      if (env.DB) {
+        currentRow = await env.DB.prepare(
+          "SELECT hide_online, hide_last_seen, is_stealth FROM users WHERE id = ?"
+        ).bind(user.id).first().catch(() => null);
       }
-      const enabled = (body.is_stealth !== undefined) ?
-        (body.is_stealth === true || body.is_stealth === 1 || body.is_stealth === "true") :
-        (body.enabled !== undefined ? (body.enabled === true || body.enabled === 1 || body.enabled === "true") : true);
+
+      if (body.enabled !== undefined || body.is_stealth !== undefined) {
+        const val = body.is_stealth !== undefined ?
+          (body.is_stealth === true || body.is_stealth === 1 || body.is_stealth === "true") :
+          (body.enabled === true || body.enabled === 1 || body.enabled === "true");
+        isStealth = val;
+        hideOnline = body.hide_online !== undefined ? Boolean(body.hide_online) : val;
+        hideLastSeen = body.hide_last_seen !== undefined ? Boolean(body.hide_last_seen) : val;
+      } else {
+        hideOnline = body.hide_online !== undefined ?
+          Boolean(body.hide_online) : Boolean(currentRow?.hide_online);
+        hideLastSeen = body.hide_last_seen !== undefined ?
+          Boolean(body.hide_last_seen) : Boolean(currentRow?.hide_last_seen);
+        isStealth = hideOnline || hideLastSeen;
+      }
+
+      const hideOnlineInt = hideOnline ? 1 : 0;
+      const hideLastSeenInt = hideLastSeen ? 1 : 0;
+      const isStealthInt = (hideOnline && hideLastSeen) ? 1 : (isStealth ? 1 : 0);
 
       if (env.DB) {
+        // Save to users table
         await env.DB.prepare(
-          "UPDATE users SET is_stealth = ?, updated_at = datetime('now') WHERE id = ?"
-        ).bind(enabled ? 1 : 0, user.id).run();
+          "UPDATE users SET hide_online = ?, hide_last_seen = ?, is_stealth = ?, updated_at = datetime('now') WHERE id = ?"
+        ).bind(hideOnlineInt, hideLastSeenInt, isStealthInt, user.id).run().catch(() => {});
+
+        // Save to user_settings table
+        await env.DB.prepare(`
+          INSERT INTO user_settings (user_id, hide_online, hide_last_seen, is_stealth, updated_at)
+          VALUES (?, ?, ?, ?, datetime('now'))
+          ON CONFLICT(user_id) DO UPDATE SET
+            hide_online = excluded.hide_online,
+            hide_last_seen = excluded.hide_last_seen,
+            is_stealth = excluded.is_stealth,
+            updated_at = datetime('now')
+        `).bind(user.id, hideOnlineInt, hideLastSeenInt, isStealthInt).run().catch(() => {});
+      }
+
+      const room = getRealtimeRoom(env);
+      if (room) {
+        try {
+          await room.fetch(new Request(
+            `http://realtime/internal/presence/settings?username=${encodeURIComponent(user.username)}&hide_online=${hideOnlineInt}&hide_last_seen=${hideLastSeenInt}`,
+            { method: "POST" }
+          ));
+        } catch (_) {}
       }
 
       if (ctx) {
         ctx.waitUntil(broadcastRealtime(env, {
           type: "presence_update",
           username: user.username,
-          is_online: !enabled,
-          status: enabled ? "offline" : "online"
+          is_online: !hideOnline,
+          status: hideOnline ? "offline" : "online",
+          last_seen: hideLastSeen ? null : new Date().toISOString()
         }));
       }
 
       return jsonResponse({
         status: "ok",
-        is_stealth: enabled,
-        stealth: enabled,
-        message: enabled ? "Stealth mode enabled (ghost presence active)" : "Stealth mode disabled"
+        hide_online: hideOnline,
+        hide_last_seen: hideLastSeen,
+        is_stealth: isStealth,
+        message: isStealth ? "Stealth privacy active" : "Presence settings updated"
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -4905,9 +4980,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           LIMIT 1
         `).bind(myUsername, myUsername).first();
         if (caller) {
+          // Caller's own privacy settings for reciprocity enforcement
+          const callerSettings = await env.DB.prepare(
+            "SELECT hide_online, hide_last_seen, is_stealth FROM users WHERE id = ?"
+          ).bind(caller.id).first().catch(() => null);
+          const callerHideOnline = Boolean(callerSettings?.hide_online || callerSettings?.is_stealth);
+          const callerHideLastSeen = Boolean(callerSettings?.hide_last_seen || callerSettings?.is_stealth);
+
           const onlineSet = await getOnlineUsersFromRealtime(env);
           const res = await env.DB.prepare(`
-            SELECT DISTINCT u.id, u.username, u.display_name, u.avatar_url, u.banner_url, u.bio, u.is_online, u.is_stealth, u.last_seen, u.updated_at
+            SELECT DISTINCT u.id, u.username, u.display_name, u.avatar_url, u.banner_url, u.bio, u.is_online, u.is_stealth, u.hide_online, u.hide_last_seen, u.last_seen, u.updated_at
             FROM friendships f
             JOIN users u ON (f.friend_id = u.id AND f.user_id = ?) OR (f.user_id = u.id AND f.friend_id = ?)
             WHERE f.status = 'accepted' AND u.id != ?
@@ -4917,14 +4999,18 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           for (const r of (res.results || [])) {
             if (!seen.has(r.id)) {
               seen.add(r.id);
-              const isStealth = Boolean(r.is_stealth);
+              const targetHideOnline = Boolean(r.hide_online || r.is_stealth);
+              const targetHideLastSeen = Boolean(r.hide_last_seen || r.is_stealth);
               const rUserClean = (r.username || "").toLowerCase().trim().replace(/^@/, "");
               const isAliasMatch = (rUserClean === "chinnu" || rUserClean === "chinnu14754x") && 
                 (onlineSet ? (onlineSet.has("chinnu") || onlineSet.has("chinnu14754x")) : false);
               const isSocketActive = onlineSet ? 
                 (onlineSet.has(rUserClean) || onlineSet.has(String(r.id).toLowerCase()) || isAliasMatch) : 
                 false;
-              const isOnline = isStealth ? false : Boolean(isSocketActive);
+
+              // Server-Side Redaction & Reciprocity Enforcement
+              const effectiveOnline = (targetHideOnline || callerHideOnline) ? false : Boolean(isSocketActive);
+              const effectiveLastSeen = (targetHideLastSeen || callerHideLastSeen) ? null : (r.last_seen || r.updated_at || null);
               const dName = r.display_name || r.username;
               const av = r.avatar_url || "👾";
               const ban = r.banner_url || "";
@@ -4969,10 +5055,10 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
                 friend_avatar_url: av,
                 banner_url: ban,
                 friend_banner_url: ban,
-                status: isOnline ? "online" : "offline",
-                is_online: isOnline,
-                last_seen: r.last_seen || r.updated_at || null,
-                is_stealth: isStealth,
+                status: effectiveOnline ? "online" : "offline",
+                is_online: effectiveOnline,
+                last_seen: effectiveLastSeen,
+                is_stealth: targetHideOnline || targetHideLastSeen,
                 bio: r.bio || "Connecto friend",
                 last_message: lastMsgText,
                 last_timestamp: lastMsgTime,
@@ -10767,6 +10853,35 @@ export class ConnectoRealtimeRoom {
       return new Response(JSON.stringify({ status: "ok" }), { headers: { "Content-Type": "application/json" } });
     }
 
+    if (url.pathname === "/internal/presence/settings") {
+      const u = (url.searchParams.get("username") || "").toLowerCase().trim().replace(/^@/, "");
+      const hideOnline = url.searchParams.get("hide_online") === "1" || url.searchParams.get("hide_online") === "true";
+      const hideLastSeen = url.searchParams.get("hide_last_seen") === "1" || url.searchParams.get("hide_last_seen") === "true";
+      if (u) {
+        const p = this.userPresence.get(u) || { lastHeartbeat: Date.now() };
+        p.hideOnline = hideOnline;
+        p.hideLastSeen = hideLastSeen;
+        if (hideOnline) {
+          p.isOnline = false;
+          p.status = "offline";
+        }
+        this.userPresence.set(u, p);
+
+        const uSockets = this.userSockets.get(u);
+        if (uSockets) {
+          for (const s of uSockets) {
+            const m = this.socketMeta.get(s);
+            if (m) {
+              m.hideOnline = hideOnline;
+              m.hideLastSeen = hideLastSeen;
+              m.isStealth = hideOnline;
+            }
+          }
+        }
+      }
+      return new Response(JSON.stringify({ status: "ok" }), { headers: { "Content-Type": "application/json" } });
+    }
+
     if (url.pathname === "/internal/presence/online") {
       const u = (url.searchParams.get("username") || "").toLowerCase().trim().replace(/^@/, "");
       if (u) {
@@ -11346,11 +11461,8 @@ export class ConnectoRealtimeRoom {
           return;
         }
 
-        // 3. Typing Indicators
+        // 3. Typing Indicators (Typing Indicator Exception: Always broadcast typing in active chat even when Stealth Mode is enabled)
         if (data.action === "typing" || data.type === "typing" || data.type === "typing_start" || data.type === "typing_stop" || data.action === "typing:start" || data.action === "typing:stop") {
-          if (meta.isStealth || data.is_stealth) {
-            return;
-          }
           const targetCh = (data.channel_id || data.channel || "general").toLowerCase().trim().replace(/^#/, "");
           let targetUser = (data.target_user || data.recipient || data.target || "").toLowerCase().trim().replace(/^@/, "");
 
@@ -12176,11 +12288,17 @@ export class ConnectoRealtimeRoom {
         nickname: payload.nickname
       });
     } else if (payload.type === "presence_update") {
+      const u = (payload.username || "").toLowerCase().trim().replace(/^@/, "");
+      const p = this.userPresence.get(u);
+      const isHiddenOnline = Boolean(p?.hideOnline);
+      const isHiddenLastSeen = Boolean(p?.hideLastSeen);
+
       this.broadcastToAll({
         type: "presence_update",
         username: payload.username,
-        is_online: payload.is_online,
-        status: payload.status
+        is_online: isHiddenOnline ? false : payload.is_online,
+        status: isHiddenOnline ? "offline" : payload.status,
+        last_seen: isHiddenLastSeen ? null : (payload.last_seen || null)
       });
     } else if (payload.type === "session_terminated" || payload.type === "session_revoked" || payload.type === "force_logout") {
       const u = (payload.username || payload.user_id || "").toLowerCase().trim().replace(/^@/, "");

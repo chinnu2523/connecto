@@ -127,6 +127,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -430,6 +431,12 @@ fun ProfileScreen(
     var stealthModeEnabled by remember(username) {
         mutableStateOf(prefs.getBoolean("stealth_mode_$username", false))
     }
+    var hideOnlineStatus by remember(username) {
+        mutableStateOf(prefs.getBoolean("hide_online_$username", prefs.getBoolean("stealth_mode_$username", false)))
+    }
+    var hideLastSeen by remember(username) {
+        mutableStateOf(prefs.getBoolean("hide_last_seen_$username", prefs.getBoolean("stealth_mode_$username", false)))
+    }
     var isUserOnline by remember(username) {
         mutableStateOf(false)
     }
@@ -634,6 +641,22 @@ fun ProfileScreen(
                 isUserOnline = prof.isOnline && !prof.isStealth
                 prefs.edit().putBoolean("stealth_mode_${prof.username}", prof.isStealth).apply()
                 ConnectoApiClient.updateStealthModeState(prof.isStealth)
+                try {
+                    val settingsRes = ConnectoApiClient.getUserSettings()
+                    if (settingsRes.isSuccess) {
+                        val sObj = settingsRes.getOrThrow()
+                        val hOnline = sObj.optBoolean("hide_online", prof.isStealth)
+                        val hLastSeen = sObj.optBoolean("hide_last_seen", prof.isStealth)
+                        hideOnlineStatus = hOnline
+                        hideLastSeen = hLastSeen
+                        stealthModeEnabled = hOnline || hLastSeen
+                        prefs.edit()
+                            .putBoolean("hide_online_${prof.username}", hOnline)
+                            .putBoolean("hide_last_seen_${prof.username}", hLastSeen)
+                            .putBoolean("stealth_mode_${prof.username}", stealthModeEnabled)
+                            .apply()
+                    }
+                } catch (_: Exception) {}
                 if (!prof.bannerUrl.isNullOrBlank()) {
                     val sBan = prof.bannerUrl.trim()
                     val isCorrupted = sBan.startsWith("data:") && sBan.length < 500
@@ -1601,7 +1624,7 @@ fun ProfileScreen(
                         ConnectoSettingsRow(
                             icon = Icons.Default.VisibilityOff,
                             title = "Presence & Stealth",
-                            value = if (stealthModeEnabled) "Stealth" else "Online",
+                            value = if (hideOnlineStatus || hideLastSeen || stealthModeEnabled) "Stealth" else "Online",
                             showChevron = true,
                             onClick = {
                                 previousSubPage = null
@@ -2727,91 +2750,223 @@ fun ProfileScreen(
                             }
                             ProfileSubPage.PRESENCE_STEALTH -> {
                                 item(key = "sub_presence_stealth_card") {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .liquidGlassCard(
-                                                shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
-                                                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
-                                                    else if (stealthModeEnabled) ConnectoTheme.colors.info.copy(alpha = 0.08f)
-                                                    else MaterialTheme.colorScheme.surface,
-                                                borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
-                                                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
-                                                    else if (stealthModeEnabled) ConnectoTheme.colors.info
-                                                    else MaterialTheme.colorScheme.primary
-                                            )
-                                            .padding(16.dp)
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(16.dp)
                                     ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(
-                                            imageVector = if (stealthModeEnabled) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                            contentDescription = null,
-                                            tint = if (stealthModeEnabled) ConnectoTheme.colors.info else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(22.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Column {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text(
-                                                    text = "Stealth Mode",
-                                                    fontSize = 15.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = if (stealthModeEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface
+                                        // Main Settings Card
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .liquidGlassCard(
+                                                    shape = RoundedCornerShape(20.dp),
+                                                    backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                        else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                                                        else MaterialTheme.colorScheme.surface,
+                                                    borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                                                        else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                                                        else MaterialTheme.colorScheme.primary
                                                 )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                if (stealthModeEnabled) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .clip(RoundedCornerShape(6.dp))
-                                                            .background(ConnectoTheme.colors.info.copy(alpha = 0.2f))
-                                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                .padding(16.dp)
+                                        ) {
+                                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                                // Toggle 1: Hide Online Status
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier.weight(1f)
                                                     ) {
-                                                        Text(
-                                                            text = "ACTIVE",
-                                                            fontSize = 10.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = ConnectoTheme.colors.info
+                                                        Icon(
+                                                            imageVector = if (hideOnlineStatus) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                                            contentDescription = null,
+                                                            tint = if (hideOnlineStatus) ConnectoTheme.colors.info else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            modifier = Modifier.size(22.dp)
                                                         )
+                                                        Spacer(modifier = Modifier.width(12.dp))
+                                                        Column {
+                                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                                Text(
+                                                                    text = "Hide Online Status",
+                                                                    fontSize = 15.sp,
+                                                                    fontWeight = FontWeight.SemiBold,
+                                                                    color = MaterialTheme.colorScheme.onSurface
+                                                                )
+                                                                if (hideOnlineStatus) {
+                                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                                    Box(
+                                                                        modifier = Modifier
+                                                                            .clip(RoundedCornerShape(6.dp))
+                                                                            .background(ConnectoTheme.colors.info.copy(alpha = 0.2f))
+                                                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                                    ) {
+                                                                        Text(
+                                                                            text = "HIDDEN",
+                                                                            fontSize = 10.sp,
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            color = ConnectoTheme.colors.info
+                                                                        )
+                                                                    }
+                                                                }
+                                                            }
+                                                            Text(
+                                                                text = "Hides your real-time green dot and Online status from other contacts",
+                                                                fontSize = 12.sp,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
                                                     }
+                                                    Switch(
+                                                        checked = hideOnlineStatus,
+                                                        onCheckedChange = { isChecked ->
+                                                            hideOnlineStatus = isChecked
+                                                            val isStealthNow = isChecked || hideLastSeen
+                                                            stealthModeEnabled = isStealthNow
+                                                            prefs.edit()
+                                                                .putBoolean("hide_online_$username", isChecked)
+                                                                .putBoolean("stealth_mode_$username", isStealthNow)
+                                                                .apply()
+                                                            coroutineScope.launch {
+                                                                try {
+                                                                    ConnectoApiClient.updateUserSettings(
+                                                                        hideOnline = isChecked,
+                                                                        hideLastSeen = hideLastSeen
+                                                                    )
+                                                                } catch (_: Exception) {}
+                                                            }
+                                                            triggerAutoSave()
+                                                        },
+                                                        colors = getMonochromeSwitchColors()
+                                                    )
+                                                }
+
+                                                HorizontalDivider(
+                                                    color = if (hasCoverPhoto) Color.White.copy(alpha = 0.12f)
+                                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                                                )
+
+                                                // Toggle 2: Hide Last Seen
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier.weight(1f)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.AccessTime,
+                                                            contentDescription = null,
+                                                            tint = if (hideLastSeen) ConnectoTheme.colors.info else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            modifier = Modifier.size(22.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(12.dp))
+                                                        Column {
+                                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                                Text(
+                                                                    text = "Hide Last Seen",
+                                                                    fontSize = 15.sp,
+                                                                    fontWeight = FontWeight.SemiBold,
+                                                                    color = MaterialTheme.colorScheme.onSurface
+                                                                )
+                                                                if (hideLastSeen) {
+                                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                                    Box(
+                                                                        modifier = Modifier
+                                                                            .clip(RoundedCornerShape(6.dp))
+                                                                            .background(ConnectoTheme.colors.info.copy(alpha = 0.2f))
+                                                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                                    ) {
+                                                                        Text(
+                                                                            text = "HIDDEN",
+                                                                            fontSize = 10.sp,
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            color = ConnectoTheme.colors.info
+                                                                        )
+                                                                    }
+                                                                }
+                                                            }
+                                                            Text(
+                                                                text = "Hides relative timestamps (e.g. \"Last seen 5m ago\") when you are offline",
+                                                                fontSize = 12.sp,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                    }
+                                                    Switch(
+                                                        checked = hideLastSeen,
+                                                        onCheckedChange = { isChecked ->
+                                                            hideLastSeen = isChecked
+                                                            val isStealthNow = hideOnlineStatus || isChecked
+                                                            stealthModeEnabled = isStealthNow
+                                                            prefs.edit()
+                                                                .putBoolean("hide_last_seen_$username", isChecked)
+                                                                .putBoolean("stealth_mode_$username", isStealthNow)
+                                                                .apply()
+                                                            coroutineScope.launch {
+                                                                try {
+                                                                    ConnectoApiClient.updateUserSettings(
+                                                                        hideOnline = hideOnlineStatus,
+                                                                        hideLastSeen = isChecked
+                                                                    )
+                                                                } catch (_: Exception) {}
+                                                            }
+                                                            triggerAutoSave()
+                                                        },
+                                                        colors = getMonochromeSwitchColors()
+                                                    )
                                                 }
                                             }
-                                            Text(
-                                                text = if (stealthModeEnabled)
-                                                    "You appear offline to everyone (server-enforced)"
-                                                else
-                                                    "Appear offline to others while staying connected",
-                                                fontSize = 12.sp,
-                                                color = if (stealthModeEnabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
+                                        }
+
+                                        // Reciprocity Rule Explanatory Card
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(
+                                                    if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
+                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                )
+                                                .border(
+                                                    1.dp,
+                                                    if (hasCoverPhoto) Color.White.copy(alpha = 0.15f)
+                                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .padding(14.dp)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.Top,
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Info,
+                                                    contentDescription = null,
+                                                    tint = ConnectoTheme.colors.info,
+                                                    modifier = Modifier.size(18.dp).padding(top = 2.dp)
+                                                )
+                                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    Text(
+                                                        text = "Privacy & Reciprocity",
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Text(
+                                                        text = "If you hide your online status or last seen timestamp, you won't be able to see other contacts' online status or last seen timestamps either. Active typing indicators will still display in chats.",
+                                                        fontSize = 12.sp,
+                                                        lineHeight = 16.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
-                                    Switch(
-                                        checked = stealthModeEnabled,
-                                        onCheckedChange = { isChecked ->
-                                            stealthModeEnabled = isChecked
-                                            prefs.edit().putBoolean("stealth_mode_$username", isChecked).apply()
-                                            coroutineScope.launch {
-                                                try {
-                                                    ConnectoApiClient.setStealthMode(enabled = isChecked)
-                                                } catch (e: Exception) {
-                                                    // Non-fatal — preference is persisted locally
-                                                }
-                                            }
-                                            triggerAutoSave()
-                                        },
-                                        colors = getMonochromeSwitchColors()
-                                    )
-                                }
-                            }
                                 }
                             }
                             ProfileSubPage.PERSONAL_INFO -> {

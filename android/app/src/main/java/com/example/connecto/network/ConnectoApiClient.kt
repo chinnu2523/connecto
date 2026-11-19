@@ -513,7 +513,27 @@ object ConnectoApiClient {
     private val _isStealthModeState = MutableStateFlow<Boolean>(false)
     val isStealthModeState: StateFlow<Boolean> = _isStealthModeState.asStateFlow()
 
+    @Volatile
+    var isHideOnline: Boolean = false
+    private val _isHideOnlineState = MutableStateFlow<Boolean>(false)
+    val isHideOnlineState: StateFlow<Boolean> = _isHideOnlineState.asStateFlow()
+
+    @Volatile
+    var isHideLastSeen: Boolean = false
+    private val _isHideLastSeenState = MutableStateFlow<Boolean>(false)
+    val isHideLastSeenState: StateFlow<Boolean> = _isHideLastSeenState.asStateFlow()
+
     fun updateStealthModeState(stealth: Boolean) {
+        isStealthMode = stealth
+        _isStealthModeState.value = stealth
+    }
+
+    fun updatePrivacySettings(hideOnline: Boolean, hideLastSeen: Boolean) {
+        isHideOnline = hideOnline
+        _isHideOnlineState.value = hideOnline
+        isHideLastSeen = hideLastSeen
+        _isHideLastSeenState.value = hideLastSeen
+        val stealth = hideOnline || hideLastSeen
         isStealthMode = stealth
         _isStealthModeState.value = stealth
     }
@@ -5318,6 +5338,8 @@ object ConnectoApiClient {
                 put("username", u)
                 put("enabled", enabled)
                 put("is_stealth", enabled)
+                put("hide_online", enabled)
+                put("hide_last_seen", enabled)
             }
             val response = executeRequest(
                 endpoint = "/api/users/stealth",
@@ -5326,7 +5348,57 @@ object ConnectoApiClient {
                 token = sessionToken
             )
             if (response.isSuccess) {
-                updateStealthModeState(enabled)
+                updatePrivacySettings(enabled, enabled)
+            }
+            Result.success(response.isSuccess)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getUserSettings(): Result<JSONObject> = withContext(Dispatchers.IO) {
+        try {
+            val response = executeRequest(
+                endpoint = "/api/user/settings",
+                method = "GET",
+                body = null,
+                token = sessionToken
+            )
+            if (response.isSuccess) {
+                val obj = JSONObject(response.getOrThrow())
+                val hideOnline = obj.optBoolean("hide_online", false)
+                val hideLastSeen = obj.optBoolean("hide_last_seen", false)
+                updatePrivacySettings(hideOnline, hideLastSeen)
+                Result.success(obj)
+            } else {
+                Result.failure(Exception(response.exceptionOrNull()?.message ?: "Failed to get user settings"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateUserSettings(
+        hideOnline: Boolean,
+        hideLastSeen: Boolean,
+        username: String? = null
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val u = username ?: currentUsername ?: "user_99"
+            val body = JSONObject().apply {
+                put("username", u)
+                put("hide_online", hideOnline)
+                put("hide_last_seen", hideLastSeen)
+                put("is_stealth", hideOnline || hideLastSeen)
+            }
+            val response = executeRequest(
+                endpoint = "/api/user/settings",
+                method = "POST",
+                body = body.toString(),
+                token = sessionToken
+            )
+            if (response.isSuccess) {
+                updatePrivacySettings(hideOnline, hideLastSeen)
             }
             Result.success(response.isSuccess)
         } catch (e: Exception) {

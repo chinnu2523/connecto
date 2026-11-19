@@ -575,17 +575,7 @@ object VoiceCallManager {
     fun sendTypingStart(channelId: String, recipientUsername: String? = null) {
         val clean = channelId.trim().lowercase().removePrefix("#")
         if (!isWsConnected || clean.isEmpty()) return
-        // Stealth Mode check: Never broadcast typing if stealth mode is enabled
-        if (ConnectoApiClient.isStealthMode) return
         val currentU = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
-        appContext?.let { ctx ->
-            try {
-                val prefs = ctx.getSharedPreferences("connecto_profile", android.content.Context.MODE_PRIVATE)
-                if (currentU.isNotEmpty() && prefs.getBoolean("stealth_mode_$currentU", false)) {
-                    return
-                }
-            } catch (_: Exception) {}
-        }
         val targetU = recipientUsername?.trim()?.lowercase()?.removePrefix("@") ?: ""
         try {
             Log.d(TAG, "sendTypingStart: channel=$clean, recipient=$targetU, sender=$currentU")
@@ -2589,8 +2579,10 @@ object VoiceCallManager {
                     val username = json.optString("username").ifEmpty { json.optString("user") }
                     val displayName = json.optString("display_name").ifEmpty { json.optString("displayName").ifEmpty { username } }
                     val isStealth = json.optBoolean("is_stealth", false)
-                    if (username.isNotBlank() && !isStealth) {
-                        setUserPresence(username, true)
+                    if (username.isNotBlank()) {
+                        if (!isStealth) {
+                            setUserPresence(username, true)
+                        }
                         _typingEvents.tryEmit(TypingEvent(username, displayName, chId, isTyping = true))
                         // Update legacy activeTypingUser for backward compat
                         ConnectoApiClient.activeTypingUser = displayName

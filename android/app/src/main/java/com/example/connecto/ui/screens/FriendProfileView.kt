@@ -257,6 +257,21 @@ fun FriendProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val apiHideOnline by com.example.connecto.network.ConnectoApiClient.isHideOnlineState.collectAsState()
+    val apiHideLastSeen by com.example.connecto.network.ConnectoApiClient.isHideLastSeenState.collectAsState()
+    val apiStealth by com.example.connecto.network.ConnectoApiClient.isStealthModeState.collectAsState()
+    val profilePrefs = remember { context.getSharedPreferences("connecto_profile", android.content.Context.MODE_PRIVATE) }
+    val myCleanUser = (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+    val myHideOnline = apiHideOnline || apiStealth || profilePrefs.getBoolean("hide_online_$myCleanUser", false) || profilePrefs.getBoolean("stealth_mode_$myCleanUser", false)
+    val myHideLastSeen = apiHideLastSeen || apiStealth || profilePrefs.getBoolean("hide_last_seen_$myCleanUser", false) || profilePrefs.getBoolean("stealth_mode_$myCleanUser", false)
+
+    var lastSeenTicker by remember { mutableStateOf(0L) }
+    LaunchedEffect(friend.id) {
+        while (true) {
+            kotlinx.coroutines.delay(30_000L)
+            lastSeenTicker = System.currentTimeMillis()
+        }
+    }
     val friendHandleClean = friend.handle.removePrefix("@").trim()
     val isMatchingProfile = profData != null && (
         profData.username.equals(friendHandleClean, ignoreCase = true) ||
@@ -1121,8 +1136,18 @@ fun FriendProfileScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    val statusColor = if (friend.isOnline) OnlineGreen else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                    val statusText = if (friend.isOnline) "Online" else "Offline"
+                                    val isFriendOnlineEffective = friend.isOnline && !myHideOnline
+                                    val statusColor = if (isFriendOnlineEffective) OnlineGreen else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    val statusText = if (isFriendOnlineEffective) {
+                                        "Online"
+                                    } else if (!myHideLastSeen) {
+                                        val lastSeenTs = com.example.connecto.voice.VoiceCallManager.getUserLastSeen(friend.handle)
+                                            ?: com.example.connecto.voice.VoiceCallManager.getUserLastSeen(friend.id)
+                                        val formatted = formatDynamicLastSeen(lastSeenTs, friend.lastSeen, lastSeenTicker)
+                                        formatted ?: "Offline"
+                                    } else {
+                                        "Offline"
+                                    }
 
                                     Box(
                                         modifier = Modifier

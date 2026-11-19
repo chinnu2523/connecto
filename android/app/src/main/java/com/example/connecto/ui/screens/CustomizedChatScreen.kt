@@ -2,6 +2,7 @@ package com.example.connecto.ui.screens
 
 import android.content.Context
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -751,21 +752,34 @@ fun ConnectoDeliveryDeliveredDots(modifier: Modifier = Modifier) {
     }
 }
 
-fun formatLastSeenRelative(timestampMillis: Long?, lastSeenStr: String? = null): String {
+fun formatDynamicLastSeen(
+    timestampMillis: Long?,
+    lastSeenStr: String? = null,
+    tickTrigger: Long = 0L
+): String? {
     val ts = timestampMillis ?: try {
         if (!lastSeenStr.isNullOrBlank()) {
-            val parsed = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
-                timeZone = TimeZone.getTimeZone("UTC")
-            }.parse(lastSeenStr.removeSuffix("Z"))
-            parsed?.time
+            val s = lastSeenStr.trim()
+            val cleanStr = if (s.contains(".")) s.substringBefore(".") else s.removeSuffix("Z")
+            val format = if (cleanStr.contains("T")) {
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }
+            } else {
+                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }
+            }
+            format.parse(cleanStr)?.time
         } else null
     } catch (_: Exception) {
         null
     }
 
-    if (ts == null || ts <= 0L) return "Offline • Direct Chat"
+    if (ts == null || ts <= 0L) return null
 
-    val diffMs = System.currentTimeMillis() - ts
+    val now = System.currentTimeMillis()
+    val diffMs = now - ts
     if (diffMs < 0L || diffMs < 60_000L) {
         return "Last seen just now"
     }
@@ -773,15 +787,30 @@ fun formatLastSeenRelative(timestampMillis: Long?, lastSeenStr: String? = null):
     if (diffMin < 60L) {
         return "Last seen ${diffMin}m ago"
     }
-    val diffHours = diffMin / 60L
-    if (diffHours < 24L) {
-        return "Last seen ${diffHours}h ago"
+
+    val calNow = Calendar.getInstance()
+    val calSeen = Calendar.getInstance().apply { timeInMillis = ts }
+
+    val isSameDay = calNow.get(Calendar.YEAR) == calSeen.get(Calendar.YEAR) &&
+            calNow.get(Calendar.DAY_OF_YEAR) == calSeen.get(Calendar.DAY_OF_YEAR)
+
+    calNow.add(Calendar.DAY_OF_YEAR, -1)
+    val isYesterday = calNow.get(Calendar.YEAR) == calSeen.get(Calendar.YEAR) &&
+            calNow.get(Calendar.DAY_OF_YEAR) == calSeen.get(Calendar.DAY_OF_YEAR)
+
+    val timeFormat = SimpleDateFormat("h:mm a", Locale.US)
+    return when {
+        isSameDay -> "Last seen today at ${timeFormat.format(Date(ts))}"
+        isYesterday -> "Last seen yesterday at ${timeFormat.format(Date(ts))}"
+        else -> {
+            val olderFormat = SimpleDateFormat("MMM d", Locale.US)
+            "Last seen ${olderFormat.format(Date(ts))}"
+        }
     }
-    val diffDays = diffHours / 24L
-    if (diffDays < 7L) {
-        return "Last seen ${diffDays}d ago"
-    }
-    return "Last seen recently"
+}
+
+fun formatLastSeenRelative(timestampMillis: Long?, lastSeenStr: String? = null): String {
+    return formatDynamicLastSeen(timestampMillis, lastSeenStr) ?: "Offline • Direct Chat"
 }
 
 fun evaluateIsUserOnline(
@@ -789,8 +818,12 @@ fun evaluateIsUserOnline(
     userId: String? = null,
     presenceMap: Map<String, Boolean> = emptyMap(),
     friends: List<FriendItem> = emptyList(),
-    fallbackFriend: FriendItem? = null
+    fallbackFriend: FriendItem? = null,
+    myHideOnline: Boolean = false
 ): Boolean {
+    // Reciprocity: if viewing user hid their online status, they cannot see other contacts' online status
+    if (myHideOnline) return false
+
     val cleanUser = username?.trim()?.lowercase()?.removePrefix("@") ?: ""
     val cleanId = userId?.trim()?.lowercase() ?: ""
 
@@ -866,13 +899,30 @@ fun CustomizedChatScreen(
     val messageDrafts = remember { mutableStateMapOf<String, String>() }
     var replyingTo by remember { mutableStateOf<CustomMessageItem?>(null) }
 
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+
     // Active Call State & Presence
     val callState by VoiceCallManager.callState.collectAsState()
     val activeCallTitle by VoiceCallManager.activeCallTitle.collectAsState()
     val activeCallPartner by VoiceCallManager.activeCallPartner.collectAsState()
     val livePresenceMap by VoiceCallManager.presenceState.collectAsState()
+    val apiHideOnline by ConnectoApiClient.isHideOnlineState.collectAsState()
+    val apiHideLastSeen by ConnectoApiClient.isHideLastSeenState.collectAsState()
+    val apiStealth by ConnectoApiClient.isStealthModeState.collectAsState()
+    val profilePrefs = remember(currentUsername) { context.getSharedPreferences("connecto_profile", Context.MODE_PRIVATE) }
+    val myCleanUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
+    val myHideOnline = apiHideOnline || apiStealth || profilePrefs.getBoolean("hide_online_$myCleanUser", false) || profilePrefs.getBoolean("stealth_mode_$myCleanUser", false)
+    val myHideLastSeen = apiHideLastSeen || apiStealth || profilePrefs.getBoolean("hide_last_seen_$myCleanUser", false) || profilePrefs.getBoolean("stealth_mode_$myCleanUser", false)
 
-    val coroutineScope = rememberCoroutineScope()
+    var lastSeenTicker by remember { mutableStateOf(0L) }
+    LaunchedEffect(selectedFriend?.id) {
+        while (true) {
+            kotlinx.coroutines.delay(30_000L)
+            lastSeenTicker = System.currentTimeMillis()
+        }
+    }
 
     // Send Button Animation State
     var isSendPressed by remember { mutableStateOf(false) }
@@ -882,8 +932,6 @@ fun CustomizedChatScreen(
         label = "sendScale"
     )
 
-    val context = LocalContext.current
-    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     val readPrefs = remember { context.getSharedPreferences("connecto_chat_read_prefs", Context.MODE_PRIVATE) }
     val friendPrefs = remember { context.getSharedPreferences("connecto_friend_prefs", Context.MODE_PRIVATE) }
     val notifPrefs = remember { context.getSharedPreferences("connecto_notifications_prefs", Context.MODE_PRIVATE) }
@@ -2163,20 +2211,17 @@ fun CustomizedChatScreen(
         }
     }
 
-    // Broadcast current user's typing activity in DM, suppressed if Stealth Mode is ON
+    // Broadcast current user's typing activity in DM (always broadcast active typing even in Stealth Mode)
     LaunchedEffect(typedMessage, selectedFriend?.id, activeDmChannelId) {
         val recipientUser = selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.name ?: selectedFriend?.id
         val target = activeDmChannelId ?: recipientUser
         if (!target.isNullOrBlank()) {
-            val isStealth = ConnectoApiClient.isStealthMode || context.getSharedPreferences("connecto_profile", Context.MODE_PRIVATE).getBoolean("stealth_mode_${currentUsername}", false)
-            if (!isStealth) {
-                if (typedMessage.isNotBlank()) {
-                    VoiceCallManager.sendTypingStart(target, recipientUser)
-                    kotlinx.coroutines.delay(2500)
-                    VoiceCallManager.sendTypingStop(target, recipientUser)
-                } else {
-                    VoiceCallManager.sendTypingStop(target, recipientUser)
-                }
+            if (typedMessage.isNotBlank()) {
+                VoiceCallManager.sendTypingStart(target, recipientUser)
+                kotlinx.coroutines.delay(2500)
+                VoiceCallManager.sendTypingStop(target, recipientUser)
+            } else {
+                VoiceCallManager.sendTypingStop(target, recipientUser)
             }
         }
     }
@@ -4717,7 +4762,8 @@ fun CustomizedChatScreen(
                                 userId = selectedFriend?.id,
                                 presenceMap = livePresenceMap,
                                 friends = friendsList,
-                                fallbackFriend = selectedFriend
+                                fallbackFriend = selectedFriend,
+                                myHideOnline = myHideOnline
                             )
 
                             if (isGroupChat) {
@@ -4752,15 +4798,16 @@ fun CustomizedChatScreen(
                                     modifier = Modifier.size(42.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
+                                    val showOnlineDot = isSelectedOnline && !myHideOnline
                                     ConnectoAvatar(
                                         name = selectedFriend?.name ?: "Friend",
                                         avatarUrl = selectedFriend?.avatarUrl,
                                         customSizeDp = 42.dp,
                                         customFontSizeSp = 16,
                                         borderWidth = 1.5.dp,
-                                        borderColor = if (isSelectedOnline) OnlineGreen.copy(alpha = 0.85f) else MaterialTheme.colorScheme.primary
+                                        borderColor = if (showOnlineDot) OnlineGreen.copy(alpha = 0.85f) else MaterialTheme.colorScheme.primary
                                     )
-                                    if (isSelectedOnline) {
+                                    if (showOnlineDot) {
                                         DirectChatOnlineBeacon(modifier = Modifier.align(Alignment.BottomEnd))
                                     }
                                 }
@@ -4778,12 +4825,13 @@ fun CustomizedChatScreen(
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (!isGroupChat) {
+                                    val isOnlineVisible = !isGroupChat && isSelectedOnline && !myHideOnline
+                                    if (!isGroupChat && isOnlineVisible) {
                                         Box(
                                             modifier = Modifier
                                                 .size(7.dp)
                                                 .clip(CircleShape)
-                                                .background(if (isSelectedOnline) Color(0xFF10B981) else Color(0xFF6B7280))
+                                                .background(Color(0xFF10B981))
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                     }
@@ -4793,17 +4841,20 @@ fun CustomizedChatScreen(
                                     } else {
                                         if (isFriendTyping) {
                                             "typing..."
-                                        } else if (isSelectedOnline) {
+                                        } else if (isOnlineVisible) {
                                             "Online"
-                                        } else {
+                                        } else if (!myHideLastSeen) {
                                             val lastSeenTs = VoiceCallManager.getUserLastSeen(selectedFriend?.handle)
                                                 ?: VoiceCallManager.getUserLastSeen(selectedFriend?.id)
-                                            formatLastSeenRelative(lastSeenTs, selectedFriend?.lastSeen)
+                                            val formatted = formatDynamicLastSeen(lastSeenTs, selectedFriend?.lastSeen, lastSeenTicker)
+                                            formatted ?: "Direct Chat"
+                                        } else {
+                                            "Direct Chat"
                                         }
                                     }
                                     Text(
                                         text = subText,
-                                        color = if (!isGroupChat && isFriendTyping) MaterialTheme.colorScheme.primary else if (!isGroupChat && isSelectedOnline) Color(0xFF10B981) else headerSubColor,
+                                        color = if (!isGroupChat && isFriendTyping) MaterialTheme.colorScheme.primary else if (isOnlineVisible) Color(0xFF10B981) else headerSubColor,
                                         fontSize = 12.sp,
                                         fontWeight = if (!isGroupChat && isFriendTyping) FontWeight.Bold else FontWeight.Normal,
                                         maxLines = 1,
@@ -5716,7 +5767,8 @@ fun CustomizedChatScreen(
                                                     userId = friend.id,
                                                     presenceMap = livePresenceMap,
                                                     friends = friendsList,
-                                                    fallbackFriend = friend
+                                                    fallbackFriend = friend,
+                                                    myHideOnline = myHideOnline
                                                 )
                                                 val presenceDotColor = if (isFriendOnline) Color(0xFF10B981) else Color(0xFF475569)
                                                 Box(
