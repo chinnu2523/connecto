@@ -573,7 +573,7 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.5/pdf-studio.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.8.0-b25-obsidian-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.9.0-b26-obsidian-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -581,8 +581,8 @@ Sitemap: https://connecto.fun/sitemap.xml
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
           res.headers.set("X-Connecto-Package", "com.app.pdfstudio");
           res.headers.set("X-Connecto-App", "PDF Studio");
-          res.headers.set("X-Connecto-Version", "v1.8.0");
-          res.headers.set("X-Connecto-Build", "25");
+          res.headers.set("X-Connecto-Version", "v1.9.0");
+          res.headers.set("X-Connecto-Build", "26");
           return res;
         }
 
@@ -617,8 +617,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
               downloadHeaders.set("X-Connecto-App", "PDF Studio");
-              downloadHeaders.set("X-Connecto-Version", "v1.8.0");
-              downloadHeaders.set("X-Connecto-Build", "25");
+              downloadHeaders.set("X-Connecto-Version", "v1.9.0");
+              downloadHeaders.set("X-Connecto-Build", "26");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2465,14 +2465,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Full PDF editor & creative image editor with typography matching",
         description: "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         category: "Productivity",
-        version_name: "1.8.0",
-        version_code: 25,
-        size_bytes: 67623092,
+        version_name: "1.9.0",
+        version_code: 26,
+        size_bytes: 67672244,
         size_formatted: "64.5 MB",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
         accent_color: "#EF4444",
         changelog: [
+          "My Documents File Management System: Complete high-craft Obsidian file manager on Home screen with zero-clutter adaptive header (hidden controls when empty, muted count pill with 0ms inline search morph and compact filter/sort chips when populated); scannable 16px-radius #13161F document cards with 60fps lossy WebP cached page thumbnails, format badges (PDF, PNG, JPG), bold truncated titles, and single overflow ⋮ action; 1-tap direct editing into PDF Editor or Creative Image Editor; 24px top-radius contextual bottom sheet with safe rename (locked extension badge & path sanitization), 1-tap duplicate, system share, MediaStore Downloads export (Downloads/PDF Studio), and 4-second undo snackbar deletion; fluid long-press multi-select mode with floating bottom action dock for batch Merge PDFs (2+ PDFs), batch To PDF (1+ Images), batch Share, and guarded Batch Delete; background self-healing verification silently purging orphaned thumbnails and leftover temp files.",
           "Photos to PDF Visual Page Grid: Zero-friction entry with immediate native multi-image picker and borderless fallback screen; responsive 2-column WYSIWYG page grid framed in target aspect ratio (Fit Image, A4, Letter); clutter-free card overlays with live page number pill and quick ✕ remove; 60fps fluid drag-to-reorder with tactile haptic tick; quick tap page actions (Rotate 90°, Clean Doc contrast pass, Remove); progressive disclosure Layout Bottom Sheet; bottom dock with + Add pill and Create PDF handoff to Save Sheet.",
           "Merge PDFs Tactile File Stack: Smart source picker supporting quick-pick from My Documents with multi-select checkboxes and native device file browsing; tactile vertical file stack with 6-dot instant drag handle (⋮⋮), crisp first-page thumbnails, single-line truncated titles, and 3-second undo snackbar; optional inline Page Range Picker (All pages or custom comma-separated range with live validation); live summary status line; bottom dock with + Add PDF and Merge PDFs primary action.",
           "Memory Safety & Android 15 Guardrails: Display thumbnails decoded strictly at max 480px resolution on background IO threads; sequential page streaming with explicit bitmap recycling during PDF export; EXIF orientation normalization across gallery and camera photos; try/catch guards on password-protected and corrupted PDFs with clean user notifications; unsaved queue confirmation guard sheets on both workflows.",
