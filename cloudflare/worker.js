@@ -207,13 +207,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.7.5",
-        version_name: "v5.7.5",
-        version_code: 182,
-        build: 182,
-        sha256: "052941c1f1d3d833b3a6fb18a24bd2f5fbe365541010a4364d6d8d6e56870a9c",
+        version: "5.7.6",
+        version_name: "v5.7.6",
+        version_code: 183,
+        build: 183,
+        sha256: "0760beedf54d100b971d706483a63ac7f57a7acc59025b8c15759108e8dc7c26",
         filename: "connecto-fun.apk",
-        size_bytes: 38134079,
+        size_bytes: 38165805,
         size_display: "36.4 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -221,6 +221,7 @@ Sitemap: https://connecto.fun/sitemap.xml
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "WebRTC Voice Call Architecture & Real TURN Credential Relay (v5.7.6): Stripped complex AudioContext and GainNode wrapping on remote streams to completely prevent Android audio silence and native C++ crashes. Enforced direct native WebRTC playout, configured Cloudflare TURN credentials with TCP/TLS 443 relay, and added live call diagnostics telemetry pill.",
           "Hardware-Backed Persistent Device ID, Backend Session Upsert & Clean UI Deduplication (v5.7.5): Resolved critical session duplication bug where logging in on the same physical phone (e.g., Vivo V2307) created multiple active sessions (4 ACTIVE) on app restarts, token refreshes, or mobile IP changes. Implemented persistent client deviceId combining KeyStore-backed SecureStorageManager and Android ID that stays identical across reboots and network switches. Added device_id column and index on user_sessions in Cloudflare D1. Backend recordUserSession performs an UPSERT on (userId, deviceId) to update IP, location, and timestamps in place instead of creating duplicate records, and automatically prunes stale duplicate records. Added idempotency debounce/mutex on client session fetching to eliminate double-writes on app mount. Polished Session Management UI in ProfileScreen by removing double-nested bordered card wrappers, grouping device metadata into a unified subtitle (Android 15 • Smartphone), and masking long IPv6 addresses.",
           "Mathematical Layout, Swipe-to-Delete zIndex, Concentric Radii & Spring Physics (v5.7.4): Implemented strict mathematical layout and spring physics across DMs, Wallpaper customizer, Friend Profile, and Chat & Lock. Fixed swipe-to-delete bleed-through bug with zIndex(0f) compact red delete zone (#DC2626, 88px) and zIndex(1f) solid opaque #0A0B0E foreground clipping cleanly. Trash icon scales from 0.6 to 1.0 with spring bounce. Restored real decrypted lastMessage subtitles, 12px presence dots with 2px cutout border, 56px high-contrast FAB (#4F46E5), concentric wallpaper cards (R_outer = R_inner + Padding), sliding background pills on segmented controls, and soft sunken encryption card.",
           "Post-Login Crash Prevention & Defensive Startup Initialization (v5.7.3): Completely eliminated app force-closes on login. Deferred WebRTC PeerConnectionFactory initialization and audio hardware configuration (AudioRecord/AudioTrack/AudioManager mode changes) until an actual voice call begins, preventing security exceptions on Android 12+/14+ prior to permission grant. Replaced all unsafe non-null assertions (!!) across MainActivity, CustomizedChatScreen, ChannelsWorkspaceScreen, and ProfileScreen with safe let-blocks and fallbacks. Added null-safe default fallbacks for all message and user fields (reactions, seenBy, readAt, replyToMessageId, lastSeen) to safely deserialize older backend database records. Wrapped Foreground Service starts in RECORD_AUDIO checks with defensive try/catches. Dispatched presence updates safely to Dispatchers.Main and protected SQLite column reading against null data.",
@@ -387,18 +388,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.0/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.6.2/our-store.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.6/our-store.apk",
+          "https://github.com/chinnu2523/connecto/releases/latest/download/our-store.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.5/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.1.9-b68-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.2.0-b69-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.1.9");
-          res.headers.set("X-Connecto-Store-Build", "68");
+          res.headers.set("X-Connecto-Store-Version", "v2.2.0");
+          res.headers.set("X-Connecto-Store-Build", "69");
           return res;
         }
 
@@ -436,8 +438,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.1.9");
-              downloadHeaders.set("X-Connecto-Store-Build", "68");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.2.0");
+              downloadHeaders.set("X-Connecto-Store-Build", "69");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -452,7 +454,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (err) {
         console.error("Store download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.9/our-store.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/latest/download/our-store.apk", 302);
     }
 
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK (Restricted strictly to administrators)
@@ -609,18 +611,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.5/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.4/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.6/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.5/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.5-b182-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.6-b183-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.7.5");
-          res.headers.set("X-Connecto-Build", "182");
+          res.headers.set("X-Connecto-Version", "v5.7.6");
+          res.headers.set("X-Connecto-Build", "183");
           return res;
         }
 
@@ -656,8 +659,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.7.5");
-              downloadHeaders.set("X-Connecto-Build", "182");
+              downloadHeaders.set("X-Connecto-Version", "v5.7.6");
+              downloadHeaders.set("X-Connecto-Build", "183");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -672,7 +675,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.5.9/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2205,14 +2208,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.1.9",
-        version_code: 68,
-        size_bytes: 18977848,
+        version_name: "2.2.0",
+        version_code: 69,
+        size_bytes: 18977830,
         size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Permanent Edge CDN Self-Update & Install Fallback (v2.2.0): Fixed root-cause in-app self-update failure caused by pruned tag assets by binding canonical edge stream releases/latest/download directly on Cloudflare Worker. Added filename pattern matching for ourstore package installer system intent fallback.",
           "Our Store Self-Update Engine Architecture (v2.1.9): Fixed in-app self-update failure. Routed self-updates through Android PackageInstaller.Session with USER_ACTION_REQUIRED per OS security guidelines, resolving background activity launch (BAL) restrictions. Eliminated SecurityException by removing persistable URI permission flag on FileProvider URIs. Added high-priority system notification and direct activity re-open prompt so the installation confirmation dialog is always accessible even if dismissed or minimized. Unhidden Our Store updates from the Updates tab and search.",
           "Ecosystem Sync & Production Release Pipeline (v2.1.8): Synchronized Our Store package catalog with Connecto v5.7.0 (Build 177) featuring production WebRTC group call engine and pure OLED black theme.",
           "Tier-1 Google Play / App Store UI Refactor: Clean obsidian dark (#0A0B0E) surfaces, borderless elevated cards, flat translucent 64dp bottom navigation bar, single compact status header with installed apps list, streamlined single-line support rows, and interactive auto-update preferences",
@@ -2273,14 +2277,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.7.5",
-        version_code: 182,
-        size_bytes: 38134079,
+        version_name: "5.7.6",
+        version_code: 183,
+        size_bytes: 38165805,
         size_formatted: "36.4 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "WebRTC Voice Call Architecture & Real TURN Credential Relay (v5.7.6): Stripped complex AudioContext and GainNode wrapping on remote streams to completely prevent Android audio silence and native C++ crashes. Enforced direct native WebRTC playout, configured Cloudflare TURN credentials with TCP/TLS 443 relay, and added live call diagnostics telemetry pill.",
           "Hardware-Backed Persistent Device ID, Backend Session Upsert & Clean UI Deduplication (v5.7.5): Resolved critical session duplication bug where logging in on the same physical phone (e.g., Vivo V2307) created multiple active sessions (4 ACTIVE) on app restarts, token refreshes, or mobile IP changes. Implemented persistent client deviceId combining KeyStore-backed SecureStorageManager and Android ID that stays identical across reboots and network switches. Added device_id column and index on user_sessions in Cloudflare D1. Backend recordUserSession performs an UPSERT on (userId, deviceId) to update IP, location, and timestamps in place instead of creating duplicate records, and automatically prunes stale duplicate records. Added idempotency debounce/mutex on client session fetching to eliminate double-writes on app mount. Polished Session Management UI in ProfileScreen by removing double-nested bordered card wrappers, grouping device metadata into a unified subtitle (Android 15 • Smartphone), and masking long IPv6 addresses.",
           "Mathematical Layout, Swipe-to-Delete zIndex, Concentric Radii & Spring Physics (v5.7.4): Implemented strict mathematical layout and spring physics across DMs, Wallpaper customizer, Friend Profile, and Chat & Lock. Fixed swipe-to-delete bleed-through bug with zIndex(0f) compact red delete zone (#DC2626, 88px) and zIndex(1f) solid opaque #0A0B0E foreground clipping cleanly. Trash icon scales from 0.6 to 1.0 with spring bounce. Restored real decrypted lastMessage subtitles, 12px presence dots with 2px cutout border, 56px high-contrast FAB (#4F46E5), concentric wallpaper cards (R_outer = R_inner + Padding), sliding background pills on segmented controls, and soft sunken encryption card.",
           "Post-Login Crash Prevention & Defensive Startup Initialization (v5.7.3): Completely eliminated app force-closes on login. Deferred WebRTC PeerConnectionFactory initialization and audio hardware configuration (AudioRecord/AudioTrack/AudioManager mode changes) until an actual voice call begins, preventing security exceptions on Android 12+/14+ prior to permission grant. Replaced all unsafe non-null assertions (!!) across MainActivity, CustomizedChatScreen, ChannelsWorkspaceScreen, and ProfileScreen with safe let-blocks and fallbacks. Added null-safe default fallbacks for all message and user fields (reactions, seenBy, readAt, replyToMessageId, lastSeen) to safely deserialize older backend database records. Wrapped Foreground Service starts in RECORD_AUDIO checks with defensive try/catches. Dispatched presence updates safely to Dispatchers.Main and protected SQLite column reading against null data.",
@@ -7668,13 +7673,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.7.5",
-      version_name: "v5.7.5",
-      version_code: 182,
-      build: 182,
-      sha256: "052941c1f1d3d833b3a6fb18a24bd2f5fbe365541010a4364d6d8d6e56870a9c",
+      version: "5.7.6",
+      version_name: "v5.7.6",
+      version_code: 183,
+      build: 183,
+      sha256: "0760beedf54d100b971d706483a63ac7f57a7acc59025b8c15759108e8dc7c26",
       filename: "connecto-fun.apk",
-      size_bytes: 38134079,
+      size_bytes: 38165805,
       size_display: "36.4 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7688,10 +7693,26 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
+          version: "v5.7.6",
+          date: "Nov 19, 2026",
+          category: "webrtc-audio",
+          tag: "Latest Release",
+          title: "Connecto v5.7.6: WebRTC Audio Architecture, Cloudflare TURN Relay & Edge CDN Update Delivery",
+          summary: "Completely eliminated WebRTC call silence and crashes by removing AudioContext / GainNode stream wrapping on Android in favor of pure native WebRTC audio playout. Provisioned authenticated Cloudflare TURN relay with TCP/TLS 443 fallback for seamless cellular CGNAT traversal. Bound canonical edge download routing to prevent in-store update failures.",
+          highlights: [
+            "Native WebRTC Playout Defense: Stripped Web Audio GainNode and AudioContext stream wrapping on Android remote tracks, eliminating C++ SIGSEGV crashes and silent audio under native WebRTC JavaAudioDeviceModule.",
+            "Cloudflare TURN Relay Provisioning: Verified and enforced authenticated TURN relay credentials (turn: and turns: over TCP/TLS port 443) for calls traversing restricted mobile carrier CGNAT.",
+            "Live Call Diagnostics Telemetry: Real-time telemetry monitoring ICE connection states (new, checking, connected, completed, disconnected, failed) and candidate types (relay, prflx, srflx, host).",
+            "Permanent Edge CDN Release Routing: Bound Our Store downloads and updates to permanent canonical edge stream releases/latest/download, preventing 404s after release pruning.",
+            "Android Native App v5.7.6 (Build 183 • 36.4 MB): SHA-256 0760beedf54d100b971d706483a63ac7f57a7acc59025b8c15759108e8dc7c26."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
           version: "v5.7.5",
           date: "Nov 19, 2026",
           category: "session-management",
-          tag: "Latest Release",
+          tag: "Release",
           title: "Connecto v5.7.5: Hardware-Backed Persistent Device ID, Backend Session Upsert & UI Clean Deduplication",
           summary: "Resolved critical session duplication bug where logging in on the same physical phone (e.g., Vivo V2307) created multiple active sessions (4 ACTIVE) on app restarts, token refreshes, or mobile IP changes. Implemented persistent client deviceId combining KeyStore-backed SecureStorageManager and Android ID that stays identical across reboots and network switches. Added device_id column and index on user_sessions in Cloudflare D1. Backend recordUserSession performs an UPSERT on (userId, deviceId) to update IP, location, and timestamps in place instead of creating duplicate records, and automatically prunes stale duplicate records. Added idempotency debounce/mutex on client session fetching to eliminate double-writes on app mount. Polished Session Management UI in ProfileScreen by removing double-nested bordered card wrappers, grouping device metadata into a unified subtitle (Android 15 • Smartphone), and masking long IPv6 addresses.",
           highlights: [

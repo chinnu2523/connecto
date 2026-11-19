@@ -669,7 +669,12 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         if (!isCancelled) {
             // Check if cached APK exists to attempt seamless system intent fallback
             val cachedFile = File(getApplication<Application>().cacheDir, "apks").listFiles()
-                ?.firstOrNull { it.name.startsWith(target) || it.name.contains(target) || (target == "com.connecto.app" && it.name.startsWith("connecto")) }
+                ?.firstOrNull {
+                    it.name.startsWith(target) ||
+                    it.name.contains(target) ||
+                    (target == "com.connecto.app" && it.name.startsWith("connecto")) ||
+                    (target == "com.connecto.store" && (it.name.startsWith("ourstore") || it.name.startsWith("our-store")))
+                }
             if (cachedFile != null && cachedFile.exists() && cachedFile.length() > 0) {
                 android.util.Log.i("OurStore", "PackageInstaller session failed for $target; launching system installer intent fallback")
                 viewModelScope.launch {
@@ -916,8 +921,8 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Autonomous package installer, background updater & security vault",
             description = "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
             category = "Services",
-            versionName = "2.1.9",
-            versionCode = 68,
+            versionName = "2.2.0",
+            versionCode = 69,
             sizeFormatted = "18.1 MB",
             downloadUrl = "https://connecto.fun/downloads/our-store.apk",
             accentColor = "#2563EB",
