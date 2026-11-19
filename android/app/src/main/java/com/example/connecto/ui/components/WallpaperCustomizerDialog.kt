@@ -101,9 +101,11 @@ fun WallpaperCustomizerDialog(
     customWallpaperUri: String?,
     initialTransform: WallpaperTransform,
     isDarkTheme: Boolean = true,
+    friendName: String? = null,
+    isDirectChat: Boolean = false,
     onDismissRequest: () -> Unit,
     onPickCustomPhoto: () -> Unit = {},
-    onApply: ((newWallpaperId: String, newCustomUri: String?, newTransform: WallpaperTransform, isGlobal: Boolean) -> Unit)? = null,
+    onApply: ((newWallpaperId: String, newCustomUri: String?, newTransform: WallpaperTransform, isGlobal: Boolean, isShared: Boolean) -> Unit)? = null,
     onSave: ((WallpaperTransform) -> Unit)? = null
 ) {
     var selectedWallpaperId by remember { mutableStateOf(wallpaperId) }
@@ -116,6 +118,7 @@ fun WallpaperCustomizerDialog(
     var dim by remember { mutableFloatStateOf(initialTransform.dim) }
     var blur by remember { mutableFloatStateOf(initialTransform.blur) }
     var applyToAllChats by remember { mutableStateOf(false) }
+    var shareWithFriend by remember { mutableStateOf(false) }
 
     var activeTab by remember {
         mutableIntStateOf(if (wallpaperId == "custom" && !customWallpaperUri.isNullOrBlank()) 1 else 0)
@@ -745,7 +748,11 @@ fun WallpaperCustomizerDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
-                                .clickable { applyToAllChats = !applyToAllChats }
+                                .clickable {
+                                    val next = !applyToAllChats
+                                    applyToAllChats = next
+                                    if (next) shareWithFriend = false
+                                }
                                 .padding(horizontal = 4.dp, vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -758,9 +765,51 @@ fun WallpaperCustomizerDialog(
                             )
                             Switch(
                                 checked = applyToAllChats,
-                                onCheckedChange = { applyToAllChats = it },
+                                onCheckedChange = { checked ->
+                                    applyToAllChats = checked
+                                    if (checked) shareWithFriend = false
+                                },
                                 modifier = Modifier.scale(0.82f)
                             )
+                        }
+
+                        // Share with [Contact Name] toggle switch row (Direct chats only)
+                        if (isDirectChat && !friendName.isNullOrBlank()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        val next = !shareWithFriend
+                                        shareWithFriend = next
+                                        if (next) applyToAllChats = false
+                                    }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Share with $friendName",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Apply this background for both of you",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = shareWithFriend,
+                                    onCheckedChange = { checked ->
+                                        shareWithFriend = checked
+                                        if (checked) applyToAllChats = false
+                                    },
+                                    modifier = Modifier.scale(0.82f)
+                                )
+                            }
                         }
 
                         Row(
@@ -791,7 +840,7 @@ fun WallpaperCustomizerDialog(
                                         dim = dim,
                                         blur = blur
                                     )
-                                    onApply?.invoke(selectedWallpaperId, selectedCustomUri, updated, applyToAllChats)
+                                    onApply?.invoke(selectedWallpaperId, selectedCustomUri, updated, applyToAllChats, shareWithFriend)
                                     onSave?.invoke(updated)
                                     onDismissRequest()
                                 },

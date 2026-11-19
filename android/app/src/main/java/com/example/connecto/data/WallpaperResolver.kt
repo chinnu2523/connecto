@@ -85,9 +85,10 @@ object WallpaperResolver {
         var resolvedUri: String? = null
         var isFromLegacyOrFallback = false
 
-        // 1. ORDER STEP 1: Check chat-specific scoped keys (${userPrefix}_chat_wallpaper_$id)
+        // 1. ORDER STEP 1: Check chat-specific scoped private override (${userPrefix}_chat_wallpaper_$id)
         if (userPrefix.isNotBlank()) {
             for (id in candidateIds) {
+                if (id == "global") continue
                 val scopedWp = prefs.getString("${userPrefix}_chat_wallpaper_$id", null)
                 val scopedCustom = prefs.getString("${userPrefix}_chat_wallpaper_custom_$id", null)
 
@@ -100,6 +101,27 @@ object WallpaperResolver {
                 } else if (!scopedCustom.isNullOrBlank()) {
                     resolvedWp = "custom"
                     resolvedUri = scopedCustom
+                    break
+                }
+            }
+        }
+
+        // 2. ORDER STEP 2: Check Shared Conversation Wallpaper (shared_chat_wallpaper_$id)
+        if (resolvedWp == null || resolvedWp == "default") {
+            for (id in candidateIds) {
+                if (id == "global") continue
+                val sharedWp = prefs.getString("shared_chat_wallpaper_$id", null)
+                val sharedCustom = prefs.getString("shared_chat_wallpaper_custom_$id", null)
+
+                if (!sharedWp.isNullOrBlank() && sharedWp != "default") {
+                    resolvedWp = sharedWp
+                    if (sharedWp == "custom") {
+                        resolvedUri = sharedCustom
+                    }
+                    break
+                } else if (!sharedCustom.isNullOrBlank()) {
+                    resolvedWp = "custom"
+                    resolvedUri = sharedCustom
                     break
                 }
             }
@@ -332,7 +354,31 @@ object WallpaperResolver {
             }
         }
 
-        // 2. Fallback to legacy unscoped keys
+        // 2. Check shared conversation transform keys
+        for (id in candidateIds) {
+            if (id == "global") continue
+            if (prefs.contains("shared_chat_wallpaper_scale_$id") && scale == null) {
+                scale = prefs.getFloat("shared_chat_wallpaper_scale_$id", 1.0f)
+            }
+            if (prefs.contains("shared_chat_wallpaper_offset_x_$id") && offsetX == null) {
+                offsetX = prefs.getFloat("shared_chat_wallpaper_offset_x_$id", 0f)
+            }
+            if (prefs.contains("shared_chat_wallpaper_offset_y_$id") && offsetY == null) {
+                offsetY = prefs.getFloat("shared_chat_wallpaper_offset_y_$id", 0f)
+            }
+            if (prefs.contains("shared_chat_wallpaper_mode_$id") && mode == null) {
+                mode = prefs.getString("shared_chat_wallpaper_mode_$id", "crop")
+            }
+            if (prefs.contains("shared_chat_wallpaper_dim_$id") && dim == null) {
+                dim = prefs.getFloat("shared_chat_wallpaper_dim_$id", 0.50f)
+            }
+            if (prefs.contains("shared_chat_wallpaper_blur_$id") && blur == null) {
+                blur = prefs.getFloat("shared_chat_wallpaper_blur_$id", 0f)
+            }
+            if (scale != null && mode != null) break
+        }
+
+        // 3. Fallback to legacy unscoped keys
         for (id in candidateIds) {
             if (scale == null && prefs.contains("chat_wallpaper_scale_$id")) {
                 scale = prefs.getFloat("chat_wallpaper_scale_$id", 1.0f)
@@ -440,6 +486,74 @@ object WallpaperResolver {
                 }
             }
             editor.apply()
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Persists shared conversation wallpaper across both participants.
+     */
+    fun saveSharedWallpaper(
+        conversationId: String,
+        prefs: SharedPreferences,
+        wallpaperId: String,
+        customUri: String? = null
+    ) {
+        val cleanConv = conversationId.trim()
+        if (cleanConv.isBlank()) return
+        try {
+            val editor = prefs.edit()
+            editor.putString("shared_chat_wallpaper_$cleanConv", wallpaperId)
+            if (wallpaperId == "custom" && !customUri.isNullOrBlank()) {
+                editor.putString("shared_chat_wallpaper_custom_$cleanConv", customUri)
+            } else {
+                editor.remove("shared_chat_wallpaper_custom_$cleanConv")
+            }
+            editor.apply()
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Resets shared conversation wallpaper to default.
+     */
+    fun clearSharedWallpaper(
+        conversationId: String,
+        prefs: SharedPreferences
+    ) {
+        val cleanConv = conversationId.trim()
+        if (cleanConv.isBlank()) return
+        try {
+            prefs.edit()
+                .remove("shared_chat_wallpaper_$cleanConv")
+                .remove("shared_chat_wallpaper_custom_$cleanConv")
+                .remove("shared_chat_wallpaper_scale_$cleanConv")
+                .remove("shared_chat_wallpaper_offset_x_$cleanConv")
+                .remove("shared_chat_wallpaper_offset_y_$cleanConv")
+                .remove("shared_chat_wallpaper_mode_$cleanConv")
+                .remove("shared_chat_wallpaper_dim_$cleanConv")
+                .remove("shared_chat_wallpaper_blur_$cleanConv")
+                .apply()
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Persists transform settings for a shared conversation wallpaper.
+     */
+    fun saveSharedTransform(
+        conversationId: String,
+        prefs: SharedPreferences,
+        transform: WallpaperTransform
+    ) {
+        val cleanConv = conversationId.trim()
+        if (cleanConv.isBlank()) return
+        try {
+            prefs.edit()
+                .putFloat("shared_chat_wallpaper_scale_$cleanConv", transform.scale)
+                .putFloat("shared_chat_wallpaper_offset_x_$cleanConv", transform.offsetX)
+                .putFloat("shared_chat_wallpaper_offset_y_$cleanConv", transform.offsetY)
+                .putString("shared_chat_wallpaper_mode_$cleanConv", transform.contentScaleMode)
+                .putFloat("shared_chat_wallpaper_dim_$cleanConv", transform.dim)
+                .putFloat("shared_chat_wallpaper_blur_$cleanConv", transform.blur)
+                .apply()
         } catch (_: Exception) {}
     }
 }

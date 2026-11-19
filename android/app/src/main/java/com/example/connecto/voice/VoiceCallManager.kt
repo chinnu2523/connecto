@@ -58,7 +58,9 @@ import java.util.TimeZone
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import com.example.connecto.data.ConnectoDatabaseHelper
+import com.example.connecto.network.CloudWallpaperDto
 import com.example.connecto.network.MessageDto
+import com.example.connecto.data.WallpaperSyncManager
 import org.webrtc.AudioSource
 import org.webrtc.AudioTrack as RtcAudioTrack
 import org.webrtc.DataChannel
@@ -461,6 +463,21 @@ object VoiceCallManager {
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
     val readReceiptEvents: SharedFlow<ReadReceiptEvent> = _readReceiptEvents.asSharedFlow()
+
+    // Real-time Shared Wallpaper sync events
+    data class SharedWallpaperEvent(
+        val conversationId: String,
+        val updatedByUserId: String,
+        val updatedByUsername: String,
+        val wallpaper: CloudWallpaperDto,
+        val action: String, // "updated" or "reset"
+        val systemMessage: MessageDto? = null
+    )
+    private val _sharedWallpaperEvents = MutableSharedFlow<SharedWallpaperEvent>(
+        extraBufferCapacity = 32,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val sharedWallpaperEvents: SharedFlow<SharedWallpaperEvent> = _sharedWallpaperEvents.asSharedFlow()
 
     fun subscribeChannel(channelNameOrId: String) {
         val clean = channelNameOrId.trim().lowercase().removePrefix("#")
@@ -2130,6 +2147,71 @@ object VoiceCallManager {
                         _reactionEvents.tryEmit(MessageReactionEvent(msgId, emoji, userId, channelId.ifBlank { null }))
                         Log.d(TAG, "Real-time message reaction toggled received via WebSocket: $msgId -> $emoji by $userId")
                     }
+                }
+                "chat_wallpaper_changed", "CHAT_WALLPAPER_CHANGED" -> {
+                    val convId = json.optString("conversation_id").ifEmpty { json.optString("conversationId") }
+                    val updatedBy = json.optString("updated_by_username").ifEmpty { json.optString("sender") }
+                    val updatedById = json.optString("updated_by_user_id")
+                    val action = json.optString("action").ifEmpty { "updated" }
+                    val wpObj = json.optJSONObject("wallpaper")
+                    val sysObj = json.optJSONObject("system_message")
+
+                    val wpDto = if (wpObj != null) {
+                        CloudWallpaperDto(
+                            id = wpObj.optString("id").ifEmpty { "shared_$convId" },
+                            conversationId = convId,
+                            wallpaperType = wpObj.optString("wallpaper_type").ifEmpty { wpObj.optString("type", "preset") },
+                            presetId = wpObj.optString("preset_id").ifEmpty { wpObj.optString("presetId", "default") },
+                            imageUrl = wpObj.optString("image_url").ifEmpty { wpObj.optString("imageUrl") }.ifEmpty { null },
+                            dim = wpObj.optDouble("dim", 0.50).toFloat(),
+                            blur = wpObj.optDouble("blur", 0.0).toFloat(),
+                            zoom = wpObj.optDouble("zoom", 1.0).toFloat(),
+                            offsetX = wpObj.optDouble("offset_x", 0.0).toFloat(),
+                            offsetY = wpObj.optDouble("offset_y", 0.0).toFloat(),
+                            fitMode = wpObj.optString("fit_mode").ifEmpty { wpObj.optString("fitMode", "crop") },
+                            updatedByUserId = updatedById,
+                            updatedByUsername = updatedBy,
+                            isShared = true
+                        )
+                    } else {
+                        CloudWallpaperDto(conversationId = convId, wallpaperType = "preset", presetId = "default", isShared = true)
+                    }
+
+                    val sysMsg = if (sysObj != null) {
+                        MessageDto(
+                            id = sysObj.optString("id"),
+                            channelId = sysObj.optString("channel_id").ifEmpty { convId },
+                            authorId = sysObj.optString("sender_id").ifEmpty { updatedById },
+                            authorName = sysObj.optString("sender_username").ifEmpty { updatedBy },
+                            content = sysObj.optString("content"),
+                            createdAt = sysObj.optString("created_at")
+                        )
+                    } else null
+
+                    _sharedWallpaperEvents.tryEmit(
+                        SharedWallpaperEvent(
+                            conversationId = convId,
+                            updatedByUserId = updatedById,
+                            updatedByUsername = updatedBy,
+                            wallpaper = wpDto,
+                            action = action,
+                            systemMessage = sysMsg
+                        )
+                    )
+
+                    if (sysMsg != null) {
+                        _incomingChannelMessages.tryEmit(sysMsg)
+                        appContext?.let { ctx ->
+                            try {
+                                ConnectoDatabaseHelper.getInstance(ctx).saveMessage(sysMsg)
+                            } catch (_: Exception) {}
+                        }
+                    }
+
+                    appContext?.let { ctx ->
+                        WallpaperSyncManager.handleIncomingSharedWallpaper(ctx, convId, wpDto, action)
+                    }
+                    Log.d(TAG, "Real-time shared wallpaper event received: conv=$convId action=$action by=$updatedBy")
                 }
                 "message_created", "new_message", "dm_message", "new_dm_alert", "channel_message", "chat_message", "message" -> {
                     val data = json.optJSONObject("data") ?: json.optJSONObject("message") ?: json.optJSONObject("payload") ?: json

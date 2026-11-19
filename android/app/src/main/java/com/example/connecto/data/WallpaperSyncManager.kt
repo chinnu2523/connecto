@@ -139,27 +139,51 @@ object WallpaperSyncManager {
         wallpaperId: String,
         customUri: String?,
         transform: WallpaperTransform,
-        isGlobal: Boolean
+        isGlobal: Boolean,
+        isShared: Boolean = false
     ) {
         val prefs = context.getSharedPreferences("friend_prefs", Context.MODE_PRIVATE)
         val userPrefix = myUsername.trim().removePrefix("@").lowercase()
         val targetFriend = if (isGlobal) null else friend
         val targetChatId = if (isGlobal) null else (conversationId ?: (friend?.let { WallpaperResolver.getCanonicalChatId(it, userPrefix) } ?: "global"))
 
-        // 1. Instant local persistence for 0ms lag-free UI update
-        WallpaperResolver.saveWallpaper(
-            friend = targetFriend,
-            myUsername = myUsername,
-            prefs = prefs,
-            wallpaperId = wallpaperId,
-            customUri = customUri
-        )
-        WallpaperResolver.saveTransform(
-            friend = targetFriend,
-            myUsername = myUsername,
-            prefs = prefs,
-            transform = transform
-        )
+        if (isShared && !targetChatId.isNullOrBlank() && targetChatId != "global") {
+            // Save as shared conversation wallpaper
+            WallpaperResolver.saveSharedWallpaper(
+                conversationId = targetChatId,
+                prefs = prefs,
+                wallpaperId = wallpaperId,
+                customUri = customUri
+            )
+            WallpaperResolver.saveSharedTransform(
+                conversationId = targetChatId,
+                prefs = prefs,
+                transform = transform
+            )
+            // Clear any conflicting private override so the shared wallpaper takes immediate visual effect
+            WallpaperResolver.saveWallpaper(
+                friend = targetFriend,
+                myUsername = myUsername,
+                prefs = prefs,
+                wallpaperId = "default",
+                customUri = null
+            )
+        } else {
+            // 1. Instant local persistence for 0ms lag-free UI update
+            WallpaperResolver.saveWallpaper(
+                friend = targetFriend,
+                myUsername = myUsername,
+                prefs = prefs,
+                wallpaperId = wallpaperId,
+                customUri = customUri
+            )
+            WallpaperResolver.saveTransform(
+                friend = targetFriend,
+                myUsername = myUsername,
+                prefs = prefs,
+                transform = transform
+            )
+        }
 
         _wallpaperUpdateTrigger.value = System.currentTimeMillis()
 
@@ -184,11 +208,16 @@ object WallpaperSyncManager {
                             if (uploadResult.isSuccess) {
                                 finalImageUrl = uploadResult.getOrNull()
                                 // Cache compressed bytes locally on disk for instant offline playout
-                                cacheWallpaperBytesOnDisk(context, userPrefix, targetChatId ?: "global", compressedBytes)
+                                val scopePrefix = if (isShared) "shared" else userPrefix
+                                cacheWallpaperBytesOnDisk(context, scopePrefix, targetChatId ?: "global", compressedBytes)
                                 if (!finalImageUrl.isNullOrBlank()) {
                                     val editor = prefs.edit()
                                     val key = targetChatId ?: "global"
-                                    editor.putString("${userPrefix}_chat_wallpaper_cloud_url_$key", finalImageUrl)
+                                    if (isShared) {
+                                        editor.putString("shared_chat_wallpaper_custom_$key", finalImageUrl)
+                                    } else {
+                                        editor.putString("${userPrefix}_chat_wallpaper_cloud_url_$key", finalImageUrl)
+                                    }
                                     editor.apply()
                                 }
                             } else {
@@ -208,12 +237,13 @@ object WallpaperSyncManager {
                     zoom = transform.scale,
                     offsetX = transform.offsetX,
                     offsetY = transform.offsetY,
-                    fitMode = transform.contentScaleMode
+                    fitMode = transform.contentScaleMode,
+                    isShared = isShared
                 )
 
-                val saveResult = ConnectoApiClient.saveWallpaperConfig(dto)
+                val saveResult = ConnectoApiClient.saveWallpaperConfig(dto, isShared = isShared)
                 if (saveResult.isSuccess) {
-                    Log.i(TAG, "Successfully synced wallpaper config to cloud for $targetChatId")
+                    Log.i(TAG, "Successfully synced wallpaper config to cloud for $targetChatId (isShared=$isShared)")
                 } else {
                     Log.w(TAG, "Cloud wallpaper save failed: ${saveResult.exceptionOrNull()?.message}")
                 }
@@ -231,38 +261,89 @@ object WallpaperSyncManager {
         myUsername: String,
         friend: FriendItem?,
         conversationId: String?,
-        isGlobal: Boolean
+        isGlobal: Boolean,
+        isShared: Boolean = false
     ) {
         val prefs = context.getSharedPreferences("friend_prefs", Context.MODE_PRIVATE)
         val userPrefix = myUsername.trim().removePrefix("@").lowercase()
         val targetFriend = if (isGlobal) null else friend
         val targetChatId = if (isGlobal) null else (conversationId ?: (friend?.let { WallpaperResolver.getCanonicalChatId(it, userPrefix) } ?: "global"))
 
-        // Reset local preferences
-        WallpaperResolver.saveWallpaper(
-            friend = targetFriend,
-            myUsername = myUsername,
-            prefs = prefs,
-            wallpaperId = "default",
-            customUri = null
-        )
-        WallpaperResolver.saveTransform(
-            friend = targetFriend,
-            myUsername = myUsername,
-            prefs = prefs,
-            transform = WallpaperTransform()
-        )
+        if (isShared && !targetChatId.isNullOrBlank() && targetChatId != "global") {
+            WallpaperResolver.clearSharedWallpaper(targetChatId, prefs)
+        } else {
+            // Reset local preferences
+            WallpaperResolver.saveWallpaper(
+                friend = targetFriend,
+                myUsername = myUsername,
+                prefs = prefs,
+                wallpaperId = "default",
+                customUri = null
+            )
+            WallpaperResolver.saveTransform(
+                friend = targetFriend,
+                myUsername = myUsername,
+                prefs = prefs,
+                transform = WallpaperTransform()
+            )
+        }
 
         _wallpaperUpdateTrigger.value = System.currentTimeMillis()
 
         // Sync deletion to cloud
         syncScope.launch {
             try {
-                ConnectoApiClient.deleteWallpaperConfig(conversationId = targetChatId, resetAll = isGlobal)
+                ConnectoApiClient.deleteWallpaperConfig(conversationId = targetChatId, resetAll = isGlobal, isShared = isShared)
             } catch (e: Exception) {
                 Log.e(TAG, "Error deleting cloud wallpaper", e)
             }
         }
+    }
+
+    /**
+     * Handles real-time shared wallpaper updates received via WebSocket.
+     */
+    fun handleIncomingSharedWallpaper(
+        context: Context,
+        conversationId: String,
+        dto: CloudWallpaperDto,
+        action: String
+    ) {
+        val prefs = context.getSharedPreferences("friend_prefs", Context.MODE_PRIVATE)
+        val cleanConv = conversationId.trim()
+        if (cleanConv.isBlank()) return
+
+        if (action.equals("reset", ignoreCase = true) || dto.presetId == "default") {
+            WallpaperResolver.clearSharedWallpaper(cleanConv, prefs)
+            _wallpaperUpdateTrigger.value = System.currentTimeMillis()
+            return
+        }
+
+        val wpId = if (dto.wallpaperType == "custom_image") "custom" else (dto.presetId ?: "default")
+        val transform = WallpaperTransform(
+            scale = dto.zoom,
+            offsetX = dto.offsetX,
+            offsetY = dto.offsetY,
+            contentScaleMode = dto.fitMode,
+            dim = dto.dim,
+            blur = dto.blur
+        )
+
+        WallpaperResolver.saveSharedTransform(cleanConv, prefs, transform)
+
+        if (dto.wallpaperType == "custom_image" && !dto.imageUrl.isNullOrBlank()) {
+            WallpaperResolver.saveSharedWallpaper(cleanConv, prefs, "custom", dto.imageUrl)
+            syncScope.launch {
+                val localFile = downloadAndCacheCustomImage(context, "shared", cleanConv, dto.imageUrl)
+                if (localFile != null && localFile.exists() && localFile.length() > 0) {
+                    WallpaperResolver.saveSharedWallpaper(cleanConv, prefs, "custom", "file://${localFile.absolutePath}")
+                    _wallpaperUpdateTrigger.value = System.currentTimeMillis()
+                }
+            }
+        } else {
+            WallpaperResolver.saveSharedWallpaper(cleanConv, prefs, wpId, null)
+        }
+        _wallpaperUpdateTrigger.value = System.currentTimeMillis()
     }
 
     /**
@@ -275,17 +356,18 @@ object WallpaperSyncManager {
         if (userPrefix.isBlank() || userPrefix == "guest") return@withContext
 
         try {
-            val result = ConnectoApiClient.fetchWallpapers()
+            val result = ConnectoApiClient.fetchWallpapersDetails()
             if (result.isFailure) {
                 Log.d(TAG, "Could not fetch cloud wallpapers: ${result.exceptionOrNull()?.message}")
                 return@withContext
             }
 
-            val list = result.getOrNull() ?: return@withContext
+            val fetchResult = result.getOrNull() ?: return@withContext
             val prefs = context.getSharedPreferences("friend_prefs", Context.MODE_PRIVATE)
             val editor = prefs.edit()
 
-            for (dto in list) {
+            // 1. Sync Private Account Wallpapers (Survives Reinstalls)
+            for (dto in fetchResult.privateWallpapers) {
                 val targetKey = dto.conversationId ?: "global"
                 val wpId = if (dto.wallpaperType == "custom_image") "custom" else (dto.presetId ?: "default")
 
@@ -300,7 +382,6 @@ object WallpaperSyncManager {
                 if (dto.wallpaperType == "custom_image" && !dto.imageUrl.isNullOrBlank()) {
                     editor.putString("${userPrefix}_chat_wallpaper_cloud_url_$targetKey", dto.imageUrl)
 
-                    // Download custom image to local disk cache if not already present
                     val localFile = downloadAndCacheCustomImage(context, userPrefix, targetKey, dto.imageUrl)
                     if (localFile != null && localFile.exists() && localFile.length() > 0) {
                         editor.putString("${userPrefix}_chat_wallpaper_custom_$targetKey", "file://${localFile.absolutePath}")
@@ -312,9 +393,34 @@ object WallpaperSyncManager {
                 }
             }
 
+            // 2. Sync Shared Conversation Wallpapers
+            for (dto in fetchResult.sharedWallpapers) {
+                val targetKey = dto.conversationId ?: continue
+                val wpId = if (dto.wallpaperType == "custom_image") "custom" else (dto.presetId ?: "default")
+
+                editor.putString("shared_chat_wallpaper_$targetKey", wpId)
+                editor.putFloat("shared_chat_wallpaper_scale_$targetKey", dto.zoom)
+                editor.putFloat("shared_chat_wallpaper_offset_x_$targetKey", dto.offsetX)
+                editor.putFloat("shared_chat_wallpaper_offset_y_$targetKey", dto.offsetY)
+                editor.putString("shared_chat_wallpaper_mode_$targetKey", dto.fitMode)
+                editor.putFloat("shared_chat_wallpaper_dim_$targetKey", dto.dim)
+                editor.putFloat("shared_chat_wallpaper_blur_$targetKey", dto.blur)
+
+                if (dto.wallpaperType == "custom_image" && !dto.imageUrl.isNullOrBlank()) {
+                    val localFile = downloadAndCacheCustomImage(context, "shared", targetKey, dto.imageUrl)
+                    if (localFile != null && localFile.exists() && localFile.length() > 0) {
+                        editor.putString("shared_chat_wallpaper_custom_$targetKey", "file://${localFile.absolutePath}")
+                    } else {
+                        editor.putString("shared_chat_wallpaper_custom_$targetKey", dto.imageUrl)
+                    }
+                } else if (wpId != "custom") {
+                    editor.remove("shared_chat_wallpaper_custom_$targetKey")
+                }
+            }
+
             editor.apply()
             _wallpaperUpdateTrigger.value = System.currentTimeMillis()
-            Log.i(TAG, "Successfully synchronized ${list.size} wallpapers from cloud")
+            Log.i(TAG, "Successfully synchronized ${fetchResult.privateWallpapers.size} private + ${fetchResult.sharedWallpapers.size} shared wallpapers from cloud")
         } catch (e: Exception) {
             Log.e(TAG, "Exception during cloud wallpaper synchronization", e)
         }

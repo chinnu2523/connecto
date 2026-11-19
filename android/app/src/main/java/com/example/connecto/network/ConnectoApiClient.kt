@@ -142,7 +142,15 @@ data class CloudWallpaperDto(
     val offsetX: Float = 0.0f,
     val offsetY: Float = 0.0f,
     val fitMode: String = "crop",
-    val updatedAt: String? = null
+    val updatedAt: String? = null,
+    val updatedByUserId: String? = null,
+    val updatedByUsername: String? = null,
+    val isShared: Boolean = false
+)
+
+data class WallpapersFetchResult(
+    val privateWallpapers: List<CloudWallpaperDto> = emptyList(),
+    val sharedWallpapers: List<CloudWallpaperDto> = emptyList()
 )
 
 data class MessageDto(
@@ -4872,14 +4880,24 @@ object ConnectoApiClient {
     }
 
     suspend fun fetchWallpapers(token: String? = null): Result<List<CloudWallpaperDto>> = withContext(Dispatchers.IO) {
-        val result = executeRequest("/api/wallpapers", "GET", null, token)
+        val details = fetchWallpapersDetails(null, token)
+        details.map { it.privateWallpapers }
+    }
+
+    suspend fun fetchWallpapersDetails(conversationId: String? = null, token: String? = null): Result<WallpapersFetchResult> = withContext(Dispatchers.IO) {
+        val path = if (!conversationId.isNullOrBlank()) {
+            "/api/wallpapers?conversation_id=${java.net.URLEncoder.encode(conversationId, "UTF-8")}"
+        } else {
+            "/api/wallpapers"
+        }
+        val result = executeRequest(path, "GET", null, token)
         result.mapCatching { responseText ->
             val json = JSONObject(responseText)
-            val list = mutableListOf<CloudWallpaperDto>()
+            val privateList = mutableListOf<CloudWallpaperDto>()
             val arr = json.optJSONArray("wallpapers") ?: JSONArray()
             for (i in 0 until arr.length()) {
                 val item = arr.getJSONObject(i)
-                list.add(
+                privateList.add(
                     CloudWallpaperDto(
                         id = item.optString("id"),
                         userId = item.optString("user_id"),
@@ -4893,15 +4911,45 @@ object ConnectoApiClient {
                         offsetX = item.optDouble("offset_x", 0.0).toFloat(),
                         offsetY = item.optDouble("offset_y", 0.0).toFloat(),
                         fitMode = item.optString("fit_mode", "crop"),
-                        updatedAt = item.optString("updated_at")
+                        updatedAt = item.optString("updated_at"),
+                        isShared = false
                     )
                 )
             }
-            list
+
+            val sharedList = mutableListOf<CloudWallpaperDto>()
+            val sharedArr = json.optJSONArray("shared_wallpapers") ?: JSONArray()
+            for (i in 0 until sharedArr.length()) {
+                val item = sharedArr.getJSONObject(i)
+                sharedList.add(
+                    CloudWallpaperDto(
+                        id = "shared_" + item.optString("conversation_id"),
+                        conversationId = item.optString("conversation_id").ifEmpty { null },
+                        wallpaperType = item.optString("wallpaper_type", "preset"),
+                        presetId = if (item.isNull("preset_id")) null else item.optString("preset_id").ifEmpty { null },
+                        imageUrl = if (item.isNull("image_url")) null else item.optString("image_url").ifEmpty { null },
+                        dim = item.optDouble("dim", 0.50).toFloat(),
+                        blur = item.optDouble("blur", 0.0).toFloat(),
+                        zoom = item.optDouble("zoom", 1.0).toFloat(),
+                        offsetX = item.optDouble("offset_x", 0.0).toFloat(),
+                        offsetY = item.optDouble("offset_y", 0.0).toFloat(),
+                        fitMode = item.optString("fit_mode", "crop"),
+                        updatedAt = item.optString("updated_at"),
+                        updatedByUserId = if (item.isNull("updated_by_user_id")) null else item.optString("updated_by_user_id").ifEmpty { null },
+                        updatedByUsername = if (item.isNull("updated_by_username")) null else item.optString("updated_by_username").ifEmpty { null },
+                        isShared = true
+                    )
+                )
+            }
+
+            WallpapersFetchResult(
+                privateWallpapers = privateList,
+                sharedWallpapers = sharedList
+            )
         }
     }
 
-    suspend fun saveWallpaperConfig(dto: CloudWallpaperDto, token: String? = null): Result<Boolean> = withContext(Dispatchers.IO) {
+    suspend fun saveWallpaperConfig(dto: CloudWallpaperDto, isShared: Boolean = false, token: String? = null): Result<Boolean> = withContext(Dispatchers.IO) {
         val bodyJson = JSONObject().apply {
             put("conversation_id", dto.conversationId ?: JSONObject.NULL)
             put("wallpaper_type", dto.wallpaperType)
@@ -4913,15 +4961,19 @@ object ConnectoApiClient {
             put("offset_x", dto.offsetX.toDouble())
             put("offset_y", dto.offsetY.toDouble())
             put("fit_mode", dto.fitMode)
+            put("is_shared", isShared || dto.isShared)
         }
         val result = executeRequest("/api/wallpapers", "POST", bodyJson.toString(), token)
         result.map { true }
     }
 
-    suspend fun deleteWallpaperConfig(conversationId: String?, resetAll: Boolean = false, token: String? = null): Result<Boolean> = withContext(Dispatchers.IO) {
+    suspend fun deleteWallpaperConfig(conversationId: String?, resetAll: Boolean = false, isShared: Boolean = false, token: String? = null): Result<Boolean> = withContext(Dispatchers.IO) {
         val path = when {
             resetAll -> "/api/wallpapers?reset_all=true"
-            !conversationId.isNullOrBlank() -> "/api/wallpapers?conversation_id=${java.net.URLEncoder.encode(conversationId, "UTF-8")}"
+            !conversationId.isNullOrBlank() -> {
+                val enc = java.net.URLEncoder.encode(conversationId, "UTF-8")
+                if (isShared) "/api/wallpapers?conversation_id=$enc&is_shared=true" else "/api/wallpapers?conversation_id=$enc"
+            }
             else -> "/api/wallpapers?conversation_id=global"
         }
         val result = executeRequest(path, "DELETE", null, token)

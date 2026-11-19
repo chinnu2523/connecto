@@ -15,6 +15,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.zIndex
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
@@ -2243,6 +2244,40 @@ fun CustomizedChatScreen(
         }
     }
 
+    // Real-time Shared Wallpaper sync observer
+    LaunchedEffect(selectedFriend?.id, myUsername) {
+        VoiceCallManager.sharedWallpaperEvents.collect { event ->
+            val friend = selectedFriend
+            val userPrefix = myUsername.trim().removePrefix("@").lowercase()
+            val curChatKey = if (friend != null) WallpaperResolver.getCanonicalChatId(friend, userPrefix) else ""
+            val fHandle = friend?.handle?.trim()?.removePrefix("@")?.lowercase() ?: ""
+            val isTargetChat = event.conversationId.isNotBlank() && (
+                event.conversationId.equals(curChatKey, ignoreCase = true) ||
+                (fHandle.isNotBlank() && event.conversationId.contains(fHandle, ignoreCase = true)) ||
+                (friend != null && event.conversationId.contains(friend.id, ignoreCase = true))
+            )
+
+            if (isTargetChat) {
+                // If system message present, ensure it appears in timeline
+                val sysMsg = event.systemMessage
+                if (sysMsg != null && sysMsg.content.isNotBlank()) {
+                    val sysItem = CustomMessageItem(
+                        id = sysMsg.id,
+                        senderName = event.updatedByUsername,
+                        initial = event.updatedByUsername.take(1).uppercase(),
+                        content = sysMsg.content,
+                        time = "Just now",
+                        isMe = event.updatedByUsername.equals(myUsername, ignoreCase = true),
+                        timestampMillis = System.currentTimeMillis()
+                    )
+                    if (!friendMessages.any { it.id == sysItem.id }) {
+                        friendMessages = (friendMessages + sysItem).sortedBy { it.timestampMillis }
+                    }
+                }
+            }
+        }
+    }
+
     // Real-time WebSocket Incoming DM Bus Listener
     LaunchedEffect(Unit) {
         VoiceCallManager.incomingChannelMessages.collect { dto ->
@@ -3916,16 +3951,22 @@ fun CustomizedChatScreen(
 
     // Chat Wallpaper Size, Position, Presets & Legibility Customizer Dialog
     if (showWallpaperCustomizerDialog) {
+        val targetFriendForDialog = selectedFriend
+        val friendDisplayName = targetFriendForDialog?.name?.ifBlank { null } ?: targetFriendForDialog?.handle?.removePrefix("@")
+        val isDirectChatForDialog = targetFriendForDialog != null && !targetFriendForDialog.isGroup
+
         WallpaperCustomizerDialog(
             wallpaperId = chatWallpaperId,
             customWallpaperUri = customWallpaperUri,
             initialTransform = wallpaperTransform,
             isDarkTheme = !isLight,
+            friendName = friendDisplayName,
+            isDirectChat = isDirectChatForDialog,
             onDismissRequest = { showWallpaperCustomizerDialog = false },
             onPickCustomPhoto = {
                 wallpaperPickerLauncher.launch("image/*")
             },
-            onApply = { newWpId, newCustomUri, newTransform, isGlobal ->
+            onApply = { newWpId, newCustomUri, newTransform, isGlobal, isShared ->
                 val friend = selectedFriend
                 if (friend != null && friend.isGroup) {
                     val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
@@ -3948,9 +3989,12 @@ fun CustomizedChatScreen(
                     wallpaperId = newWpId,
                     customUri = newCustomUri,
                     transform = newTransform,
-                    isGlobal = isGlobal
+                    isGlobal = isGlobal,
+                    isShared = isShared
                 )
-                val msg = if (isGlobal) "Wallpaper applied to all chats!" else "Wallpaper updated for this chat!"
+                val msg = if (isGlobal) "Wallpaper applied to all chats!"
+                          else if (isShared) "Wallpaper shared with ${friendDisplayName ?: "friend"}!"
+                          else "Wallpaper updated for this chat!"
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                 showWallpaperCustomizerDialog = false
             },
@@ -6235,111 +6279,124 @@ fun CustomizedChatScreen(
                             .imePadding()
                             .navigationBarsPadding()
                     ) {
-                        // Wallpaper Background Layer: Custom Photo or Preset Gradient Brush
-                        if (chatWallpaperId == "custom" && !customWallpaperUri.isNullOrBlank()) {
-                            val resolvedContentScale = when (wallpaperTransform.contentScaleMode) {
-                                "fit" -> ContentScale.Fit
-                                "fill_bounds" -> ContentScale.FillBounds
-                                "inside" -> ContentScale.Inside
-                                else -> ContentScale.Crop
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clipToBounds()
-                            ) {
-                                val customWallpaperModel = remember(customWallpaperUri) {
-                                    customWallpaperUri?.let { uriStr ->
-                                        if (uriStr.startsWith("file://")) {
-                                            java.io.File(uriStr.removePrefix("file://"))
-                                        } else if (uriStr.startsWith("/")) {
-                                            java.io.File(uriStr)
-                                        } else {
-                                            android.net.Uri.parse(uriStr)
-                                        }
-                                    }
+                        // Wallpaper Background Layer: Custom Photo or Preset Gradient Brush with 300ms Crossfade
+                        Crossfade(
+                            targetState = Triple(chatWallpaperId, customWallpaperUri, wallpaperTransform),
+                            animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic),
+                            label = "chatWallpaperCrossfade"
+                        ) { (currentId, currentUri, currentTransform) ->
+                            if (currentId == "custom" && !currentUri.isNullOrBlank()) {
+                                val resolvedContentScale = when (currentTransform.contentScaleMode) {
+                                    "fit" -> ContentScale.Fit
+                                    "fill_bounds" -> ContentScale.FillBounds
+                                    "inside" -> ContentScale.Inside
+                                    else -> ContentScale.Crop
                                 }
 
-                                AsyncImage(
-                                    model = customWallpaperModel,
-                                    contentDescription = null,
-                                    contentScale = resolvedContentScale,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .graphicsLayer {
-                                            scaleX = wallpaperTransform.scale
-                                            scaleY = wallpaperTransform.scale
-                                            translationX = wallpaperTransform.offsetX
-                                            translationY = wallpaperTransform.offsetY
-                                        }
-                                        .then(
-                                            if (wallpaperTransform.blur > 0f) Modifier.blur(wallpaperTransform.blur.dp) else Modifier
-                                        )
-                                )
-                                // Legibility Scrim Overlay so chat bubbles and text remain crisp
-                                val scrimAlpha = (wallpaperTransform.dim * 0.5f).coerceIn(0f, 0.45f)
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .background(
-                                            if (isLight) Color.White.copy(alpha = scrimAlpha * 0.7f)
-                                            else Color.Black.copy(alpha = scrimAlpha)
-                                        )
-                                )
-                            }
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clipToBounds()
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .graphicsLayer {
-                                            scaleX = wallpaperTransform.scale
-                                            scaleY = wallpaperTransform.scale
-                                            translationX = wallpaperTransform.offsetX
-                                            translationY = wallpaperTransform.offsetY
+                                        .clipToBounds()
+                                ) {
+                                    val customWallpaperModel = remember(currentUri) {
+                                        if (currentUri.startsWith("file://")) {
+                                            java.io.File(currentUri.removePrefix("file://"))
+                                        } else if (currentUri.startsWith("/")) {
+                                            java.io.File(currentUri)
+                                        } else {
+                                            android.net.Uri.parse(currentUri)
                                         }
-                                        .then(
-                                            if (wallpaperTransform.blur > 0f) Modifier.blur(wallpaperTransform.blur.dp) else Modifier
-                                        )
-                                        .then(
-                                            if (chatWallpaperId != "default") {
-                                                if (chatWallpaperId == "oled") {
-                                                    Modifier.background(Color(0xFF000000))
-                                                } else {
-                                                    Modifier.background(
-                                                        brush = if (isLight) activeChatWallpaper.lightBrush else activeChatWallpaper.darkBrush
-                                                    )
-                                                }
-                                            } else {
-                                                if (isLiquidGlassTheme) {
-                                                    Modifier.liquidGlassCanvasMesh()
-                                                } else if (isGlassTheme) {
-                                                    Modifier.glassCanvasMesh()
-                                                } else if (isPureBlack) {
-                                                    Modifier.background(Color(0xFF000000))
-                                                } else {
-                                                    Modifier.background(
-                                                        brush = if (isLight) activeChatWallpaper.lightBrush else activeChatWallpaper.darkBrush
-                                                    )
-                                                }
+                                    }
+
+                                    AsyncImage(
+                                        model = customWallpaperModel,
+                                        contentDescription = null,
+                                        contentScale = resolvedContentScale,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer {
+                                                scaleX = currentTransform.scale
+                                                scaleY = currentTransform.scale
+                                                translationX = currentTransform.offsetX
+                                                translationY = currentTransform.offsetY
                                             }
-                                        )
-                                )
-                                if (chatWallpaperId != "default" && chatWallpaperId != "oled") {
-                                    val scrimAlpha = (wallpaperTransform.dim * 0.35f).coerceIn(0f, 0.4f)
+                                            .then(
+                                                if (currentTransform.blur > 0f) Modifier.blur(currentTransform.blur.dp) else Modifier
+                                            )
+                                    )
+                                    // Legibility Scrim Overlay so chat bubbles and text remain crisp
+                                    val scrimAlpha = (currentTransform.dim * 0.5f).coerceIn(0f, 0.45f)
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .background(
-                                                if (isLight) Color.White.copy(alpha = scrimAlpha * 0.5f)
+                                                if (isLight) Color.White.copy(alpha = scrimAlpha * 0.7f)
                                                 else Color.Black.copy(alpha = scrimAlpha)
                                             )
                                     )
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clipToBounds()
+                                ) {
+                                    val activeWp = remember(currentId) {
+                                        if (currentId != "default") {
+                                            AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == currentId } ?: AVAILABLE_CHAT_WALLPAPERS.first()
+                                        } else if (isLiquidGlassTheme || isGlassTheme) {
+                                            AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == "liquid_water" } ?: AVAILABLE_CHAT_WALLPAPERS.first()
+                                        } else {
+                                            AVAILABLE_CHAT_WALLPAPERS.first()
+                                        }
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer {
+                                                scaleX = currentTransform.scale
+                                                scaleY = currentTransform.scale
+                                                translationX = currentTransform.offsetX
+                                                translationY = currentTransform.offsetY
+                                            }
+                                            .then(
+                                                if (currentTransform.blur > 0f) Modifier.blur(currentTransform.blur.dp) else Modifier
+                                            )
+                                            .then(
+                                                if (currentId != "default") {
+                                                    if (currentId == "oled") {
+                                                        Modifier.background(Color(0xFF000000))
+                                                    } else {
+                                                        Modifier.background(
+                                                            brush = if (isLight) activeWp.lightBrush else activeWp.darkBrush
+                                                        )
+                                                    }
+                                                } else {
+                                                    if (isLiquidGlassTheme) {
+                                                        Modifier.liquidGlassCanvasMesh()
+                                                    } else if (isGlassTheme) {
+                                                        Modifier.glassCanvasMesh()
+                                                    } else if (isPureBlack) {
+                                                        Modifier.background(Color(0xFF000000))
+                                                    } else {
+                                                        Modifier.background(
+                                                            brush = if (isLight) activeWp.lightBrush else activeWp.darkBrush
+                                                        )
+                                                    }
+                                                }
+                                            )
+                                    )
+                                    if (currentId != "default" && currentId != "oled") {
+                                        val scrimAlpha = (currentTransform.dim * 0.35f).coerceIn(0f, 0.4f)
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(
+                                                    if (isLight) Color.White.copy(alpha = scrimAlpha * 0.5f)
+                                                    else Color.Black.copy(alpha = scrimAlpha)
+                                                )
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -6576,8 +6633,77 @@ fun CustomizedChatScreen(
                                     itemsIndexed(
                                         deduplicatedMessages,
                                         key = { _, msg -> msg.id },
-                                        contentType = { _, msg -> if (msg.isMe) "own" else "friend" }
+                                        contentType = { _, msg -> if (msg.content.startsWith("🎨 ") && msg.content.contains("wallpaper")) "system_pill" else if (msg.isMe) "own" else "friend" }
                                     ) { index, msg ->
+                                        // Shared Wallpaper System Pill
+                                        if (msg.content.startsWith("🎨 ") && msg.content.contains("wallpaper")) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 8.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(16.dp),
+                                                    color = if (isLight) Color(0xE6F1F5F9) else Color(0xCC1E2433),
+                                                    tonalElevation = 2.dp,
+                                                    shadowElevation = 1.dp,
+                                                    border = BorderStroke(1.dp, if (isLight) Color(0x20000000) else Color(0x30FFFFFF))
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = msg.content,
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Medium,
+                                                            color = if (isLight) Color(0xFF334155) else Color(0xFFCBD5E1)
+                                                        )
+                                                        Text(
+                                                            text = "Reset",
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier
+                                                                .clip(RoundedCornerShape(4.dp))
+                                                                .clickable {
+                                                                    coroutineScope.launch {
+                                                                        try {
+                                                                            val convId = currentChatKey.ifBlank {
+                                                                                selectedFriend?.let {
+                                                                                    if (it.isGroup) "group-${it.id}" else "dm-${listOf(myUsername.lowercase(), it.name.lowercase()).sorted().joinToString("-")}"
+                                                                                } ?: "global"
+                                                                            }
+
+                                                                            WallpaperSyncManager.resetAndSyncWallpaper(
+                                                                                context = context,
+                                                                                myUsername = myUsername,
+                                                                                friend = selectedFriend,
+                                                                                conversationId = convId,
+                                                                                isGlobal = false,
+                                                                                isShared = true
+                                                                            )
+                                                                            WallpaperResolver.clearSharedWallpaper(convId, friendPrefs)
+                                                                            val (defId, defUri) = WallpaperResolver.resolveForConversation(convId, selectedFriend, myUsername, friendPrefs, context.filesDir)
+                                                                            chatWallpaperId = defId
+                                                                            customWallpaperUri = defUri
+                                                                            wallpaperTransform = WallpaperResolver.resolveTransformForConversation(convId, selectedFriend, myUsername, friendPrefs)
+                                                                            Toast.makeText(context, "Wallpaper reset to default", Toast.LENGTH_SHORT).show()
+                                                                        } catch (e: Exception) {
+                                                                            e.printStackTrace()
+                                                                        }
+                                                                    }
+                                                                }
+                                                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            return@itemsIndexed
+                                        }
+
                                         val prevMsg = deduplicatedMessages.getOrNull(index - 1)
                                         val nextMsg = deduplicatedMessages.getOrNull(index + 1)
                                         val isSameUserAsPrev = prevMsg != null && prevMsg.isMe == msg.isMe &&

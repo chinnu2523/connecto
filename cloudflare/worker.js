@@ -9671,14 +9671,29 @@ async function handleWallpaperApi(request, url, env, ctx) {
   // 2. Fetch saved wallpapers: GET /api/wallpapers
   if (method === "GET") {
     try {
+      const convParam = url.searchParams.get("conversation_id");
       const rows = await env.DB.prepare(
         "SELECT id, user_id, conversation_id, wallpaper_type, preset_id, image_url, dim, blur, zoom, offset_x, offset_y, fit_mode, updated_at FROM user_wallpapers WHERE user_id = ? ORDER BY updated_at DESC"
       ).bind(caller.id).all();
 
+      let sharedRows = [];
+      if (convParam && convParam.trim() && convParam.trim() !== "global") {
+        const singleShared = await env.DB.prepare(
+          "SELECT conversation_id, updated_by_user_id, updated_by_username, wallpaper_type, preset_id, image_url, dim, blur, zoom, offset_x, offset_y, fit_mode, updated_at FROM shared_chat_wallpapers WHERE conversation_id = ?"
+        ).bind(convParam.trim()).first().catch(() => null);
+        if (singleShared) sharedRows.push(singleShared);
+      } else {
+        const allShared = await env.DB.prepare(
+          "SELECT conversation_id, updated_by_user_id, updated_by_username, wallpaper_type, preset_id, image_url, dim, blur, zoom, offset_x, offset_y, fit_mode, updated_at FROM shared_chat_wallpapers ORDER BY updated_at DESC LIMIT 100"
+        ).all().catch(() => ({ results: [] }));
+        sharedRows = allShared.results || [];
+      }
+
       return jsonResponse({
         status: "success",
         user_id: caller.id,
-        wallpapers: rows.results || []
+        wallpapers: rows.results || [],
+        shared_wallpapers: sharedRows
       });
     } catch (err) {
       return jsonResponse({ error: "Failed to query wallpapers: " + err.message }, 500);
@@ -9690,6 +9705,7 @@ async function handleWallpaperApi(request, url, env, ctx) {
     try {
       const body = await request.json().catch(() => ({}));
       const conversationId = body.conversation_id ? String(body.conversation_id).trim() : null;
+      const isShared = (body.is_shared === true || body.share_with_friend === true) && conversationId && conversationId !== "global";
       const wallpaperType = (body.wallpaper_type || "preset").trim().toLowerCase(); // 'preset' or 'custom_image'
       const presetId = body.preset_id ? String(body.preset_id).trim() : null;
       let imageUrl = body.image_url ? String(body.image_url).trim() : null;
@@ -9706,7 +9722,121 @@ async function handleWallpaperApi(request, url, env, ctx) {
       const offsetY = typeof body.offset_y === "number" ? body.offset_y : 0.0;
       const fitMode = (body.fit_mode || "crop").trim().toLowerCase();
 
-      // Check if existing record had a custom image that should be pruned
+      // CASE A: Shared Conversation Wallpaper
+      if (isShared) {
+        const existingShared = await env.DB.prepare(
+          "SELECT image_url, updated_by_user_id FROM shared_chat_wallpapers WHERE conversation_id = ?"
+        ).bind(conversationId).first().catch(() => null);
+
+        if (existingShared && existingShared.image_url && existingShared.image_url !== imageUrl) {
+          const oldPath = extractWallpaperFilePath(existingShared.image_url, existingShared.updated_by_user_id || caller.id);
+          if (oldPath) {
+            await env.DB.prepare("DELETE FROM wallpaper_files WHERE file_path = ?").bind(oldPath).run().catch(() => {});
+          }
+        }
+
+        await env.DB.prepare(`
+          INSERT INTO shared_chat_wallpapers (
+            conversation_id, updated_by_user_id, updated_by_username,
+            wallpaper_type, preset_id, image_url,
+            dim, blur, zoom, offset_x, offset_y, fit_mode, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          ON CONFLICT(conversation_id) DO UPDATE SET
+            updated_by_user_id = excluded.updated_by_user_id,
+            updated_by_username = excluded.updated_by_username,
+            wallpaper_type = excluded.wallpaper_type,
+            preset_id = excluded.preset_id,
+            image_url = excluded.image_url,
+            dim = excluded.dim,
+            blur = excluded.blur,
+            zoom = excluded.zoom,
+            offset_x = excluded.offset_x,
+            offset_y = excluded.offset_y,
+            fit_mode = excluded.fit_mode,
+            updated_at = datetime('now')
+        `).bind(
+          conversationId, caller.id, caller.username,
+          wallpaperType, presetId, imageUrl,
+          dim, blur, zoom, offsetX, offsetY, fitMode
+        ).run();
+
+        let targetFriend = null;
+        if (conversationId.startsWith("dm-")) {
+          const parts = conversationId.replace(/^dm-/, "").split("-");
+          const myU = (caller.username || "").toLowerCase();
+          targetFriend = parts.find(p => p.toLowerCase() !== myU) || null;
+        }
+
+        const senderName = caller.display_name || caller.username || "Someone";
+        const sysMsgId = "msg_sys_wp_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+        const sysContent = `🎨 ${senderName} updated the chat wallpaper`;
+        await env.DB.prepare(
+          "INSERT INTO messages (id, channel_id, sender_id, content) VALUES (?, ?, ?, ?)"
+        ).bind(sysMsgId, conversationId, caller.id, sysContent).run().catch(() => {});
+
+        // Broadcast real-time WebSocket event
+        await broadcastRealtime(env, {
+          type: "CHAT_WALLPAPER_CHANGED",
+          conversation_id: conversationId,
+          conversationId: conversationId,
+          sender: caller.username,
+          target: targetFriend,
+          updated_by_user_id: caller.id,
+          updated_by_username: caller.username,
+          system_message: {
+            id: sysMsgId,
+            channel_id: conversationId,
+            sender_id: caller.id,
+            sender_username: caller.username,
+            content: sysContent,
+            created_at: new Date().toISOString()
+          },
+          wallpaper: {
+            conversation_id: conversationId,
+            conversationId: conversationId,
+            wallpaper_type: wallpaperType,
+            type: wallpaperType,
+            preset_id: presetId,
+            presetId: presetId,
+            image_url: imageUrl,
+            imageUrl: imageUrl,
+            dim: dim,
+            blur: blur,
+            zoom: zoom,
+            offset_x: offsetX,
+            offsetX: offsetX,
+            offset_y: offsetY,
+            offsetY: offsetY,
+            fit_mode: fitMode,
+            fitMode: fitMode,
+            updated_by_user_id: caller.id,
+            updated_by_username: caller.username
+          },
+          action: "updated"
+        });
+
+        return jsonResponse({
+          status: "success",
+          message: "Shared chat wallpaper saved and broadcasted",
+          is_shared: true,
+          wallpaper: {
+            conversation_id: conversationId,
+            wallpaper_type: wallpaperType,
+            preset_id: presetId,
+            image_url: imageUrl,
+            dim: dim,
+            blur: blur,
+            zoom: zoom,
+            offset_x: offsetX,
+            offset_y: offsetY,
+            fit_mode: fitMode,
+            updated_by_user_id: caller.id,
+            updated_by_username: caller.username
+          }
+        });
+      }
+
+      // CASE B: Private User Wallpaper (Global or Per-Chat Private Override)
       const targetConvKey = conversationId || '__GLOBAL__';
       const existing = await env.DB.prepare(
         "SELECT image_url FROM user_wallpapers WHERE user_id = ? AND COALESCE(conversation_id, '__GLOBAL__') = ?"
@@ -9773,6 +9903,7 @@ async function handleWallpaperApi(request, url, env, ctx) {
       const convParam = url.searchParams.get("conversation_id") || body.conversation_id;
       const conversationId = (convParam && typeof convParam === 'string' && convParam.trim() && convParam.trim() !== "global") ? convParam.trim() : null;
       const resetAll = url.searchParams.get("reset_all") === "true" || body.reset_all === true;
+      const isShared = (url.searchParams.get("is_shared") === "true" || body.is_shared === true) && conversationId;
 
       if (resetAll) {
         // Delete all wallpaper files for this user
@@ -9781,7 +9912,81 @@ async function handleWallpaperApi(request, url, env, ctx) {
         return jsonResponse({ status: "success", message: "All user wallpapers reset to default" });
       }
 
-      // Check if target record had custom image
+      // CASE A: Reset Shared Conversation Wallpaper
+      if (isShared) {
+        const existingShared = await env.DB.prepare(
+          "SELECT image_url, updated_by_user_id FROM shared_chat_wallpapers WHERE conversation_id = ?"
+        ).bind(conversationId).first().catch(() => null);
+
+        if (existingShared && existingShared.image_url) {
+          const oldPath = extractWallpaperFilePath(existingShared.image_url, existingShared.updated_by_user_id || caller.id);
+          if (oldPath) {
+            await env.DB.prepare("DELETE FROM wallpaper_files WHERE file_path = ?").bind(oldPath).run().catch(() => {});
+          }
+        }
+
+        await env.DB.prepare("DELETE FROM shared_chat_wallpapers WHERE conversation_id = ?").bind(conversationId).run();
+
+        let targetFriend = null;
+        if (conversationId.startsWith("dm-")) {
+          const parts = conversationId.replace(/^dm-/, "").split("-");
+          const myU = (caller.username || "").toLowerCase();
+          targetFriend = parts.find(p => p.toLowerCase() !== myU) || null;
+        }
+
+        const senderName = caller.display_name || caller.username || "Someone";
+        const sysMsgId = "msg_sys_wp_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+        const sysContent = `🎨 ${senderName} reset the chat wallpaper to default`;
+        await env.DB.prepare(
+          "INSERT INTO messages (id, channel_id, sender_id, content) VALUES (?, ?, ?, ?)"
+        ).bind(sysMsgId, conversationId, caller.id, sysContent).run().catch(() => {});
+
+        await broadcastRealtime(env, {
+          type: "CHAT_WALLPAPER_CHANGED",
+          conversation_id: conversationId,
+          conversationId: conversationId,
+          sender: caller.username,
+          target: targetFriend,
+          updated_by_user_id: caller.id,
+          updated_by_username: caller.username,
+          system_message: {
+            id: sysMsgId,
+            channel_id: conversationId,
+            sender_id: caller.id,
+            sender_username: caller.username,
+            content: sysContent,
+            created_at: new Date().toISOString()
+          },
+          wallpaper: {
+            conversation_id: conversationId,
+            conversationId: conversationId,
+            wallpaper_type: "preset",
+            type: "preset",
+            preset_id: "default",
+            presetId: "default",
+            image_url: null,
+            imageUrl: null,
+            dim: 0.0,
+            blur: 0.0,
+            zoom: 1.0,
+            offset_x: 0.0,
+            offsetX: 0.0,
+            offset_y: 0.0,
+            offsetY: 0.0,
+            fit_mode: "crop",
+            fitMode: "crop"
+          },
+          action: "reset"
+        });
+
+        return jsonResponse({
+          status: "success",
+          message: `Shared wallpaper for conversation ${conversationId} reset to default`,
+          is_shared: true
+        });
+      }
+
+      // CASE B: Reset Private User Wallpaper
       const targetConvKey = conversationId || '__GLOBAL__';
       const existing = await env.DB.prepare(
         "SELECT image_url FROM user_wallpapers WHERE user_id = ? AND COALESCE(conversation_id, '__GLOBAL__') = ?"
@@ -11800,6 +12005,30 @@ export class ConnectoRealtimeRoom {
       };
       this.broadcastToChannel("store_updates", updateMsg);
       this.broadcastToAll(updateMsg);
+    } else if (payload.type === "CHAT_WALLPAPER_CHANGED" || payload.type === "chat_wallpaper_changed") {
+      const convId = payload.conversation_id || payload.conversationId;
+      const wsPayload = {
+        type: "CHAT_WALLPAPER_CHANGED",
+        conversation_id: convId,
+        conversationId: convId,
+        sender: payload.sender,
+        target: payload.target,
+        updated_by_user_id: payload.updated_by_user_id,
+        updated_by_username: payload.updated_by_username,
+        system_message: payload.system_message,
+        wallpaper: payload.wallpaper,
+        action: payload.action || "updated",
+        timestamp: Date.now()
+      };
+      if (payload.target) {
+        this.sendToUser(payload.target, wsPayload);
+      }
+      if (payload.sender) {
+        this.sendToUser(payload.sender, wsPayload);
+      }
+      if (convId) {
+        this.broadcastToChannel(convId, wsPayload);
+      }
     }
   }
 
