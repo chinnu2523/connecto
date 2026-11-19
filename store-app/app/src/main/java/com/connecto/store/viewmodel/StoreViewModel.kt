@@ -927,6 +927,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             downloadUrl = "https://connecto.fun/downloads/our-store.apk",
             accentColor = "#2563EB",
             changelog = listOf(
+                "Cohesive Obsidian Dark Workspace: Complete UI/UX overhaul across Home, PDF Editor, and Image Editor with unified #0A0C10 canvas, #13161F elevated cards, #3B82F6 Electric Blue accent, and 1px hairline borders; single 56px PDF Editor top bar with floating page switcher pill and balanced two-row selected-text action card; 5-tab Image Editor with always-on multi-touch pan & zoom, silent OCR scan on entry, and floating sub-pill dock filling >=78% screen.",
                 "Real-Time Edge Broadcast Mesh: Real-time WebSocket connection to edge server pushes app releases and updates instantly with 0ms latency",
                 "Foreground Real-Time Update Watchdog: Instant revalidation on resume and tab switch with 30s background re-check",
                 "Referral & Feedback System: Interactive sharing link generator, Android share sheet intent, and in-app feedback dialog",
@@ -950,6 +951,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             downloadUrl = "https://connecto.fun/downloads/connecto-fun.apk",
             accentColor = "#2563EB",
             changelog = listOf(
+                "Cohesive Obsidian Dark Workspace: Complete UI/UX overhaul across Home, PDF Editor, and Image Editor with unified #0A0C10 canvas, #13161F elevated cards, #3B82F6 Electric Blue accent, and 1px hairline borders; single 56px PDF Editor top bar with floating page switcher pill and balanced two-row selected-text action card; 5-tab Image Editor with always-on multi-touch pan & zoom, silent OCR scan on entry, and floating sub-pill dock filling >=78% screen.",
                 "Production-Grade WebRTC Group Voice Calls & Pure OLED Black Calls UI (v5.7.0): Upgraded 1-on-1 and Group Voice Call engine to industry-standard reliability. Integrated RTCPeerConnection with iceCandidatePoolSize = 4, max-bundle, rtcpMuxPolicy = require, and strict non-blocking Trickle ICE buffering. Enforced Opus codec SDP munging (minptime=10, useinbandfec=1, usedtx=1, maxaveragebitrate=40000, stereo=0, cbr=0) for noise-resilient mobile voice transmission. Added zero-drop network handover with automatic ICE restart on disconnect (>1500ms) and exponential WebSocket backoff recovery. Added real-time 3-bar network telemetry indicator (Ping RTT, Jitter, Packet Loss). Implemented high-priority Android Foreground Service with wake locks, proximity sensor screen-off for earpiece routing, and dynamic smart audio routing (Earpiece, Speaker, Bluetooth). 60fps GPU-accelerated Voice Activity Detection (VAD) with glowing emerald ring on participant tiles. Added Mode A in-app floating heads-up banner with stacked avatars and quick Join/Decline, Mode B full-screen obsidian incoming call UI with 'Join Muted' toggle and quick replies, and pure OLED black theme (#000000) with solid emerald buttons.",
                 "Swipe-to-Reply, Quoted Replies & Quick Emoji Reactions HUD (v5.6.2): Direct Message and Workspace Channel bubbles now feature smooth rubber-band swipe-to-reply (up to 60px damping, 40px threshold haptic trigger and spring snap-back) with fading/scaling reply icon (↩). Introduced sleek 48px composer reply and edit preview banners with 3px vertical accent lines. Quoted message containers rendered in-bubble with scroll-to-original on tap and 600ms pulse animation. Upgraded long-press message selection to floating HUD with 46px top pill housing 6 animated pop-in quick reactions (❤️, 🔥, 😂, 👍, 😮, 😢) and '+' full emoji sheet button, bottom context action menu (Reply, Copy, Edit, Unsend), 24px reaction badges with user counts and tinted accent highlight for user's own reactions, and real-time MESSAGE_REACTION_TOGGLED multi-client WebSocket synchronization."
             ),
@@ -970,6 +972,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             downloadUrl = "https://connecto.fun/downloads/jarvis-ai-v3.5.0.apk",
             accentColor = "#06B6D4",
             changelog = listOf(
+                "Cohesive Obsidian Dark Workspace: Complete UI/UX overhaul across Home, PDF Editor, and Image Editor with unified #0A0C10 canvas, #13161F elevated cards, #3B82F6 Electric Blue accent, and 1px hairline borders; single 56px PDF Editor top bar with floating page switcher pill and balanced two-row selected-text action card; 5-tab Image Editor with always-on multi-touch pan & zoom, silent OCR scan on entry, and floating sub-pill dock filling >=78% screen.",
                 "Multimodal voice conversation engine",
                 "Real-time visual scene analysis",
                 "Biometric fingerprint & face recognition security",
@@ -986,12 +989,13 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Change names in matching fonts, edit text & convert images to PDF",
             description = "Professional PDF editor for Android. Find & replace names in the exact same font and size, tap to edit text in-place, convert JPG/PNG/WEBP to PDF, merge multiple PDF files losslessly, and draw or annotate directly on documents.",
             category = "Productivity",
-            versionName = "1.4.10",
-            versionCode = 15,
-            sizeFormatted = "29.4 MB",
+            versionName = "1.6.0",
+            versionCode = 23,
+            sizeFormatted = "64.4 MB",
             downloadUrl = "https://connecto.fun/downloads/pdf-studio.apk",
             accentColor = "#EF4444",
             changelog = listOf(
+                "Cohesive Obsidian Dark Workspace: Complete UI/UX overhaul across Home, PDF Editor, and Image Editor with unified #0A0C10 canvas, #13161F elevated cards, #3B82F6 Electric Blue accent, and 1px hairline borders; single 56px PDF Editor top bar with floating page switcher pill and balanced two-row selected-text action card; 5-tab Image Editor with always-on multi-touch pan & zoom, silent OCR scan on entry, and floating sub-pill dock filling >=78% screen.",
                 "Same-Font Name & Text Replacement: Find & replace names in matching fonts",
                 "Visual Tap-to-Edit: Tap any text line on the PDF page to edit information in-place",
                 "Universal Image to PDF: Convert JPG, PNG, WEBP, BMP, HEIF or photos to PDF",
