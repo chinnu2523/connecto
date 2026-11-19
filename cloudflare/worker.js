@@ -240,13 +240,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.7.9",
-        version_name: "v5.7.9",
-        version_code: 186,
-        build: 186,
-        sha256: "289b9125b0161a64171c576e4b051286258e3396d1f86df51d57b3a1ca10a4d9",
+        version: "5.8.0",
+        version_name: "v5.8.0",
+        version_code: 187,
+        build: 187,
+        sha256: "280cde7b6b0355d77140469eefef735d659c5e60b081548287d4991c7ffecdad",
         filename: "connecto-fun.apk",
-        size_bytes: 38298487,
+        size_bytes: 38298486,
         size_display: "36.5 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -660,14 +660,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.7.6/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.9-b186-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.0-b187-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.7.9");
-          res.headers.set("X-Connecto-Build", "186");
+          res.headers.set("X-Connecto-Version", "v5.8.0");
+          res.headers.set("X-Connecto-Build", "187");
           return res;
         }
 
@@ -703,8 +703,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.7.9");
-              downloadHeaders.set("X-Connecto-Build", "186");
+              downloadHeaders.set("X-Connecto-Version", "v5.8.0");
+              downloadHeaders.set("X-Connecto-Build", "187");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2333,9 +2333,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.7.9",
-        version_code: 186,
-        size_bytes: 38298487,
+        version_name: "5.8.0",
+        version_code: 187,
+        size_bytes: 38298486,
         size_formatted: "36.5 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
@@ -7870,13 +7870,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.7.7",
-      version_name: "v5.7.7",
-      version_code: 184,
-      build: 184,
-      sha256: "928e89b95bef77149a8527245310fc9713ace4206f818e3781230397707ac1fc",
+      version: "5.8.0",
+      version_name: "v5.8.0",
+      version_code: 187,
+      build: 187,
+      sha256: "280cde7b6b0355d77140469eefef735d659c5e60b081548287d4991c7ffecdad",
       filename: "connecto-fun.apk",
-      size_bytes: 38262878,
+      size_bytes: 38298486,
       size_display: "36.5 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",

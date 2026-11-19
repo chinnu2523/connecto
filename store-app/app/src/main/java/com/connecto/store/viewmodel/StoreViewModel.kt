@@ -945,9 +945,9 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Private encrypted messaging, calls & workspaces",
             description = "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
             category = "Communication",
-            versionName = "5.7.0",
-            versionCode = 177,
-            sizeFormatted = "36.4 MB",
+            versionName = "5.8.0",
+            versionCode = 187,
+            sizeFormatted = "36.5 MB",
             downloadUrl = "https://connecto.fun/downloads/connecto-fun.apk",
             accentColor = "#2563EB",
             changelog = listOf(
