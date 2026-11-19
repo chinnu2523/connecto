@@ -218,20 +218,21 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.7.6",
-        version_name: "v5.7.6",
-        version_code: 183,
-        build: 183,
-        sha256: "0760beedf54d100b971d706483a63ac7f57a7acc59025b8c15759108e8dc7c26",
+        version: "5.7.7",
+        version_name: "v5.7.7",
+        version_code: 184,
+        build: 184,
+        sha256: "928e89b95bef77149a8527245310fc9713ace4206f818e3781230397707ac1fc",
         filename: "connecto-fun.apk",
-        size_bytes: 38165805,
-        size_display: "36.4 MB",
+        size_bytes: 38262878,
+        size_display: "36.5 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
         url: "https://connecto.fun/download/apk",
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "60fps Animated Search Engine & Zero-Jitter Filtering (v5.7.7): Seamless focus morph header collapse (220ms ease-out) and spring-animated sliding Cancel button (stiffness 380, damping 30). Active glow border, accent icon tinting, and pop-in clear button with haptic feedback. Two-tier search engine combining instant memoized local filtering with 300ms debounced cloud search for deep message history with 16px inline spinner. Recent search pills row with 1-tap clear, quick category filter chips (All, People, Messages, Channels), and exact substring match highlighting with tinted background. In-chat & workspace channel inline search bar with live match counter, stepper navigation, automatic smooth list scrolling, and 1.2s accent glow pulse around matched messages.",
           "WebRTC Voice Call Architecture & Real TURN Credential Relay (v5.7.6): Stripped complex AudioContext and GainNode wrapping on remote streams to completely prevent Android audio silence and native C++ crashes. Enforced direct native WebRTC playout, configured Cloudflare TURN credentials with TCP/TLS 443 relay, and added live call diagnostics telemetry pill.",
           "Hardware-Backed Persistent Device ID, Backend Session Upsert & Clean UI Deduplication (v5.7.5): Resolved critical session duplication bug where logging in on the same physical phone (e.g., Vivo V2307) created multiple active sessions (4 ACTIVE) on app restarts, token refreshes, or mobile IP changes. Implemented persistent client deviceId combining KeyStore-backed SecureStorageManager and Android ID that stays identical across reboots and network switches. Added device_id column and index on user_sessions in Cloudflare D1. Backend recordUserSession performs an UPSERT on (userId, deviceId) to update IP, location, and timestamps in place instead of creating duplicate records, and automatically prunes stale duplicate records. Added idempotency debounce/mutex on client session fetching to eliminate double-writes on app mount. Polished Session Management UI in ProfileScreen by removing double-nested bordered card wrappers, grouping device metadata into a unified subtitle (Android 15 • Smartphone), and masking long IPv6 addresses.",
           "Mathematical Layout, Swipe-to-Delete zIndex, Concentric Radii & Spring Physics (v5.7.4): Implemented strict mathematical layout and spring physics across DMs, Wallpaper customizer, Friend Profile, and Chat & Lock. Fixed swipe-to-delete bleed-through bug with zIndex(0f) compact red delete zone (#DC2626, 88px) and zIndex(1f) solid opaque #0A0B0E foreground clipping cleanly. Trash icon scales from 0.6 to 1.0 with spring bounce. Restored real decrypted lastMessage subtitles, 12px presence dots with 2px cutout border, 56px high-contrast FAB (#4F46E5), concentric wallpaper cards (R_outer = R_inner + Padding), sliding background pills on segmented controls, and soft sunken encryption card.",
@@ -623,19 +624,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.6/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.7/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.5/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.6/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.6-b183-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.7-b184-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.7.6");
-          res.headers.set("X-Connecto-Build", "183");
+          res.headers.set("X-Connecto-Version", "v5.7.7");
+          res.headers.set("X-Connecto-Build", "184");
           return res;
         }
 
@@ -671,8 +672,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.7.6");
-              downloadHeaders.set("X-Connecto-Build", "183");
+              downloadHeaders.set("X-Connecto-Version", "v5.7.7");
+              downloadHeaders.set("X-Connecto-Build", "184");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2296,14 +2297,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.7.6",
-        version_code: 183,
-        size_bytes: 38165805,
-        size_formatted: "36.4 MB",
+        version_name: "5.7.7",
+        version_code: 184,
+        size_bytes: 38262878,
+        size_formatted: "36.5 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "60fps Animated Search Engine & Zero-Jitter Filtering (v5.7.7): Seamless focus morph header collapse (220ms ease-out) and spring-animated sliding Cancel button (stiffness 380, damping 30). Active glow border, accent icon tinting, and pop-in clear button with haptic feedback. Two-tier search engine combining instant memoized local filtering with 300ms debounced cloud search for deep message history with 16px inline spinner. Recent search pills row with 1-tap clear, quick category filter chips (All, People, Messages, Channels), and exact substring match highlighting with tinted background. In-chat & workspace channel inline search bar with live match counter, stepper navigation, automatic smooth list scrolling, and 1.2s accent glow pulse around matched messages.",
           "WebRTC Voice Call Architecture & Real TURN Credential Relay (v5.7.6): Stripped complex AudioContext and GainNode wrapping on remote streams to completely prevent Android audio silence and native C++ crashes. Enforced direct native WebRTC playout, configured Cloudflare TURN credentials with TCP/TLS 443 relay, and added live call diagnostics telemetry pill.",
           "Hardware-Backed Persistent Device ID, Backend Session Upsert & Clean UI Deduplication (v5.7.5): Resolved critical session duplication bug where logging in on the same physical phone (e.g., Vivo V2307) created multiple active sessions (4 ACTIVE) on app restarts, token refreshes, or mobile IP changes. Implemented persistent client deviceId combining KeyStore-backed SecureStorageManager and Android ID that stays identical across reboots and network switches. Added device_id column and index on user_sessions in Cloudflare D1. Backend recordUserSession performs an UPSERT on (userId, deviceId) to update IP, location, and timestamps in place instead of creating duplicate records, and automatically prunes stale duplicate records. Added idempotency debounce/mutex on client session fetching to eliminate double-writes on app mount. Polished Session Management UI in ProfileScreen by removing double-nested bordered card wrappers, grouping device metadata into a unified subtitle (Android 15 • Smartphone), and masking long IPv6 addresses.",
           "Mathematical Layout, Swipe-to-Delete zIndex, Concentric Radii & Spring Physics (v5.7.4): Implemented strict mathematical layout and spring physics across DMs, Wallpaper customizer, Friend Profile, and Chat & Lock. Fixed swipe-to-delete bleed-through bug with zIndex(0f) compact red delete zone (#DC2626, 88px) and zIndex(1f) solid opaque #0A0B0E foreground clipping cleanly. Trash icon scales from 0.6 to 1.0 with spring bounce. Restored real decrypted lastMessage subtitles, 12px presence dots with 2px cutout border, 56px high-contrast FAB (#4F46E5), concentric wallpaper cards (R_outer = R_inner + Padding), sliding background pills on segmented controls, and soft sunken encryption card.",
@@ -7779,14 +7781,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.7.6",
-      version_name: "v5.7.6",
-      version_code: 183,
-      build: 183,
-      sha256: "0760beedf54d100b971d706483a63ac7f57a7acc59025b8c15759108e8dc7c26",
+      version: "5.7.7",
+      version_name: "v5.7.7",
+      version_code: 184,
+      build: 184,
+      sha256: "928e89b95bef77149a8527245310fc9713ace4206f818e3781230397707ac1fc",
       filename: "connecto-fun.apk",
-      size_bytes: 38165805,
-      size_display: "36.4 MB",
+      size_bytes: 38262878,
+      size_display: "36.5 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
       url: "https://connecto.fun/download/apk",
@@ -7798,6 +7800,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v5.7.7",
+          date: "Nov 19, 2026",
+          category: "search-engine",
+          tag: "Latest Release",
+          title: "Connecto v5.7.7: 60fps Animated Search Engine & Zero-Jitter Filtering",
+          summary: "Upgraded search architecture with 60fps focus morph micro-animations, sliding cancel button with spring physics, active glow border, two-tier local memoized & 300ms debounced cloud search engine, substring match highlighting, and in-chat match stepper with 1.2s accent glow pulses.",
+          highlights: [
+            "60fps Focus Morph & Spring Cancel: Screen header collapses upward (220ms ease-out) while search pill glides to top with sliding cancel button (spring stiffness 380, damping 30).",
+            "Active Glow & Pop-In Clear Icon: Transition border to active accent (rgba(99, 102, 241, 0.55)) with #818CF8 icon tint and pop-in clear (✕) button with light haptic feedback.",
+            "Two-Tier Zero-Jitter Search Engine: Instant memoized local filtering combined with 300ms debounced cloud search with request cancellation guard and 16px inline spinner.",
+            "Smart Overlay & Substring Highlighting: Recent searches pill row with 1-tap clear, quick filter chips (All, People, Messages, Channels), and bold tinted substring match highlighting.",
+            "In-Chat & Channel Search Stepper: Seamless inline chat search bar with match counter (e.g., 1 / 8), stepper navigation, smooth scrolling, and 1.2s accent glow pulse on matching bubbles.",
+            "Android Native App v5.7.7 (Build 184 • 36.5 MB): SHA-256 928e89b95bef77149a8527245310fc9713ace4206f818e3781230397707ac1fc."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
         {
           version: "v5.7.6",
           date: "Nov 19, 2026",
