@@ -751,6 +751,39 @@ fun ConnectoDeliveryDeliveredDots(modifier: Modifier = Modifier) {
     }
 }
 
+fun formatLastSeenRelative(timestampMillis: Long?, lastSeenStr: String? = null): String {
+    val ts = timestampMillis ?: try {
+        if (!lastSeenStr.isNullOrBlank()) {
+            val parsed = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }.parse(lastSeenStr.removeSuffix("Z"))
+            parsed?.time
+        } else null
+    } catch (_: Exception) {
+        null
+    }
+
+    if (ts == null || ts <= 0L) return "Offline • Direct Chat"
+
+    val diffMs = System.currentTimeMillis() - ts
+    if (diffMs < 0L || diffMs < 60_000L) {
+        return "Last seen just now"
+    }
+    val diffMin = diffMs / 60_000L
+    if (diffMin < 60L) {
+        return "Last seen ${diffMin}m ago"
+    }
+    val diffHours = diffMin / 60L
+    if (diffHours < 24L) {
+        return "Last seen ${diffHours}h ago"
+    }
+    val diffDays = diffHours / 24L
+    if (diffDays < 7L) {
+        return "Last seen ${diffDays}d ago"
+    }
+    return "Last seen recently"
+}
+
 fun evaluateIsUserOnline(
     username: String?,
     userId: String? = null,
@@ -761,22 +794,31 @@ fun evaluateIsUserOnline(
     val cleanUser = username?.trim()?.lowercase()?.removePrefix("@") ?: ""
     val cleanId = userId?.trim()?.lowercase() ?: ""
 
-    // 1. Check live WebSocket presence state flow
-    if (cleanUser.isNotBlank() && presenceMap[cleanUser] == true) return true
-    if (cleanId.isNotBlank() && presenceMap[cleanId] == true) return true
+    // 1. Check live WebSocket presence state flow (highest precedence)
+    if (cleanUser.isNotBlank() && presenceMap.containsKey(cleanUser)) {
+        return presenceMap[cleanUser] == true
+    }
+    if (cleanId.isNotBlank() && presenceMap.containsKey(cleanId)) {
+        return presenceMap[cleanId] == true
+    }
 
-    // 2. Check VoiceCallManager in-memory heartbeat / lastSeen within 60s
-    if (VoiceCallManager.isUserOnline(cleanUser) || VoiceCallManager.isUserOnline(cleanId)) return true
+    // 2. Check VoiceCallManager in-memory heartbeat / lastSeen within 45s
+    if (cleanUser.isNotBlank() && VoiceCallManager.userPresenceMap.containsKey(cleanUser)) {
+        return VoiceCallManager.isUserOnline(cleanUser)
+    }
+    if (cleanId.isNotBlank() && VoiceCallManager.userPresenceMap.containsKey(cleanId)) {
+        return VoiceCallManager.isUserOnline(cleanId)
+    }
 
-    // 3. Check friends list item
+    // 3. Fallback to friends list item from local cache
     val friendInList = friends.firstOrNull { f ->
         (cleanId.isNotBlank() && f.id.equals(cleanId, ignoreCase = true)) ||
         (cleanUser.isNotBlank() && f.handle.trim().lowercase().removePrefix("@") == cleanUser)
     }
-    if (friendInList?.isOnline == true) return true
+    if (friendInList != null) return friendInList.isOnline
 
     // 4. Fallback friend snapshot if present
-    if (fallbackFriend?.isOnline == true) return true
+    if (fallbackFriend != null) return fallbackFriend.isOnline
 
     return false
 }
@@ -4749,7 +4791,15 @@ fun CustomizedChatScreen(
                                         val count = selectedFriend?.memberCount ?: selectedFriend?.members?.size ?: 0
                                         "$count members • Group Chat"
                                     } else {
-                                        if (isFriendTyping) "typing..." else if (isSelectedOnline) "Online • Direct Chat" else "Offline • Direct Chat"
+                                        if (isFriendTyping) {
+                                            "typing..."
+                                        } else if (isSelectedOnline) {
+                                            "Online"
+                                        } else {
+                                            val lastSeenTs = VoiceCallManager.getUserLastSeen(selectedFriend?.handle)
+                                                ?: VoiceCallManager.getUserLastSeen(selectedFriend?.id)
+                                            formatLastSeenRelative(lastSeenTs, selectedFriend?.lastSeen)
+                                        }
                                     }
                                     Text(
                                         text = subText,

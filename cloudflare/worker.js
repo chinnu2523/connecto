@@ -4907,7 +4907,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         if (caller) {
           const onlineSet = await getOnlineUsersFromRealtime(env);
           const res = await env.DB.prepare(`
-            SELECT DISTINCT u.id, u.username, u.display_name, u.avatar_url, u.banner_url, u.bio, u.is_online, u.is_stealth
+            SELECT DISTINCT u.id, u.username, u.display_name, u.avatar_url, u.banner_url, u.bio, u.is_online, u.is_stealth, u.last_seen, u.updated_at
             FROM friendships f
             JOIN users u ON (f.friend_id = u.id AND f.user_id = ?) OR (f.user_id = u.id AND f.friend_id = ?)
             WHERE f.status = 'accepted' AND u.id != ?
@@ -4971,6 +4971,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
                 friend_banner_url: ban,
                 status: isOnline ? "online" : "offline",
                 is_online: isOnline,
+                last_seen: r.last_seen || r.updated_at || null,
                 is_stealth: isStealth,
                 bio: r.bio || "Connecto friend",
                 last_message: lastMsgText,
@@ -8965,8 +8966,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     const targetUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
 
     if (targetUser) {
+      const nowIso = new Date().toISOString();
       if (env.DB) {
-        await env.DB.prepare("UPDATE users SET is_online = 0, updated_at = datetime('now') WHERE lower(username) = ?")
+        await env.DB.prepare("UPDATE users SET is_online = 0, last_seen = datetime('now'), updated_at = datetime('now') WHERE lower(username) = ?")
           .bind(targetUser).run().catch(() => {});
       }
       const room = getRealtimeRoom(env);
@@ -8979,7 +8981,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         type: "presence_update",
         username: targetUser,
         is_online: false,
-        status: "offline"
+        status: "offline",
+        last_seen: nowIso
       });
     }
     return jsonResponse({ success: true, status: "offline_recorded", username: targetUser, is_online: false });
@@ -8997,6 +9000,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       if (env.DB) {
         await env.DB.prepare("UPDATE users SET is_online = 1, updated_at = datetime('now') WHERE lower(username) = ? AND is_stealth = 0")
           .bind(targetUser).run().catch(() => {});
+      }
+      const room = getRealtimeRoom(env);
+      if (room) {
+        try {
+          await room.fetch(new Request(`http://realtime/internal/presence/online?username=${encodeURIComponent(targetUser)}`, { method: "POST" }));
+        } catch (_) {}
       }
       await broadcastRealtime(env, {
         type: "presence_update",
@@ -9025,8 +9034,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     }
 
     if (targetUser) {
+      const nowIso = new Date().toISOString();
       if (env.DB) {
-        await env.DB.prepare("UPDATE users SET is_online = 0, updated_at = datetime('now') WHERE lower(username) = ?")
+        await env.DB.prepare("UPDATE users SET is_online = 0, last_seen = datetime('now'), updated_at = datetime('now') WHERE lower(username) = ?")
           .bind(targetUser).run().catch(() => {});
       }
       const room = getRealtimeRoom(env);
@@ -9039,7 +9049,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         type: "presence_update",
         username: targetUser,
         is_online: false,
-        status: "offline"
+        status: "offline",
+        last_seen: nowIso
       });
     }
     return jsonResponse({ success: true, message: "Logged out successfully", is_online: false });
@@ -9051,9 +9062,17 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       return jsonResponse({ error: "Unauthorized" }, 401);
     }
     const targetUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
-    if (targetUser && env.DB) {
-      await env.DB.prepare("UPDATE users SET is_online = 1, updated_at = datetime('now') WHERE lower(username) = ? AND is_stealth = 0")
-        .bind(targetUser).run().catch(() => {});
+    if (targetUser) {
+      if (env.DB) {
+        await env.DB.prepare("UPDATE users SET is_online = 1, updated_at = datetime('now') WHERE lower(username) = ? AND is_stealth = 0")
+          .bind(targetUser).run().catch(() => {});
+      }
+      const room = getRealtimeRoom(env);
+      if (room) {
+        try {
+          await room.fetch(new Request(`http://realtime/internal/presence/heartbeat?username=${encodeURIComponent(targetUser)}`, { method: "POST" }));
+        } catch (_) {}
+      }
     }
     return jsonResponse({ success: true, status: "alive", username: targetUser });
   }
@@ -10371,11 +10390,64 @@ export class ConnectoRealtimeRoom {
     this.sockets = new Set();
     this.socketMeta = new Map();
     this.userSockets = new Map();
+    this.userPresence = new Map(); // username -> { isOnline: boolean, lastHeartbeat: number, lastSeen: string, status: string }
     this.channelSockets = new Map();
     this.voiceRooms = new Map(); // roomId -> Set<username>
     this.pendingCalls = new Map(); // callId -> { callId, caller, callerName, callerAvatar, target, status, createdAt }
     this.userNotifications = new Map(); // username -> Array<Notification>
     this.groups = new Map(); // groupId -> Group Object
+    this.ensurePresenceAlarm();
+  }
+
+  checkStalePresence() {
+    const now = Date.now();
+    const timeoutMs = 45000; // Strict 45-second auto-offline timeout
+    for (const [username, presence] of this.userPresence.entries()) {
+      if (presence.isOnline) {
+        const elapsed = now - (presence.lastHeartbeat || 0);
+        if (elapsed > timeoutMs) {
+          presence.isOnline = false;
+          presence.status = "offline";
+          const lastSeenIso = presence.lastHeartbeat ? new Date(presence.lastHeartbeat).toISOString() : new Date().toISOString();
+          presence.lastSeen = lastSeenIso;
+
+          if (this.env && this.env.DB) {
+            this.env.DB.prepare("UPDATE users SET is_online = 0, last_seen = datetime(?, 'unixepoch'), updated_at = datetime('now') WHERE lower(username) = ?")
+              .bind(Math.floor((presence.lastHeartbeat || now) / 1000), username.toLowerCase()).run().catch(() => {});
+          }
+
+          this.broadcastToAll({
+            type: "presence_update",
+            username: username,
+            is_online: false,
+            status: "offline",
+            last_seen: lastSeenIso
+          });
+        }
+      }
+    }
+  }
+
+  async alarm() {
+    try {
+      this.checkStalePresence();
+    } catch (_) {}
+    try {
+      if (this.state && this.state.storage && typeof this.state.storage.setAlarm === "function") {
+        await this.state.storage.setAlarm(Date.now() + 15000);
+      }
+    } catch (_) {}
+  }
+
+  async ensurePresenceAlarm() {
+    try {
+      if (this.state && this.state.storage && typeof this.state.storage.getAlarm === "function") {
+        const currentAlarm = await this.state.storage.getAlarm();
+        if (!currentAlarm) {
+          await this.state.storage.setAlarm(Date.now() + 15000);
+        }
+      }
+    } catch (_) {}
   }
 
   addNotification(username, notif) {
@@ -10643,11 +10715,19 @@ export class ConnectoRealtimeRoom {
       }
     }
 
-    // 2. Real-time telemetry & cluster stats
+    // 2. Real-time telemetry & cluster stats with strict 45-second fresh presence
     if (url.pathname === "/internal/stats") {
+      this.checkStalePresence();
+      const now = Date.now();
+      const onlineUsers = [];
+      for (const [u, p] of this.userPresence.entries()) {
+        if (p.isOnline && (now - (p.lastHeartbeat || 0) <= 45000)) {
+          onlineUsers.push(u);
+        }
+      }
       return new Response(JSON.stringify({
         total_connections: this.sockets.size,
-        online_users: Array.from(this.userSockets.keys()),
+        online_users: onlineUsers,
         subscribed_channels: Array.from(this.channelSockets.keys())
       }), {
         headers: { "Content-Type": "application/json" }
@@ -10657,23 +10737,97 @@ export class ConnectoRealtimeRoom {
     if (url.pathname === "/internal/presence/offline") {
       const u = (url.searchParams.get("username") || "").toLowerCase().trim().replace(/^@/, "");
       if (u) {
+        const nowIso = new Date().toISOString();
+        const p = this.userPresence.get(u) || {};
+        p.isOnline = false;
+        p.status = "offline";
+        p.lastSeen = nowIso;
+        this.userPresence.set(u, p);
+
         const uSockets = this.userSockets.get(u);
         if (uSockets) {
           for (const s of uSockets) {
-            try { s.close(1000, "Presence offline"); } catch (_) {}
+            const m = this.socketMeta.get(s);
+            if (m) m.isForeground = false;
           }
-          this.userSockets.delete(u);
         }
+
         if (this.env && this.env.DB) {
-          this.env.DB.prepare("UPDATE users SET is_online = 0, updated_at = datetime('now') WHERE lower(username) = ?")
+          this.env.DB.prepare("UPDATE users SET is_online = 0, last_seen = datetime('now'), updated_at = datetime('now') WHERE lower(username) = ?")
             .bind(u).run().catch(() => {});
         }
         this.broadcastToAll({
           type: "presence_update",
           username: u,
           is_online: false,
-          status: "offline"
+          status: "offline",
+          last_seen: nowIso
         });
+      }
+      return new Response(JSON.stringify({ status: "ok" }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    if (url.pathname === "/internal/presence/online") {
+      const u = (url.searchParams.get("username") || "").toLowerCase().trim().replace(/^@/, "");
+      if (u) {
+        const now = Date.now();
+        this.userPresence.set(u, {
+          isOnline: true,
+          status: "online",
+          lastHeartbeat: now,
+          lastSeen: new Date(now).toISOString()
+        });
+        const uSockets = this.userSockets.get(u);
+        if (uSockets) {
+          for (const s of uSockets) {
+            const m = this.socketMeta.get(s);
+            if (m) {
+              m.isForeground = true;
+              m.lastHeartbeat = now;
+            }
+          }
+        }
+        if (this.env && this.env.DB) {
+          this.env.DB.prepare("UPDATE users SET is_online = 1, updated_at = datetime('now') WHERE lower(username) = ? AND is_stealth = 0")
+            .bind(u).run().catch(() => {});
+        }
+        this.broadcastToAll({
+          type: "presence_update",
+          username: u,
+          is_online: true,
+          status: "online"
+        });
+      }
+      return new Response(JSON.stringify({ status: "ok" }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    if (url.pathname === "/internal/presence/heartbeat") {
+      const u = (url.searchParams.get("username") || "").toLowerCase().trim().replace(/^@/, "");
+      if (u) {
+        const now = Date.now();
+        const p = this.userPresence.get(u);
+        if (p) {
+          p.lastHeartbeat = now;
+          p.isOnline = true;
+          p.status = "online";
+        } else {
+          this.userPresence.set(u, {
+            isOnline: true,
+            status: "online",
+            lastHeartbeat: now,
+            lastSeen: new Date(now).toISOString()
+          });
+        }
+        const uSockets = this.userSockets.get(u);
+        if (uSockets) {
+          for (const s of uSockets) {
+            const m = this.socketMeta.get(s);
+            if (m) {
+              m.lastHeartbeat = now;
+              m.isForeground = true;
+            }
+          }
+        }
       }
       return new Response(JSON.stringify({ status: "ok" }), { headers: { "Content-Type": "application/json" } });
     }
@@ -11049,6 +11203,15 @@ export class ConnectoRealtimeRoom {
       } catch (_) {}
     }
     meta.isStealth = userIsStealth;
+    meta.isForeground = true;
+    meta.lastHeartbeat = Date.now();
+    this.userPresence.set(cleanUser, {
+      isOnline: !userIsStealth,
+      status: userIsStealth ? "offline" : "online",
+      lastHeartbeat: Date.now(),
+      lastSeen: new Date().toISOString()
+    });
+    this.ensurePresenceAlarm();
 
     if (this.env && this.env.DB && !userIsStealth) {
       try {
@@ -11073,9 +11236,85 @@ export class ConnectoRealtimeRoom {
         if (!raw) return;
         const data = typeof raw === "string" ? JSON.parse(raw) : {};
 
-        // 1. Keepalive Ping / Pong
-        if (data.type === "ping" || data.action === "ping") {
+        // 1. Keepalive Ping / Heartbeat with Foreground Gating & 45s Timeout Reset
+        if (data.type === "ping" || data.action === "ping" || data.type === "heartbeat" || data.action === "heartbeat") {
+          const isForeground = data.foreground !== false && meta.isForeground !== false;
+          if (isForeground) {
+            meta.isForeground = true;
+            meta.lastHeartbeat = Date.now();
+            const p = this.userPresence.get(meta.username);
+            const wasOffline = !p || !p.isOnline;
+            this.userPresence.set(meta.username, {
+              isOnline: true,
+              status: "online",
+              lastHeartbeat: Date.now(),
+              lastSeen: new Date().toISOString()
+            });
+            if (wasOffline && !meta.isStealth) {
+              if (this.env && this.env.DB) {
+                this.env.DB.prepare("UPDATE users SET is_online = 1, updated_at = datetime('now') WHERE lower(username) = ? AND is_stealth = 0")
+                  .bind(meta.username.toLowerCase()).run().catch(() => {});
+              }
+              this.broadcastToAll({
+                type: "presence_update",
+                username: meta.username,
+                is_online: true,
+                status: "online"
+              }, server);
+            }
+          }
           server.send(JSON.stringify({ type: "pong", action: "pong", timestamp: Date.now() }));
+          return;
+        }
+
+        // 1b. Real-Time OS Lifecycle PRESENCE_UPDATE handler
+        if (data.type === "presence_update" || data.action === "presence_update" || data.type === "PRESENCE_UPDATE" || data.action === "PRESENCE_UPDATE") {
+          const targetIsOnline = Boolean(data.is_online === true || data.status === "online");
+          const now = Date.now();
+          const nowIso = new Date(now).toISOString();
+          if (!targetIsOnline) {
+            meta.isForeground = false;
+            const lastSeenTs = data.last_seen ? new Date(Number(data.last_seen) || now).toISOString() : nowIso;
+            this.userPresence.set(meta.username, {
+              isOnline: false,
+              status: "offline",
+              lastHeartbeat: meta.lastHeartbeat || now,
+              lastSeen: lastSeenTs
+            });
+            if (this.env && this.env.DB) {
+              this.env.DB.prepare("UPDATE users SET is_online = 0, last_seen = datetime('now'), updated_at = datetime('now') WHERE lower(username) = ?")
+                .bind(meta.username.toLowerCase()).run().catch(() => {});
+            }
+            this.broadcastToAll({
+              type: "presence_update",
+              username: meta.username,
+              is_online: false,
+              status: "offline",
+              last_seen: lastSeenTs
+            });
+          } else {
+            meta.isForeground = true;
+            meta.lastHeartbeat = now;
+            this.userPresence.set(meta.username, {
+              isOnline: true,
+              status: "online",
+              lastHeartbeat: now,
+              lastSeen: nowIso
+            });
+            if (!meta.isStealth) {
+              if (this.env && this.env.DB) {
+                this.env.DB.prepare("UPDATE users SET is_online = 1, updated_at = datetime('now') WHERE lower(username) = ? AND is_stealth = 0")
+                  .bind(meta.username.toLowerCase()).run().catch(() => {});
+              }
+              this.broadcastToAll({
+                type: "presence_update",
+                username: meta.username,
+                is_online: true,
+                status: "online"
+              });
+            }
+          }
+          server.send(JSON.stringify({ type: "presence_ack", status: targetIsOnline ? "online" : "offline" }));
           return;
         }
 
@@ -11710,15 +11949,18 @@ export class ConnectoRealtimeRoom {
       userSet.delete(server);
       if (userSet.size === 0) {
         this.userSockets.delete(meta.username);
+        this.userPresence.delete(meta.username);
+        const nowIso = new Date().toISOString();
         if (this.env && this.env.DB) {
-          this.env.DB.prepare("UPDATE users SET is_online = 0, updated_at = datetime('now') WHERE lower(username) = ?")
+          this.env.DB.prepare("UPDATE users SET is_online = 0, last_seen = datetime('now'), updated_at = datetime('now') WHERE lower(username) = ?")
             .bind(meta.username.toLowerCase()).run().catch(() => {});
         }
         this.broadcastToAll({
           type: "presence_update",
           username: meta.username,
           is_online: false,
-          status: "offline"
+          status: "offline",
+          last_seen: nowIso
         });
       }
     }

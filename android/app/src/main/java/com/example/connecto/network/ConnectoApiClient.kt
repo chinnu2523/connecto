@@ -572,6 +572,38 @@ object ConnectoApiClient {
         }
     }
 
+    suspend fun setPresenceOnline(username: String? = null): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val user = (username ?: currentUsername)?.trim()?.lowercase()?.removePrefix("@") ?: return@withContext Result.success(false)
+            val jsonBody = org.json.JSONObject().apply {
+                put("username", user)
+            }
+            val res = executeRequest(
+                endpoint = "/api/presence/online",
+                method = "POST",
+                body = jsonBody.toString(),
+                token = sessionToken
+            )
+            Result.success(res.isSuccess)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun sendHeartbeat(): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val res = executeRequest(
+                endpoint = "/api/user/heartbeat",
+                method = "POST",
+                body = "{}",
+                token = sessionToken
+            )
+            Result.success(res.isSuccess)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     private var applicationContext: android.content.Context? = null
 
     fun updateAvatarState(avatarUrl: String?, context: android.content.Context? = null) {

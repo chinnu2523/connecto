@@ -421,10 +421,13 @@ object VoiceCallManager {
     private val _presenceState = kotlinx.coroutines.flow.MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val presenceState: kotlinx.coroutines.flow.StateFlow<Map<String, Boolean>> = _presenceState.asStateFlow()
 
-    fun setUserPresence(usernameOrId: String, isOnline: Boolean) {
+    @Volatile
+    var isAppInForeground: Boolean = true
+
+    fun setUserPresence(usernameOrId: String, isOnline: Boolean, lastSeen: Long = System.currentTimeMillis()) {
         val clean = usernameOrId.trim().lowercase().removePrefix("@")
         if (clean.isBlank()) return
-        userPresenceMap[clean] = Pair(isOnline, System.currentTimeMillis())
+        userPresenceMap[clean] = Pair(isOnline, lastSeen)
         _userPresenceUpdates.tryEmit(clean to isOnline)
         scope.launch(Dispatchers.Main) {
             try {
@@ -438,14 +441,77 @@ object VoiceCallManager {
         }
     }
 
+    fun getUserLastSeen(usernameOrId: String?): Long? {
+        if (usernameOrId.isNullOrBlank()) return null
+        val clean = usernameOrId.trim().lowercase().removePrefix("@")
+        return userPresenceMap[clean]?.second
+    }
+
     fun isUserOnline(usernameOrId: String?): Boolean {
         if (usernameOrId.isNullOrBlank()) return false
         val clean = usernameOrId.trim().lowercase().removePrefix("@")
         val entry = userPresenceMap[clean] ?: return false
         val (online, timestamp) = entry
         if (!online) return false
-        val isFresh = (System.currentTimeMillis() - timestamp) <= 60_000L
-        return online || isFresh
+        // Client-side strict 45-second stale threshold:
+        val isFresh = (System.currentTimeMillis() - timestamp) <= 45_000L
+        return isFresh
+    }
+
+    fun onAppForegrounded() {
+        isAppInForeground = true
+        Log.d(TAG, "onAppForegrounded: Emitting PRESENCE_UPDATE online and starting 25s heartbeats")
+        val user = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+        if (user.isNotBlank()) {
+            setUserPresence(user, true)
+            try {
+                val presenceJson = JSONObject().apply {
+                    put("type", "presence_update")
+                    put("action", "presence_update")
+                    put("username", user)
+                    put("status", "online")
+                    put("is_online", true)
+                    put("foreground", true)
+                    put("timestamp", System.currentTimeMillis())
+                }
+                sendWsMessage(presenceJson)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error sending online presence over WS: ${e.message}")
+            }
+            scope.launch(Dispatchers.IO) {
+                ConnectoApiClient.setPresenceOnline(user)
+            }
+        }
+        startForegroundHeartbeat()
+    }
+
+    fun onAppBackgrounded() {
+        isAppInForeground = false
+        Log.d(TAG, "onAppBackgrounded: Emitting PRESENCE_UPDATE offline and pausing heartbeats")
+        stopForegroundHeartbeat()
+        val user = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+        if (user.isNotBlank()) {
+            val now = System.currentTimeMillis()
+            setUserPresence(user, false, now)
+            try {
+                val presenceJson = JSONObject().apply {
+                    put("type", "presence_update")
+                    put("action", "presence_update")
+                    put("username", user)
+                    put("status", "offline")
+                    put("is_online", false)
+                    put("foreground", false)
+                    put("last_seen", now)
+                    put("timestamp", now)
+                }
+                sendWsMessage(presenceJson)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error sending offline presence over WS: ${e.message}")
+            }
+            scope.launch(Dispatchers.IO) {
+                ConnectoApiClient.setPresenceOffline(user)
+            }
+        }
     }
 
     // @mention notification events
@@ -2005,20 +2071,44 @@ object VoiceCallManager {
         }
     }
 
-    private fun startPeriodicPing() {
+    fun startForegroundHeartbeat() {
         pingJob?.cancel()
         pingJob = scope.launch {
             while (isActive) {
-                delay(15000L)
+                delay(25_000L) // Exactly 25-second heartbeat interval while actively in foreground
+                if (!isAppInForeground) {
+                    Log.d(TAG, "Heartbeat paused: App is backgrounded")
+                    break
+                }
                 if (isWsConnected && webSocket != null) {
                     try {
-                        val ping = JSONObject().apply { put("type", "ping") }
+                        val ping = JSONObject().apply {
+                            put("type", "ping")
+                            put("action", "heartbeat")
+                            put("username", ConnectoApiClient.currentUsername)
+                            put("foreground", true)
+                            put("timestamp", System.currentTimeMillis())
+                        }
                         webSocket?.send(ping.toString())
+                        scope.launch(Dispatchers.IO) {
+                            ConnectoApiClient.sendHeartbeat()
+                        }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Ping error: ${e.message}")
+                        Log.e(TAG, "Ping heartbeat error: ${e.message}")
                     }
                 }
             }
+        }
+    }
+
+    fun stopForegroundHeartbeat() {
+        pingJob?.cancel()
+        pingJob = null
+    }
+
+    private fun startPeriodicPing() {
+        if (isAppInForeground) {
+            startForegroundHeartbeat()
         }
     }
 
@@ -2466,10 +2556,23 @@ object VoiceCallManager {
                 "presence_update", "presence:update", "user:presence", "user_presence", "user_online" -> {
                     val pUser = json.optString("username").ifEmpty { json.optString("user_id") }
                     val isOnline = json.optBoolean("is_online", json.optString("status").equals("online", ignoreCase = true))
-                    Log.d(TAG, "Presence update received: user=$pUser, is_online=$isOnline")
+                    val rawLastSeen = json.optString("last_seen").ifEmpty { json.optString("lastSeen") }
+                    val lastSeenTs = try {
+                        if (rawLastSeen.isNotBlank()) {
+                            val parsed = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).apply {
+                                timeZone = java.util.TimeZone.getTimeZone("UTC")
+                            }.parse(rawLastSeen.removeSuffix("Z"))
+                            parsed?.time ?: System.currentTimeMillis()
+                        } else {
+                            json.optLong("timestamp", System.currentTimeMillis())
+                        }
+                    } catch (_: Exception) {
+                        System.currentTimeMillis()
+                    }
+                    Log.d(TAG, "Presence update received: user=$pUser, is_online=$isOnline, lastSeen=$lastSeenTs")
                     if (pUser.isNotBlank()) {
                         val clean = pUser.lowercase().removePrefix("@")
-                        setUserPresence(clean, isOnline)
+                        setUserPresence(clean, isOnline, lastSeenTs)
                         appContext?.let { ctx ->
                             try {
                                 ConnectoDatabaseHelper.getInstance(ctx).updateFriendOnlineStatus(clean, isOnline)

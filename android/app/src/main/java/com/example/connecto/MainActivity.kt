@@ -48,6 +48,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.fragment.app.FragmentActivity
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -149,6 +152,16 @@ class MainActivity : FragmentActivity() {
         // Schedule message purge on background IO thread (not in onOpen which blocks Main thread)
         com.example.connecto.data.ConnectoDatabaseHelper.getInstance(this).schedulePurgeAsync()
 
+        // Subscribe to OS Process Lifecycle: Immediately updates presence across app minimization, screen locking, or app switching
+        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                com.example.connecto.voice.VoiceCallManager.onAppForegrounded()
+            }
+            override fun onStop(owner: LifecycleOwner) {
+                com.example.connecto.voice.VoiceCallManager.onAppBackgrounded()
+            }
+        })
+
         // Configure Coil image caching with memory & disk cache
         try {
             val imageLoader = coil.ImageLoader.Builder(this)
@@ -242,6 +255,12 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        ConnectoNotificationManager.isAppInForeground = true
+        com.example.connecto.voice.VoiceCallManager.onAppForegrounded()
+    }
+
     override fun onResume() {
         super.onResume()
         ConnectoNotificationManager.isAppInForeground = true
@@ -251,12 +270,12 @@ class MainActivity : FragmentActivity() {
 
     override fun onPause() {
         super.onPause()
-        ConnectoNotificationManager.isAppInForeground = false
     }
 
     override fun onStop() {
         super.onStop()
         ConnectoNotificationManager.isAppInForeground = false
+        com.example.connecto.voice.VoiceCallManager.onAppBackgrounded()
     }
 
     override fun onDestroy() {
