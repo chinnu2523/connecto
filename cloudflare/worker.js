@@ -573,7 +573,7 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.5/pdf-studio.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.6.0-b23-obsidian-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.7.0-b24-obsidian-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -581,8 +581,8 @@ Sitemap: https://connecto.fun/sitemap.xml
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
           res.headers.set("X-Connecto-Package", "com.app.pdfstudio");
           res.headers.set("X-Connecto-App", "PDF Studio");
-          res.headers.set("X-Connecto-Version", "v1.5.5");
-          res.headers.set("X-Connecto-Build", "21");
+          res.headers.set("X-Connecto-Version", "v1.7.0");
+          res.headers.set("X-Connecto-Build", "24");
           return res;
         }
 
@@ -617,8 +617,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
               downloadHeaders.set("X-Connecto-App", "PDF Studio");
-              downloadHeaders.set("X-Connecto-Version", "v1.6.0");
-              downloadHeaders.set("X-Connecto-Build", "23");
+              downloadHeaders.set("X-Connecto-Version", "v1.7.0");
+              downloadHeaders.set("X-Connecto-Build", "24");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2465,14 +2465,17 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Full PDF editor & creative image editor with typography matching",
         description: "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         category: "Productivity",
-        version_name: "1.6.0",
-        version_code: 23,
-        size_bytes: 67524788,
+        version_name: "1.7.0",
+        version_code: 24,
+        size_bytes: 67573936,
         size_formatted: "64.4 MB",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
         accent_color: "#EF4444",
         changelog: [
+          "Inline Edit Word & Line Bottom Sheet: Keyboard-aware sliding sheet auto-panning and zooming document above keyboard with cursor at end, real-time live keystroke canvas binding, and progressive disclosure Tune Style drawer (Text, Color with eyedropper loupe, Align with 1px micro-nudge D-pad)",
+          "Seamless Save & Export Dialog: Rounded top bottom sheet with live page thumbnail, smart filename with fixed suffix badge (.pdf, .png, .jpg), quality presets with live estimated file size label, off-thread rendering with morphing button progress, and in-sheet completion crossfade (Share, Open, Done)",
+          "Unsaved Changes Guard: Context-aware back handler intercepting exits to prevent accidental edits loss across PDF and Image Editors, with reactive My Documents refresh on Home screen",
           "Cohesive Obsidian Dark Workspace: Complete UI/UX overhaul across Home, PDF Editor, and Image Editor with unified #0A0C10 canvas, #13161F elevated cards, #3B82F6 Electric Blue accent, and 1px hairline borders; single 56px PDF Editor top bar with floating page switcher pill and balanced two-row selected-text action card; 5-tab Image Editor with always-on multi-touch pan & zoom, silent OCR scan on entry, and floating sub-pill dock filling >=78% screen.",
           "Pixel-Level Image Typography & Core Ink Analyzer: Accurate extraction of core ink color avoiding anti-aliasing wash-out, tight ink bounding box calculation eliminating OCR padding distortion, and precision background color sampling with soft edge feathering",
           "Normalized EXIF Orientation & Percentage Coordinates: Upright bitmap alignment and resolution-independent percentage mapping so interactive tap overlays and canvas rendering remain 100% aligned across all zoom levels",
