@@ -2149,7 +2149,9 @@ fun CustomizedChatScreen(
 
     val filteredFriends by remember {
         derivedStateOf {
-            val baseList: List<FriendItem> = when (messageTabFilter) {
+            val baseList: List<FriendItem> = if (friendSearchQuery.isNotBlank()) {
+                friendsList.toList() + userGroupsList.toList()
+            } else when (messageTabFilter) {
                 "DIRECT" -> friendsList.toList()
                 "GROUPS" -> userGroupsList.toList()
                 else -> friendsList.toList() + userGroupsList.toList()
@@ -2435,7 +2437,6 @@ fun CustomizedChatScreen(
                 if (res.isSuccess) {
                     cloudMessageResults = res.getOrDefault(emptyList())
                 }
-                ConnectoSearchPreferences.saveRecentSearch(context, q)
             } catch (_: Exception) {
                 cloudMessageResults = emptyList()
             } finally {
@@ -7695,7 +7696,9 @@ fun CustomizedChatScreen(
             else -> {
                 // ================= FRIENDS LIST INBOX SCREEN =================
                 Column(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
                 ) {
                 val isSearchActive = isDmSearchFocused || friendSearchQuery.isNotEmpty()
                 val dmHeaderCollapseRatio by animateFloatAsState(
@@ -7744,16 +7747,23 @@ fun CustomizedChatScreen(
                             pendingFriendRequestsCount = 0,
                             showProfileButton = false,
                             onAvatarClick = {},
-                            customAction = null
+                            customAction = null,
+                            applyStatusBarsPadding = false
                         )
                     }
                 }
+
+                val dmSearchTopPad by animateDpAsState(
+                    targetValue = if (isSearchActive) 10.dp else 6.dp,
+                    animationSpec = tween(durationMillis = 220, easing = EaseOutCubic),
+                    label = "dmSearchTopPad"
+                )
 
                 // 60fps Micro-Animated Search Bar with sliding cancel, active glow border & inline spinner
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .padding(start = 16.dp, end = 16.dp, top = dmSearchTopPad, bottom = 6.dp)
                 ) {
                     ConnectoAnimatedSearchBar(
                         query = friendSearchQuery,
@@ -7765,6 +7775,10 @@ fun CustomizedChatScreen(
                         onCancel = {
                             friendSearchQuery = ""
                             isDmSearchFocused = false
+                            selectedDmSearchFilter = "All"
+                        },
+                        onExplicitSearch = { q ->
+                            ConnectoSearchPreferences.saveRecentSearch(context, q)
                         },
                         focusRequester = searchFocusRequester,
                         isDark = !isLight
@@ -7772,7 +7786,7 @@ fun CustomizedChatScreen(
                 }
 
                 // Recent Searches & Quick Category Filter Chips (All, People, Messages, Channels)
-                if (isDmSearchFocused && friendSearchQuery.isEmpty()) {
+                if (isSearchActive && friendSearchQuery.isEmpty()) {
                     val recentList = remember(friendSearchQuery, isDmSearchFocused) {
                         ConnectoSearchPreferences.getRecentSearches(context)
                     }
@@ -7788,7 +7802,7 @@ fun CustomizedChatScreen(
                         },
                         isDark = !isLight
                     )
-                } else if (friendSearchQuery.isNotEmpty()) {
+                } else if (isSearchActive && friendSearchQuery.isNotEmpty()) {
                     RecentSearchesAndFilterChips(
                         recentSearches = emptyList(),
                         selectedFilter = selectedDmSearchFilter,
@@ -7934,6 +7948,24 @@ fun CustomizedChatScreen(
                             .map { it.key.removePrefix(prefix) }
                             .toSet()
                     }
+                    val searchDisplayFriends = remember(filteredFriends, isSearchActive, friendSearchQuery, selectedDmSearchFilter, friendsList, userGroupsList) {
+                        if (!isSearchActive) {
+                            filteredFriends
+                        } else if (friendSearchQuery.isBlank()) {
+                            when (selectedDmSearchFilter) {
+                                "Channels" -> userGroupsList.take(5)
+                                "Messages" -> emptyList()
+                                else -> friendsList.filter { !it.isGroup && it.id !in deletedChatIds }.take(5)
+                            }
+                        } else {
+                            when (selectedDmSearchFilter) {
+                                "People" -> filteredFriends.filter { !it.isGroup }
+                                "Channels" -> filteredFriends.filter { it.isGroup }
+                                "Messages" -> emptyList()
+                                else -> filteredFriends
+                            }
+                        }
+                    }
                     LazyColumn(
                         state = friendsListState,
                         modifier = Modifier
@@ -7981,115 +8013,149 @@ fun CustomizedChatScreen(
                         }
 
                         // Message Tab Filter Button Group (Segmented Controls)
-                        item(key = "friends_filter_button_group") {
-                            val filterOptions = listOf(
-                                "ALL" to "All",
-                                "DIRECT" to "Direct",
-                                "GROUPS" to "Groups"
-                            )
-                            val isDark = !isLight
-                            val trackBg = if (isDark) Color(0xFF12141A) else Color(0xFFF1F5F9)
-                            val activeTabBg = if (isDark) Color(0xFF242836) else Color(0xFF0F172A)
-                            val activeTextColor = Color(0xFFFFFFFF)
-                            val inactiveTextColor = if (isDark) Color(0xFF7A7F8F) else Color(0xFF64748B)
-
-                            BoxWithConstraints(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(trackBg)
-                                    .padding(4.dp)
-                            ) {
-                                val haptic = LocalHapticFeedback.current
-                                val totalWidth = maxWidth
-                                val optionCount = filterOptions.size
-                                val tabWidth = totalWidth / optionCount
-                                val selectedIndex = filterOptions.indexOfFirst { it.first == messageTabFilter }.coerceAtLeast(0)
-
-                                val animatedPillOffset by animateDpAsState(
-                                    targetValue = tabWidth * selectedIndex,
-                                    animationSpec = spring(
-                                        dampingRatio = 0.8f,
-                                        stiffness = 380f
-                                    ),
-                                    label = "slidingPillOffset"
+                        if (!isSearchActive) {
+                            item(key = "friends_filter_button_group") {
+                                val filterOptions = listOf(
+                                    "ALL" to "All",
+                                    "DIRECT" to "Direct",
+                                    "GROUPS" to "Groups"
                                 )
+                                val isDark = !isLight
+                                val trackBg = if (isDark) Color(0xFF12141A) else Color(0xFFF1F5F9)
+                                val activeTabBg = if (isDark) Color(0xFF242836) else Color(0xFF0F172A)
+                                val activeTextColor = Color(0xFFFFFFFF)
+                                val inactiveTextColor = if (isDark) Color(0xFF7A7F8F) else Color(0xFF64748B)
 
-                                // Sliding active background pill behind text (smooth 250ms spring curve)
-                                Box(
+                                BoxWithConstraints(
                                     modifier = Modifier
-                                        .offset(x = animatedPillOffset)
-                                        .width(tabWidth)
-                                        .height(36.dp)
-                                        .padding(horizontal = 2.dp)
-                                        .clip(RoundedCornerShape(9.dp))
-                                        .background(activeTabBg)
-                                )
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceAround
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(trackBg)
+                                        .padding(4.dp)
                                 ) {
-                                    filterOptions.forEach { (key, label) ->
-                                        val isSelected = (messageTabFilter == key)
-                                        val textColor by animateColorAsState(
-                                            targetValue = if (isSelected) activeTextColor else inactiveTextColor,
-                                            animationSpec = tween(200),
-                                            label = "segmentedTextColor"
-                                        )
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(36.dp)
-                                                .clickable(
-                                                    interactionSource = remember { MutableInteractionSource() },
-                                                    indication = null
-                                                ) {
-                                                    try {
-                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                    } catch (_: Exception) {}
-                                                    messageTabFilter = key
-                                                }
-                                                .padding(horizontal = 4.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = label,
-                                                fontSize = 13.sp,
-                                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                                color = textColor,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                    val haptic = LocalHapticFeedback.current
+                                    val totalWidth = maxWidth
+                                    val optionCount = filterOptions.size
+                                    val tabWidth = totalWidth / optionCount
+                                    val selectedIndex = filterOptions.indexOfFirst { it.first == messageTabFilter }.coerceAtLeast(0)
+
+                                    val animatedPillOffset by animateDpAsState(
+                                        targetValue = tabWidth * selectedIndex,
+                                        animationSpec = spring(
+                                            dampingRatio = 0.8f,
+                                            stiffness = 380f
+                                        ),
+                                        label = "slidingPillOffset"
+                                    )
+
+                                    // Sliding active background pill behind text (smooth 250ms spring curve)
+                                    Box(
+                                        modifier = Modifier
+                                            .offset(x = animatedPillOffset)
+                                            .width(tabWidth)
+                                            .height(36.dp)
+                                            .padding(horizontal = 2.dp)
+                                            .clip(RoundedCornerShape(9.dp))
+                                            .background(activeTabBg)
+                                    )
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceAround
+                                    ) {
+                                        filterOptions.forEach { (key, label) ->
+                                            val isSelected = (messageTabFilter == key)
+                                            val textColor by animateColorAsState(
+                                                targetValue = if (isSelected) activeTextColor else inactiveTextColor,
+                                                animationSpec = tween(200),
+                                                label = "segmentedTextColor"
                                             )
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(36.dp)
+                                                    .clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) {
+                                                        try {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                        } catch (_: Exception) {}
+                                                        messageTabFilter = key
+                                                    }
+                                                    .padding(horizontal = 4.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = label,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                                    color = textColor,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
 
-                        item(key = "friends_section_title") {
-                            val titleText = if (friendSearchQuery.isNotBlank()) {
-                                "CONTACTS (${filteredFriends.size})"
-                            } else when (messageTabFilter) {
-                                "DIRECT" -> "Direct Conversations"
-                                "GROUPS" -> "Group Conversations"
-                                else -> "All Conversations"
+                        if (!isSearchActive) {
+                            item(key = "friends_section_title") {
+                                val titleText = when (messageTabFilter) {
+                                    "DIRECT" -> "Direct Conversations"
+                                    "GROUPS" -> "Group Conversations"
+                                    else -> "All Conversations"
+                                }
+                                Text(
+                                    text = titleText,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                                    modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 2.dp)
+                                )
                             }
-                            Text(
-                                text = titleText,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-                                modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 2.dp)
-                            )
+                        } else if (friendSearchQuery.isBlank()) {
+                            if (searchDisplayFriends.isNotEmpty()) {
+                                item(key = "friends_search_suggested_title") {
+                                    val suggestedTitle = if (selectedDmSearchFilter == "Channels") "SUGGESTED CHANNELS" else "SUGGESTED CONTACTS"
+                                    Text(
+                                        text = suggestedTitle,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.8.sp,
+                                        color = if (!isLight) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 2.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            if (searchDisplayFriends.isNotEmpty()) {
+                                item(key = "friends_search_results_title") {
+                                    val sectionTitle = if (selectedDmSearchFilter == "Channels") "CHANNELS (${searchDisplayFriends.size})" else "CONTACTS / FRIENDS (${searchDisplayFriends.size})"
+                                    Text(
+                                        text = sectionTitle,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.8.sp,
+                                        color = if (!isLight) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 2.dp)
+                                    )
+                                }
+                            }
                         }
 
-                        if (filteredFriends.isEmpty() && (cloudMessageResults.isEmpty() || selectedDmSearchFilter == "People")) {
-                            if (friendSearchQuery.isNotBlank()) {
-                                item(key = "friends_search_empty_state") {
-                                    SearchEmptyState(query = friendSearchQuery, isDark = !isLight)
-                                }
-                            } else if (isFriendsLoadedOnce) {
+                        val isSearchEmpty = isSearchActive && friendSearchQuery.isNotBlank() && searchDisplayFriends.isEmpty() &&
+                            (selectedDmSearchFilter == "People" || selectedDmSearchFilter == "Channels" || cloudMessageResults.isEmpty()) &&
+                            !isCloudSearching
+
+                        if (isSearchEmpty) {
+                            item(key = "friends_search_empty_state") {
+                                SearchEmptyState(query = friendSearchQuery, isDark = !isLight)
+                            }
+                        } else if (!isSearchActive && filteredFriends.isEmpty()) {
+                            if (isFriendsLoadedOnce) {
                                 item(key = "friends_empty_state") {
                                     Box(
                                         modifier = Modifier
@@ -8109,15 +8175,12 @@ fun CustomizedChatScreen(
                                                 "GROUPS" -> Icons.Default.Groups
                                                 else -> Icons.Default.PersonAdd
                                             }
-                                            val emptyTitle = if (friendSearchQuery.isNotBlank()) "No Matching Conversations"
-                                            else when (messageTabFilter) {
+                                            val emptyTitle = when (messageTabFilter) {
                                                 "GROUPS" -> "No Groups Yet"
                                                 "DIRECT" -> "No Direct Messages Yet"
                                                 else -> "No Active Conversations"
                                             }
-                                            val emptySubtitle = if (friendSearchQuery.isNotBlank())
-                                                "No conversations or groups matching '$friendSearchQuery' found."
-                                            else when (messageTabFilter) {
+                                            val emptySubtitle = when (messageTabFilter) {
                                                 "GROUPS" -> "You haven't joined or created any groups yet. Create a group to talk with multiple friends together!"
                                                 "DIRECT" -> "Direct chat is private between accepted friends. Send a friend request to start messaging!"
                                                 else -> "Start chatting with friends or create a group to talk with multiple members together!"
@@ -8204,7 +8267,7 @@ fun CustomizedChatScreen(
                         }
 
                         itemsIndexed(
-                            filteredFriends,
+                            searchDisplayFriends,
                             key = { _, friend -> friend.id },
                             contentType = { _, _ -> "conversation_row" }
                         ) { index, friend ->
@@ -8308,6 +8371,9 @@ fun CustomizedChatScreen(
                                 }
                             ) {
                                 val onRowClick: () -> Unit = {
+                                    if (isSearchActive && friendSearchQuery.isNotBlank()) {
+                                        ConnectoSearchPreferences.saveRecentSearch(context, friendSearchQuery)
+                                    }
                                     if (isFriendLocked && !isUnlocked) {
                                         val activity = context.findFragmentActivity()
                                         if (activity != null) {
@@ -8586,7 +8652,7 @@ fun CustomizedChatScreen(
                         }
 
                         // Cloud Message Search Results section (Two-tier deep history)
-                        if (friendSearchQuery.isNotBlank() && cloudMessageResults.isNotEmpty() && selectedDmSearchFilter != "People") {
+                        if (isSearchActive && friendSearchQuery.isNotBlank() && cloudMessageResults.isNotEmpty() && selectedDmSearchFilter != "People" && selectedDmSearchFilter != "Channels") {
                             item(key = "cloud_messages_section_header") {
                                 Row(
                                     modifier = Modifier
@@ -8612,6 +8678,9 @@ fun CustomizedChatScreen(
                                         .background(if (!isLight) Color(0xFF141722) else Color(0xFFF8FAFC))
                                         .border(1.dp, if (!isLight) Color(0x14FFFFFF) else Color(0x1A000000), RoundedCornerShape(14.dp))
                                         .clickable {
+                                            if (isSearchActive && friendSearchQuery.isNotBlank()) {
+                                                ConnectoSearchPreferences.saveRecentSearch(context, friendSearchQuery)
+                                            }
                                             val foundFriend = friendsList.firstOrNull { it.id == msgResult.channelId || it.handle.removePrefix("@").equals(msgResult.authorUsername.removePrefix("@"), ignoreCase = true) }
                                             if (foundFriend != null) {
                                                 selectedFriend = foundFriend
@@ -8685,6 +8754,7 @@ fun CustomizedChatScreen(
                     }
 
                     // ================= MESSAGES TAB FAB & SPEED-DIAL =================
+                    if (!isSearchActive) {
                     // 1. Scrim overlay when speed-dial is expanded (rgba(0, 0, 0, 0.60), zIndex below FAB layer)
                     androidx.compose.animation.AnimatedVisibility(
                         visible = isFabExpanded,
@@ -9061,6 +9131,7 @@ fun CustomizedChatScreen(
                                     rotationZ = fabRotation
                                 }
                         )
+                    }
                     }
                     }
                     }

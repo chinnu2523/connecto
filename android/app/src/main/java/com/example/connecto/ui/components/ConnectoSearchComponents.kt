@@ -91,8 +91,14 @@ object ConnectoSearchPreferences {
             val list = mutableListOf<String>()
             for (i in 0 until arr.length()) {
                 val item = arr.optString(i, "").trim()
-                if (item.isNotEmpty() && !list.contains(item)) {
-                    list.add(item)
+                if (item.length >= 2 && !list.any { it.equals(item, ignoreCase = true) }) {
+                    try {
+                        if (!com.example.connecto.security.SecretVaultManager.isSecretCodeMatch(context, item)) {
+                            list.add(item)
+                        }
+                    } catch (_: Exception) {
+                        list.add(item)
+                    }
                 }
             }
             list.take(5)
@@ -104,8 +110,13 @@ object ConnectoSearchPreferences {
     fun saveRecentSearch(context: Context, query: String) {
         val clean = query.trim()
         if (clean.length < 2) return
+        try {
+            if (com.example.connecto.security.SecretVaultManager.isSecretCodeMatch(context, clean)) {
+                return
+            }
+        } catch (_: Exception) {}
         val current = getRecentSearches(context).toMutableList()
-        current.remove(clean)
+        current.removeAll { it.equals(clean, ignoreCase = true) }
         current.add(0, clean)
         val limited = current.take(5)
         val arr = JSONArray()
@@ -137,6 +148,7 @@ fun ConnectoAnimatedSearchBar(
     onFocusChanged: (Boolean) -> Unit,
     isLoading: Boolean = false,
     onCancel: () -> Unit,
+    onExplicitSearch: ((String) -> Unit)? = null,
     focusRequester: FocusRequester = remember { FocusRequester() },
     isDark: Boolean = true,
     modifier: Modifier = Modifier
@@ -254,7 +266,13 @@ fun ConnectoAnimatedSearchBar(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         keyboardActions = KeyboardActions(
-                            onSearch = { keyboardController?.hide() }
+                            onSearch = {
+                                keyboardController?.hide()
+                                val q = query.trim()
+                                if (q.length >= 2) {
+                                    onExplicitSearch?.invoke(q)
+                                }
+                            }
                         )
                     )
                 }
@@ -288,7 +306,7 @@ fun ConnectoAnimatedSearchBar(
             }
         }
 
-        // Sliding Cancel Button (Spring Physics)
+        // Sliding Cancel Button (Spring Physics, 12px left spacing, vertically centered)
         if (isSearchActive || cancelAlpha > 0.05f) {
             Box(
                 modifier = Modifier
@@ -296,7 +314,7 @@ fun ConnectoAnimatedSearchBar(
                         translationX = cancelTranslateX
                         alpha = cancelAlpha
                     }
-                    .padding(start = 10.dp)
+                    .padding(start = 12.dp)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -305,13 +323,15 @@ fun ConnectoAnimatedSearchBar(
                         keyboardController?.hide()
                         focusManager.clearFocus()
                         onCancel()
-                    }
+                    },
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "Cancel",
                     color = Color(0xFF818CF8),
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
                 )
             }
         }

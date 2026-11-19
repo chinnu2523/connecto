@@ -88,6 +88,7 @@ fun ConnectoTopHeader(
     showProfileButton: Boolean = true,
     onAvatarClick: () -> Unit = {},
     customAction: (@Composable () -> Unit)? = null,
+    applyStatusBarsPadding: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalConnectoColors.current
@@ -142,7 +143,7 @@ fun ConnectoTopHeader(
                     Modifier.background(colors.surface)
                 }
             )
-            .statusBarsPadding()
+            .then(if (applyStatusBarsPadding) Modifier.statusBarsPadding() else Modifier)
             .offset(y = headerOffsetY)
             .graphicsLayer { alpha = headerAlpha }
     ) {

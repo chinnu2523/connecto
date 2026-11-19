@@ -43,6 +43,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -684,7 +685,17 @@ fun CallsScreen(
                 else Modifier.background(if (colors.isDark) Color(0xFF000000) else MaterialTheme.colorScheme.background)
             )
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+        ) {
+            val isCallSearchActive = isCallSearchFocused || callSearchQuery.isNotEmpty()
+            val callSearchTopPadding by animateDpAsState(
+                targetValue = if (isCallSearchActive) 10.dp else 6.dp,
+                animationSpec = tween(durationMillis = 220, easing = EaseOutCubic),
+                label = "callSearchTopPad"
+            )
 
             // Collapsible Top Header: Animates upward (opacity: 1 -> 0, height -> 0, 220ms ease-out)
             if (callHeaderCollapseRatio > 0.01f) {
@@ -723,7 +734,8 @@ fun CallsScreen(
                         onAvatarClick = {},
                         onNotificationClick = null,
                         unreadNotificationsCount = 0,
-                        customAction = null
+                        customAction = null,
+                        applyStatusBarsPadding = false
                     )
                 }
             }
@@ -732,7 +744,7 @@ fun CallsScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = callSearchTopPadding, bottom = 6.dp)
             ) {
                 ConnectoAnimatedSearchBar(
                     query = callSearchQuery,
@@ -749,8 +761,9 @@ fun CallsScreen(
                 )
             }
 
-            // Quick Tab Filter Bar (All, Incoming, Outgoing, Missed)
-            val filterShape = RoundedCornerShape(12.dp)
+            // Quick Tab Filter Bar (All, Incoming, Outgoing, Missed) - Hidden during active search
+            if (!isCallSearchActive) {
+                val filterShape = RoundedCornerShape(12.dp)
             val trackBg = if (colors.isDark) Color(0xFF0D0E12) else Color(0xFFF1F5F9)
             val activeTabBg = if (colors.isDark) Color(0xFF1E222D) else Color(0xFF0F172A)
             val quickTabs = listOf(
@@ -852,6 +865,7 @@ fun CallsScreen(
                     }
                 }
             }
+            }
 
             // Call Logs List
             com.example.connecto.ui.components.ConnectoDragToRefresh(
@@ -887,46 +901,48 @@ fun CallsScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 90.dp)
             ) {
-                item(key = "calls_header_row") {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 12.dp, top = 8.dp, bottom = 4.dp, end = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "CALL HISTORY (${filteredLogs.size})",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.8.sp,
-                            color = if (colors.isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-                        )
-                        if (liveCallLogs.isNotEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .pressScaleEffect(
-                                        onClick = { showClearAllDialog = true },
-                                        targetScale = 0.94f
-                                    )
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.DeleteOutline,
-                                        contentDescription = "Clear All",
-                                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.85f),
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "Clear All",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.85f)
-                                    )
+                if (!isCallSearchActive) {
+                    item(key = "calls_header_row") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 12.dp, top = 8.dp, bottom = 4.dp, end = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "CALL HISTORY (${filteredLogs.size})",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp,
+                                color = if (colors.isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                            )
+                            if (liveCallLogs.isNotEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .pressScaleEffect(
+                                            onClick = { showClearAllDialog = true },
+                                            targetScale = 0.94f
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.DeleteOutline,
+                                            contentDescription = "Clear All",
+                                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.85f),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Clear All",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.85f)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1325,7 +1341,8 @@ fun CallsScreen(
         }
 
         // Floating Action Buttons for Guest Rooms & Group Voice Calls
-        Column(
+        if (!isSearchActive) {
+            Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 20.dp, end = 16.dp),
@@ -1406,6 +1423,7 @@ fun CallsScreen(
                 contentColor = Color.White,
                 shape = RoundedCornerShape(16.dp)
             )
+        }
         }
 
         if (showAddFriendDialog) {
