@@ -2333,14 +2333,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.0",
-        version_code: 187,
-        size_bytes: 38298486,
-        size_formatted: "36.5 MB",
+        version_name: "5.8.1",
+        version_code: 188,
+        size_bytes: 38449358,
+        size_formatted: "36.7 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Custom Message Notification Sounds & Tactile Vibration Patterns (v5.8.1): Android 15 (API 35) compliant notification system featuring curated audio chimes (Connecto Chime, Minimal Pop, Glass Harp, Cosmic Ping, Digital Watch) with FileProvider SystemUI grants, and tactile vibration patterns (Single Pulse, Double Tap, Heartbeat, Escalating, Rapid Buzz, SOS) alongside a custom 60fps pulse-pad recorder. Added per-contact sound and vibration overrides with priority fallback, real-time audio playback preview with auto-stop, and central management list for non-vaulted contacts. Integrated WebRTC Voice Call audio fixes: eliminated post-pickup silence via pre-warmed Cloudflare TURN credentials and non-blocking Trickle ICE, resolved audio latency via WebRTC playout buffers, prevented RtpSender disposal crashes on call accept, and added Obsidian custom call ringtone picker with per-contact ringtone overrides. Upgraded Direct Messages with instant local Delete for seen messages, 3-second floating Undo countdown toast pill, protected Unsend confirmation modal, and multi-select chat message deletion.",
           "Root Portal Long-Press Focus Overlay (v5.7.9): Eliminated all blur artifacts from message content by extracting the active overlay into a top-level document body portal. Multi-layered composition featuring full-screen dark frosted scrim (rgba(5, 7, 12, 0.72), backdrop-filter: blur(12px)), 100% crisp focused message bubble clone with soft elevation shadow, quick-reaction emoji pill, and contextual action bar (Reply, Copy, Edit, Unsend). Mathematical viewport edge clamping ensures bubbles at screen extremities never get clipped or truncated.",
           "Push-Down Tray Elastic Pull-to-Refresh (v5.7.9): Replaced overlapping floating spinners with an integrated push-down layout tray. Fluid 60fps micro-spinner with smooth progress arc expansion, 180° orientation snap, and tactile spring return physics. Touch shield prevents accidental item opens during swipe gestures.",
           "Immersive Photo Lightbox & Cover Banner Viewer (v5.7.9): Minimalist fullscreen media viewer with smooth multi-touch zoom and pan. Stripped cluttered button borders and redundant metadata badges in favor of a single floating top bar (Back arrow, photo title, Share pill, and ✕ close button) with tap-to-toggle HUD auto-hiding.",
@@ -2443,7 +2444,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "120fps Gesture Responsiveness: Non-blocking deferred preview gestures, hardware accelerated rendering, and ultra-smooth spring animations"
         ],
         is_essential: true,
-        updated_at: "2026-11-17T11:35:00Z"
+        updated_at: "2026-11-19T13:38:00Z"
       },
       {
         id: "jarvis",
