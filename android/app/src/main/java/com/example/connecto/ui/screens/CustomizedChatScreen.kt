@@ -227,6 +227,13 @@ import com.example.connecto.ui.designsystem.getCoverPreset
 import com.example.connecto.ui.designsystem.resolveImageModel
 import com.example.connecto.ui.designsystem.sanitizeAvatarUrl
 import com.example.connecto.ui.components.ConnectoTopHeader
+import com.example.connecto.ui.components.ConnectoAnimatedSearchBar
+import com.example.connecto.ui.components.ConnectoSearchPreferences
+import com.example.connecto.ui.components.RecentSearchesAndFilterChips
+import com.example.connecto.ui.components.SubstringHighlightedText
+import com.example.connecto.ui.components.SearchEmptyState
+import com.example.connecto.ui.components.InlineChatSearchBar
+import com.example.connecto.network.CloudMessageSearchResult
 import com.example.connecto.ui.components.WebRtcCallOverlay
 import com.example.connecto.voice.CallState
 import com.example.connecto.voice.VoiceCallManager
@@ -901,6 +908,16 @@ fun CustomizedChatScreen(
     var pendingRequestsCount by remember { mutableIntStateOf(0) }
     var friendSearchQuery by remember { mutableStateOf("") }
     val searchFocusRequester = remember { FocusRequester() }
+    var isDmSearchFocused by remember { mutableStateOf(false) }
+    var selectedDmSearchFilter by remember { mutableStateOf("All") }
+    var cloudMessageResults by remember { mutableStateOf<List<CloudMessageSearchResult>>(emptyList()) }
+    var isCloudSearching by remember { mutableStateOf(false) }
+
+    // In-Chat Search state
+    var isChatSearchOpen by remember { mutableStateOf(false) }
+    var chatSearchQuery by remember { mutableStateOf("") }
+    var currentChatMatchIdx by remember { mutableIntStateOf(0) }
+    var pulsingGlowMessageId by remember { mutableStateOf<String?>(null) }
     var typedMessage by remember { mutableStateOf("") }
     var isInputFocused by remember { mutableStateOf(false) }
     var isFriendTyping by remember { mutableStateOf(false) }
@@ -2175,9 +2192,40 @@ fun CustomizedChatScreen(
         showMoreOptionsMenu = false
     }
 
-    // Intercept back button when search query is entered in friends list
-    BackHandler(enabled = friendSearchQuery.isNotEmpty() && selectedFriend == null && !isFriendProfileOpen) {
+    // Intercept back button when in-chat search is active
+    BackHandler(enabled = isChatSearchOpen) {
+        isChatSearchOpen = false
+        chatSearchQuery = ""
+        pulsingGlowMessageId = null
+    }
+
+    // Intercept back button when search query is entered in friends list or search is focused
+    BackHandler(enabled = (isDmSearchFocused || friendSearchQuery.isNotEmpty()) && selectedFriend == null && !isFriendProfileOpen) {
         friendSearchQuery = ""
+        isDmSearchFocused = false
+    }
+
+    // Two-Tier Search Engine: 300ms Debounced Cloud Message Search with automatic cancellation
+    LaunchedEffect(friendSearchQuery) {
+        val q = friendSearchQuery.trim()
+        if (q.length >= 2) {
+            isCloudSearching = true
+            kotlinx.coroutines.delay(300L) // 300ms debounce
+            try {
+                val res = ConnectoApiClient.searchMessagesCloud(q, null)
+                if (res.isSuccess) {
+                    cloudMessageResults = res.getOrDefault(emptyList())
+                }
+                ConnectoSearchPreferences.saveRecentSearch(context, q)
+            } catch (_: Exception) {
+                cloudMessageResults = emptyList()
+            } finally {
+                isCloudSearching = false
+            }
+        } else {
+            cloudMessageResults = emptyList()
+            isCloudSearching = false
+        }
     }
 
     // Real-Time Typing Indicator Observer for Active Direct Chat / Group
@@ -4705,6 +4753,73 @@ fun CustomizedChatScreen(
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
+                    androidx.compose.animation.AnimatedContent(
+                        targetState = isChatSearchOpen,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(220, easing = EaseOutCubic)) togetherWith
+                            fadeOut(animationSpec = tween(180, easing = EaseInCubic))
+                        },
+                        label = "inChatHeaderSearchCrossfade"
+                    ) { searchOpen ->
+                        if (searchOpen) {
+                            val chatSearchResults = remember(chatSearchQuery, friendMessages) {
+                                if (chatSearchQuery.isBlank()) emptyList<Pair<Int, CustomMessageItem>>()
+                                else {
+                                    val q = chatSearchQuery.trim()
+                                    friendMessages.mapIndexedNotNull { index, msg ->
+                                        if (msg.content.contains(q, ignoreCase = true)) Pair(index, msg) else null
+                                    }
+                                }
+                            }
+                            InlineChatSearchBar(
+                                query = chatSearchQuery,
+                                onQueryChange = {
+                                    chatSearchQuery = it
+                                    currentChatMatchIdx = 0
+                                },
+                                placeholder = if (selectedFriend?.isGroup == true) "Search in #${selectedFriend?.name}..." else "Search in chat...",
+                                currentMatchIndex = if (chatSearchResults.isNotEmpty()) currentChatMatchIdx.coerceIn(0, chatSearchResults.size - 1) else 0,
+                                totalMatches = chatSearchResults.size,
+                                onPreviousMatch = {
+                                    if (chatSearchResults.isNotEmpty()) {
+                                        currentChatMatchIdx = if (currentChatMatchIdx > 0) currentChatMatchIdx - 1 else chatSearchResults.size - 1
+                                        val match = chatSearchResults[currentChatMatchIdx]
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem((match.first + 1).coerceAtLeast(0))
+                                        }
+                                        pulsingGlowMessageId = match.second.id
+                                        coroutineScope.launch {
+                                            kotlinx.coroutines.delay(1200)
+                                            if (pulsingGlowMessageId == match.second.id) {
+                                                pulsingGlowMessageId = null
+                                            }
+                                        }
+                                    }
+                                },
+                                onNextMatch = {
+                                    if (chatSearchResults.isNotEmpty()) {
+                                        currentChatMatchIdx = (currentChatMatchIdx + 1) % chatSearchResults.size
+                                        val match = chatSearchResults[currentChatMatchIdx]
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem((match.first + 1).coerceAtLeast(0))
+                                        }
+                                        pulsingGlowMessageId = match.second.id
+                                        coroutineScope.launch {
+                                            kotlinx.coroutines.delay(1200)
+                                            if (pulsingGlowMessageId == match.second.id) {
+                                                pulsingGlowMessageId = null
+                                            }
+                                        }
+                                    }
+                                },
+                                onClose = {
+                                    isChatSearchOpen = false
+                                    chatSearchQuery = ""
+                                    pulsingGlowMessageId = null
+                                },
+                                isDark = !isLight
+                            )
+                        } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -4939,6 +5054,27 @@ fun CustomizedChatScreen(
                                         .border(1.dp, actionBtnBorder, CircleShape)
                                         .pressScaleEffect(
                                             onClick = {
+                                                isChatSearchOpen = true
+                                            }
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = "Search in chat",
+                                        tint = actionIconTint,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(actionBtnBg)
+                                        .border(1.dp, actionBtnBorder, CircleShape)
+                                        .pressScaleEffect(
+                                            onClick = {
                                                 showWallpaperCustomizerDialog = true
                                             }
                                         ),
@@ -4957,6 +5093,23 @@ fun CustomizedChatScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                                            .clickable { isChatSearchOpen = true },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Search,
+                                            contentDescription = "Search in group",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+
                                     Box(
                                         modifier = Modifier
                                             .size(38.dp)
@@ -5040,6 +5193,8 @@ fun CustomizedChatScreen(
                             }
                         }
                     }
+                    }
+                }
                 }
 
                 // Specular highlight divider line under TopBar
@@ -5121,130 +5276,106 @@ fun CustomizedChatScreen(
                     }
                 }
             } else {
-                // Header with tap-to-top, title, subtitle & quick actions
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            coroutineScope.launch {
-                                try {
-                                    if (friendsListState.firstVisibleItemIndex > 15) {
-                                        friendsListState.scrollToItem(15)
-                                    }
-                                    friendsListState.animateScrollToItem(0)
-                                } catch (_: Exception) {}
+                val isSearchActive = isDmSearchFocused || friendSearchQuery.isNotEmpty()
+                val dmHeaderCollapseRatio by animateFloatAsState(
+                    targetValue = if (isSearchActive) 0f else 1f,
+                    animationSpec = tween(durationMillis = 220, easing = EaseOutCubic),
+                    label = "dmHeaderCollapseRatio"
+                )
+
+                // Collapsible Header: Animates upward (opacity: 1 -> 0, height -> 0, 220ms ease-out)
+                if (dmHeaderCollapseRatio > 0.01f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                alpha = dmHeaderCollapseRatio
+                                translationY = -35f * (1f - dmHeaderCollapseRatio)
                             }
-                        }
-                ) {
-                    ConnectoTopHeader(
-                        title = "DIRECT MESSAGES",
-                        subtitle = if (friendSearchQuery.isNotBlank()) {
-                            "${filteredFriends.size} conversation${if (filteredFriends.size != 1) "s" else ""} found"
-                        } else {
-                            "Chat with friends & members"
-                        },
-                        userInitial = userInitial,
-                        onVoiceGroupClick = null,
-                        onAddFriendClick = null,
-                        pendingFriendRequestsCount = 0,
-                        showProfileButton = false,
-                        onAvatarClick = {},
-                        customAction = null
-                    )
+                            .then(
+                                if (dmHeaderCollapseRatio < 0.99f) Modifier.height((64.dp * dmHeaderCollapseRatio))
+                                else Modifier
+                            )
+                            .clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                coroutineScope.launch {
+                                    try {
+                                        if (friendsListState.firstVisibleItemIndex > 15) {
+                                            friendsListState.scrollToItem(15)
+                                        }
+                                        friendsListState.animateScrollToItem(0)
+                                    } catch (_: Exception) {}
+                                }
+                            }
+                    ) {
+                        ConnectoTopHeader(
+                            title = "DIRECT MESSAGES",
+                            subtitle = if (friendSearchQuery.isNotBlank()) {
+                                "${filteredFriends.size} conversation${if (filteredFriends.size != 1) "s" else ""} found"
+                            } else {
+                                "Chat with friends & members"
+                            },
+                            userInitial = userInitial,
+                            onVoiceGroupClick = null,
+                            onAddFriendClick = null,
+                            pendingFriendRequestsCount = 0,
+                            showProfileButton = false,
+                            onAvatarClick = {},
+                            customAction = null
+                        )
+                    }
                 }
 
-                // Dedicated Search Bar (Stitch Design System & Tier-1 Dark Theme)
+                // 60fps Micro-Animated Search Bar with sliding cancel, active glow border & inline spinner
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 6.dp)
                 ) {
-                    val isQueryActive = friendSearchQuery.isNotEmpty()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(46.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(if (!isLight) Color(0xFF12141A) else Color(0xFFF1F5F9))
-                            .border(
-                                width = 1.dp,
-                                color = if (isQueryActive) Color(0xFF2563EB) else (if (!isLight) Color(0x0FFFFFFF) else Color(0x0F000000)),
-                                shape = RoundedCornerShape(14.dp)
-                            )
-                            .padding(horizontal = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search Conversations",
-                            tint = if (isQueryActive) Color(0xFF38BDF8) else (if (!isLight) Color(0xFF8E929F) else Color(0xFF64748B)),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        BasicTextField(
-                            value = friendSearchQuery,
-                            onValueChange = { friendSearchQuery = it },
-                            modifier = Modifier
-                                .weight(1f)
-                                .focusRequester(searchFocusRequester),
-                            textStyle = TextStyle(
-                                color = if (!isLight) Color(0xFFFFFFFF) else Color(0xFF0F172A),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            cursorBrush = SolidColor(if (!isLight) Color(0xFF38BDF8) else Color(0xFF2563EB)),
-                            singleLine = true,
-                            decorationBox = { innerTextField ->
-                                if (friendSearchQuery.isEmpty()) {
-                                    Text(
-                                        text = "Search messages, groups, or friends...",
-                                        color = if (!isLight) Color(0xFF686C78) else Color(0xFF94A3B8),
-                                        fontSize = 13.5.sp
-                                    )
-                                }
-                                innerTextField()
-                            }
-                        )
+                    ConnectoAnimatedSearchBar(
+                        query = friendSearchQuery,
+                        onQueryChange = { friendSearchQuery = it },
+                        placeholder = "Search messages, groups, or friends...",
+                        isFocused = isDmSearchFocused,
+                        onFocusChanged = { isDmSearchFocused = it },
+                        isLoading = isCloudSearching,
+                        onCancel = {
+                            friendSearchQuery = ""
+                            isDmSearchFocused = false
+                        },
+                        focusRequester = searchFocusRequester,
+                        isDark = !isLight
+                    )
+                }
 
-                        if (isQueryActive) {
-                            // Match Count Capsule
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (!isLight) Color(0xFF1E2230) else Color(0xFFE2E8F0))
-                                    .padding(horizontal = 7.dp, vertical = 2.5.dp)
-                            ) {
-                                Text(
-                                    text = "${filteredFriends.size}",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (!isLight) Color(0xFF38BDF8) else Color(0xFF2563EB)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            // Clear Button
-                            Box(
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .clip(CircleShape)
-                                    .background(if (!isLight) Color(0xFF1E2230) else Color(0xFFCBD5E1))
-                                    .clickable {
-                                        friendSearchQuery = ""
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear search",
-                                    tint = if (!isLight) Color(0xFF8E929F) else Color(0xFF475569),
-                                    modifier = Modifier.size(12.dp)
-                                )
-                            }
-                        }
+                // Recent Searches & Quick Category Filter Chips (All, People, Messages, Channels)
+                if (isDmSearchFocused && friendSearchQuery.isEmpty()) {
+                    val recentList = remember(friendSearchQuery, isDmSearchFocused) {
+                        ConnectoSearchPreferences.getRecentSearches(context)
                     }
+                    RecentSearchesAndFilterChips(
+                        recentSearches = recentList,
+                        selectedFilter = selectedDmSearchFilter,
+                        onSelectFilter = { selectedDmSearchFilter = it },
+                        onSelectRecentSearch = { q ->
+                            friendSearchQuery = q
+                        },
+                        onClearRecentSearches = {
+                            ConnectoSearchPreferences.clearRecentSearches(context)
+                        },
+                        isDark = !isLight
+                    )
+                } else if (friendSearchQuery.isNotEmpty()) {
+                    RecentSearchesAndFilterChips(
+                        recentSearches = emptyList(),
+                        selectedFilter = selectedDmSearchFilter,
+                        onSelectFilter = { selectedDmSearchFilter = it },
+                        onSelectRecentSearch = {},
+                        onClearRecentSearches = {},
+                        isDark = !isLight
+                    )
                 }
 
                 // Inset 1px divider under Search Bar
@@ -5439,7 +5570,9 @@ fun CustomizedChatScreen(
                         }
 
                         item(key = "friends_section_title") {
-                            val titleText = when (messageTabFilter) {
+                            val titleText = if (friendSearchQuery.isNotBlank()) {
+                                "CONTACTS (${filteredFriends.size})"
+                            } else when (messageTabFilter) {
                                 "DIRECT" -> "Direct Conversations"
                                 "GROUPS" -> "Group Conversations"
                                 else -> "All Conversations"
@@ -5453,8 +5586,12 @@ fun CustomizedChatScreen(
                             )
                         }
 
-                        if (filteredFriends.isEmpty()) {
-                            if (isFriendsLoadedOnce) {
+                        if (filteredFriends.isEmpty() && (cloudMessageResults.isEmpty() || selectedDmSearchFilter == "People")) {
+                            if (friendSearchQuery.isNotBlank()) {
+                                item(key = "friends_search_empty_state") {
+                                    SearchEmptyState(query = friendSearchQuery, isDark = !isLight)
+                                }
+                            } else if (isFriendsLoadedOnce) {
                                 item(key = "friends_empty_state") {
                                     Box(
                                         modifier = Modifier
@@ -5810,15 +5947,30 @@ fun CustomizedChatScreen(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 val displayName = if (friend.name.isNotBlank()) friend.name else friend.handle
-                                                Text(
-                                                    text = displayName,
-                                                    fontSize = 16.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = if (isLight) Color(0xFF0F172A) else Color(0xFFFFFFFF),
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                    modifier = Modifier.weight(1f)
-                                                )
+                                                if (friendSearchQuery.isNotBlank() && displayName.contains(friendSearchQuery, ignoreCase = true)) {
+                                                    SubstringHighlightedText(
+                                                        text = displayName,
+                                                        query = friendSearchQuery,
+                                                        style = TextStyle(
+                                                            fontSize = 16.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = if (isLight) Color(0xFF0F172A) else Color(0xFFFFFFFF)
+                                                        ),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                } else {
+                                                    Text(
+                                                        text = displayName,
+                                                        fontSize = 16.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = if (isLight) Color(0xFF0F172A) else Color(0xFFFFFFFF),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                }
                                                 if (isPinned) {
                                                     Spacer(modifier = Modifier.width(4.dp))
                                                     Icon(
@@ -5862,15 +6014,30 @@ fun CustomizedChatScreen(
                                                     displayMsg
                                                 }
 
-                                                Text(
-                                                    text = previewText,
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Normal,
-                                                    color = if (friend.unreadCount > 0) (if (isLight) Color(0xFF0F172A) else Color(0xFFE4E4E7)) else (if (isLight) Color(0xFF64748B) else Color(0xFF8E929F)),
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                    modifier = Modifier.weight(1f)
-                                                )
+                                                if (friendSearchQuery.isNotBlank() && previewText.contains(friendSearchQuery, ignoreCase = true)) {
+                                                    SubstringHighlightedText(
+                                                        text = previewText,
+                                                        query = friendSearchQuery,
+                                                        style = TextStyle(
+                                                            fontSize = 14.sp,
+                                                            fontWeight = FontWeight.Normal,
+                                                            color = if (friend.unreadCount > 0) (if (isLight) Color(0xFF0F172A) else Color(0xFFE4E4E7)) else (if (isLight) Color(0xFF64748B) else Color(0xFF8E929F))
+                                                        ),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                } else {
+                                                    Text(
+                                                        text = previewText,
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Normal,
+                                                        color = if (friend.unreadCount > 0) (if (isLight) Color(0xFF0F172A) else Color(0xFFE4E4E7)) else (if (isLight) Color(0xFF64748B) else Color(0xFF8E929F)),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                }
 
                                                 if (friend.unreadCount > 0) {
                                                     Spacer(modifier = Modifier.width(8.dp))
@@ -5902,6 +6069,103 @@ fun CustomizedChatScreen(
                                             .height(1.dp)
                                             .background(if (isLight) Color(0x0F000000) else Color(0x0DFFFFFF))
                                     )
+                                }
+                            }
+                        }
+
+                        // Cloud Message Search Results section (Two-tier deep history)
+                        if (friendSearchQuery.isNotBlank() && cloudMessageResults.isNotEmpty() && selectedDmSearchFilter != "People") {
+                            item(key = "cloud_messages_section_header") {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 4.dp, top = 16.dp, bottom = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "MESSAGES (${cloudMessageResults.size})",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.8.sp,
+                                        color = if (!isLight) Color(0xFF818CF8) else Color(0xFF4F46E5)
+                                    )
+                                }
+                            }
+
+                            items(cloudMessageResults, key = { "cloud_msg_${it.id}" }) { msgResult ->
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(if (!isLight) Color(0xFF141722) else Color(0xFFF8FAFC))
+                                        .border(1.dp, if (!isLight) Color(0x14FFFFFF) else Color(0x1A000000), RoundedCornerShape(14.dp))
+                                        .clickable {
+                                            val foundFriend = friendsList.firstOrNull { it.id == msgResult.channelId || it.handle.removePrefix("@").equals(msgResult.authorUsername.removePrefix("@"), ignoreCase = true) }
+                                            if (foundFriend != null) {
+                                                selectedFriend = foundFriend
+                                                onDirectChatStateChanged(true)
+                                            } else {
+                                                val tempFriend = FriendItem(
+                                                    id = msgResult.channelId.ifBlank { msgResult.senderId },
+                                                    name = msgResult.authorName,
+                                                    handle = "@${msgResult.authorUsername}",
+                                                    initial = (msgResult.authorName.take(1).ifBlank { "U" }).uppercase(),
+                                                    status = "online",
+                                                    bio = "",
+                                                    lastMessage = msgResult.content,
+                                                    isGroup = msgResult.channelId.startsWith("grp-") || msgResult.channelId.startsWith("grp_") || msgResult.channelId.startsWith("group-")
+                                                )
+                                                selectedFriend = tempFriend
+                                                onDirectChatStateChanged(true)
+                                            }
+                                        }
+                                        .padding(14.dp)
+                                ) {
+                                    Column {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                ConnectoAvatar(
+                                                    name = msgResult.authorName,
+                                                    avatarUrl = null,
+                                                    customSizeDp = 26.dp,
+                                                    customFontSizeSp = 11
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                SubstringHighlightedText(
+                                                    text = msgResult.authorName,
+                                                    query = friendSearchQuery,
+                                                    style = TextStyle(
+                                                        fontSize = 13.5.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (!isLight) Color.White else Color(0xFF0F172A)
+                                                    )
+                                                )
+                                            }
+                                            if (msgResult.createdAt.isNotBlank()) {
+                                                Text(
+                                                    text = formatIsoTime(msgResult.createdAt),
+                                                    fontSize = 10.sp,
+                                                    color = if (!isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        SubstringHighlightedText(
+                                            text = msgResult.content,
+                                            query = friendSearchQuery,
+                                            style = TextStyle(
+                                                fontSize = 13.sp,
+                                                color = if (!isLight) Color(0xFFCBD5E1) else Color(0xFF334155),
+                                                lineHeight = 18.sp
+                                            ),
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -6963,6 +7227,8 @@ fun CustomizedChatScreen(
                                                     showSenderName = showSenderName,
                                                     isLatestRead = (msg.id == latestReadMessageId) && (selectedFriend?.isGroup != true),
                                                     isHighlighted = msg.id == highlightedMessageId,
+                                                    isSearchGlowPulse = msg.id == pulsingGlowMessageId,
+                                                    searchHighlightQuery = if (isChatSearchOpen) chatSearchQuery else "",
                                                     recipientAvatarUrl = selectedFriend?.avatarUrl,
                                                     recipientName = selectedFriend?.name ?: "Friend",
                                                     onBubblePositioned = { rect ->
@@ -8101,6 +8367,8 @@ fun CustomChatBubble(
     showSenderName: Boolean = true,
     isLatestRead: Boolean = false,
     isHighlighted: Boolean = false,
+    isSearchGlowPulse: Boolean = false,
+    searchHighlightQuery: String = "",
     recipientAvatarUrl: String? = null,
     recipientName: String = "Friend",
     onMessageClick: (() -> Unit)? = null,
@@ -8123,6 +8391,13 @@ fun CustomChatBubble(
         targetValue = if (isHighlighted) 0.35f else 0f,
         animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "pulseAlpha"
+    )
+
+    // 1.2s Soft Accent Glow Pulse for In-Chat Search Navigation
+    val searchGlowAlpha by animateFloatAsState(
+        targetValue = if (isSearchGlowPulse) 1f else 0f,
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "searchGlowAlpha"
     )
 
     Row(
@@ -8268,9 +8543,18 @@ fun CustomChatBubble(
                 Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = pulseAlpha), bubbleShape)
             } else Modifier
 
+            val searchGlowModifier = if (searchGlowAlpha > 0.01f) {
+                Modifier.border(
+                    width = 1.8.dp,
+                    color = Color(0xFF818CF8).copy(alpha = searchGlowAlpha),
+                    shape = bubbleShape
+                )
+            } else Modifier
+
             Box(
                 modifier = bubbleModifier
                     .then(pulseModifier)
+                    .then(searchGlowModifier)
                     .graphicsLayer {
                         if (isSelected) alpha = 0f
                     }
@@ -8354,13 +8638,26 @@ fun CustomChatBubble(
                         )
                     } else {
                         val safeBubbleContent = cleanMessageContentForDisplay(message.content, "")
-                        Text(
-                            text = safeBubbleContent,
-                            color = if (message.isMe) effectiveOwnText else friendText,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp
-                        )
+                        if (searchHighlightQuery.isNotBlank() && safeBubbleContent.contains(searchHighlightQuery, ignoreCase = true)) {
+                            SubstringHighlightedText(
+                                text = safeBubbleContent,
+                                query = searchHighlightQuery,
+                                style = TextStyle(
+                                    color = if (message.isMe) effectiveOwnText else friendText,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = 14.sp,
+                                    lineHeight = 20.sp
+                                )
+                            )
+                        } else {
+                            Text(
+                                text = safeBubbleContent,
+                                color = if (message.isMe) effectiveOwnText else friendText,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 14.sp,
+                                lineHeight = 20.sp
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(4.dp))

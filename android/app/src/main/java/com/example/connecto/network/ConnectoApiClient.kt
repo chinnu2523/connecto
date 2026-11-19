@@ -197,6 +197,16 @@ data class UserSearchResultDto(
     val relationStatus: String
 )
 
+data class CloudMessageSearchResult(
+    val id: String,
+    val channelId: String,
+    val content: String,
+    val senderId: String,
+    val authorName: String,
+    val authorUsername: String,
+    val createdAt: String
+)
+
 data class FriendRequestItemDto(
     val id: String,
     val senderId: String,
@@ -3203,6 +3213,58 @@ object ConnectoApiClient {
             Result.success(sortedList)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    suspend fun searchMessagesCloud(
+        query: String,
+        channelId: String? = null,
+        token: String? = null
+    ): Result<List<CloudMessageSearchResult>> = withContext(Dispatchers.IO) {
+        try {
+            val cleanQ = query.trim()
+            if (cleanQ.length < 2) return@withContext Result.success(emptyList())
+            val encodedQuery = java.net.URLEncoder.encode(cleanQ, "UTF-8")
+            val endpoint = if (!channelId.isNullOrBlank()) {
+                val encodedCh = java.net.URLEncoder.encode(channelId, "UTF-8")
+                "/api/messages/search?q=$encodedQuery&channel_id=$encodedCh"
+            } else {
+                "/api/messages/search?q=$encodedQuery"
+            }
+            val resp = executeRequest(
+                endpoint = endpoint,
+                method = "GET",
+                body = null,
+                token = token ?: sessionToken
+            )
+            if (resp.isSuccess) {
+                val text = resp.getOrThrow().trim()
+                if (text.startsWith("[")) {
+                    val arr = org.json.JSONArray(text)
+                    val list = mutableListOf<CloudMessageSearchResult>()
+                    for (i in 0 until arr.length()) {
+                        val obj = arr.getJSONObject(i)
+                        list.add(
+                            CloudMessageSearchResult(
+                                id = obj.optString("id", ""),
+                                channelId = obj.optString("channel_id", ""),
+                                content = obj.optString("content", ""),
+                                senderId = obj.optString("sender_id", ""),
+                                authorName = obj.optString("author_name", obj.optString("author_username", "Member")),
+                                authorUsername = obj.optString("author_username", ""),
+                                createdAt = obj.optString("created_at", "")
+                            )
+                        )
+                    }
+                    Result.success(list)
+                } else {
+                    Result.success(emptyList())
+                }
+            } else {
+                Result.success(emptyList())
+            }
+        } catch (e: Exception) {
+            Result.success(emptyList())
         }
     }
 

@@ -5237,6 +5237,43 @@ async def search_users_compat(
         })
     return results
 
+@app.get("/api/messages/search")
+@app.get("/api/v1/messages/search")
+async def search_messages_api(
+    q: str = Query("", max_length=128),
+    channel_id: Optional[str] = Query(None),
+    limit: int = Query(30, ge=1, le=100),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_db)
+):
+    clean_q = q.strip()
+    if not clean_q or len(clean_q) < 2:
+        return []
+    
+    query_pattern = f"%{clean_q.lower()}%"
+    stmt = (
+        select(Message, User)
+        .join(User, or_(Message.sender_id == User.id, func.lower(Message.sender_id) == func.lower(User.username)), isouter=True)
+        .where(func.lower(Message.content).like(query_pattern))
+    )
+    if channel_id:
+        stmt = stmt.where(Message.channel_id == channel_id)
+    stmt = stmt.order_by(Message.created_at.desc()).limit(limit)
+    rows = (await db.execute(stmt)).all()
+    
+    results = []
+    for msg, user in rows:
+        results.append({
+            "id": msg.id,
+            "channel_id": msg.channel_id,
+            "content": msg.content,
+            "sender_id": msg.sender_id,
+            "author_name": (user.display_name or user.username) if user else msg.sender_id,
+            "author_username": user.username if user else msg.sender_id,
+            "created_at": msg.created_at.isoformat() if msg.created_at else ""
+        })
+    return results
+
 @app.get("/api/friends")
 @app.get("/api/v1/friends")
 @app.get("/api/v1/chat/friends")

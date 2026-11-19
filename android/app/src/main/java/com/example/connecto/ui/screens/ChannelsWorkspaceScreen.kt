@@ -107,6 +107,10 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
+import com.example.connecto.ui.components.InlineChatSearchBar
+import com.example.connecto.ui.components.SubstringHighlightedText
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -126,6 +130,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -381,9 +386,11 @@ fun ChannelsWorkspaceScreen(
     val channelMessageBoundsMap = remember { mutableStateMapOf<String, Rect>() }
     var showMoreOptionsMenu by remember { mutableStateOf(false) }
     var editingMessage by remember { mutableStateOf<MessageDto?>(null) }
+    var highlightedMessageId by remember { mutableStateOf<String?>(null) }
 
     var isChannelSearchOpen by rememberSaveable { mutableStateOf(false) }
     var channelSearchQuery by rememberSaveable { mutableStateOf("") }
+    var currentChannelMatchIdx by remember { mutableIntStateOf(0) }
     var showChannelOptionsMenu by remember { mutableStateOf(false) }
     var showChannelInfoDialog by remember { mutableStateOf(false) }
     var isChannelMuted by rememberSaveable(cleanSelectedChannel) {
@@ -407,6 +414,12 @@ fun ChannelsWorkspaceScreen(
                 msg.authorId.lowercase().contains(q)
             }
         }
+    }
+
+    BackHandler(enabled = isChannelSearchOpen) {
+        isChannelSearchOpen = false
+        channelSearchQuery = ""
+        highlightedMessageId = null
     }
 
     BackHandler(enabled = isDrawerOpen) {
@@ -490,7 +503,6 @@ fun ChannelsWorkspaceScreen(
 
     // Local reactions storage: messageId -> map of emoji to list of userIds
     val channelReactions = remember { mutableStateMapOf<String, Map<String, List<String>>>() }
-    var highlightedMessageId by remember { mutableStateOf<String?>(null) }
     val messageInputFocusRequester = remember { FocusRequester() }
     var showFullEmojiDialogForMessage by remember { mutableStateOf<MessageDto?>(null) }
 
@@ -1042,6 +1054,74 @@ fun ChannelsWorkspaceScreen(
                         tonalElevation = 2.dp
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
+                            // Crossfade Header between Workspace Bar and InlineChatSearchBar
+                            AnimatedContent(
+                                targetState = isChannelSearchOpen,
+                                transitionSpec = {
+                                    fadeIn(animationSpec = tween(220, easing = EaseOutCubic)) togetherWith
+                                    fadeOut(animationSpec = tween(180, easing = EaseInCubic))
+                                },
+                                label = "channelHeaderSearchCrossfade"
+                            ) { searchActive ->
+                                if (searchActive) {
+                                    val channelMatches = remember(messages.toList(), channelSearchQuery) {
+                                        if (channelSearchQuery.isBlank()) emptyList<Pair<Int, MessageDto>>()
+                                        else {
+                                            val q = channelSearchQuery.trim()
+                                            messages.mapIndexedNotNull { index, msg ->
+                                                if (msg.content.contains(q, ignoreCase = true) || msg.authorName.contains(q, ignoreCase = true)) Pair(index, msg) else null
+                                            }
+                                        }
+                                    }
+                                    InlineChatSearchBar(
+                                        query = channelSearchQuery,
+                                        onQueryChange = {
+                                            channelSearchQuery = it
+                                            currentChannelMatchIdx = 0
+                                        },
+                                        placeholder = "Search in #${activeChip.name}...",
+                                        currentMatchIndex = if (channelMatches.isNotEmpty()) currentChannelMatchIdx.coerceIn(0, channelMatches.size - 1) else 0,
+                                        totalMatches = channelMatches.size,
+                                        onPreviousMatch = {
+                                            if (channelMatches.isNotEmpty()) {
+                                                currentChannelMatchIdx = if (currentChannelMatchIdx > 0) currentChannelMatchIdx - 1 else channelMatches.size - 1
+                                                val match = channelMatches[currentChannelMatchIdx]
+                                                coroutineScope.launch {
+                                                    listState.animateScrollToItem(match.first)
+                                                }
+                                                highlightedMessageId = match.second.id
+                                                coroutineScope.launch {
+                                                    kotlinx.coroutines.delay(1200)
+                                                    if (highlightedMessageId == match.second.id) {
+                                                        highlightedMessageId = null
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onNextMatch = {
+                                            if (channelMatches.isNotEmpty()) {
+                                                currentChannelMatchIdx = (currentChannelMatchIdx + 1) % channelMatches.size
+                                                val match = channelMatches[currentChannelMatchIdx]
+                                                coroutineScope.launch {
+                                                    listState.animateScrollToItem(match.first)
+                                                }
+                                                highlightedMessageId = match.second.id
+                                                coroutineScope.launch {
+                                                    kotlinx.coroutines.delay(1200)
+                                                    if (highlightedMessageId == match.second.id) {
+                                                        highlightedMessageId = null
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onClose = {
+                                            isChannelSearchOpen = false
+                                            channelSearchQuery = ""
+                                            highlightedMessageId = null
+                                        },
+                                        isDark = colors.isDark
+                                    )
+                                } else {
                             // Row 1: Workspace Selector Capsule + Quick Actions
                             Row(
                                 modifier = Modifier
@@ -1248,97 +1328,6 @@ fun ChannelsWorkspaceScreen(
                                     }
                                 }
                             }
-
-                            // Row 2: In-Channel Expandable Search Bar
-                            AnimatedVisibility(
-                                visible = isChannelSearchOpen,
-                                enter = expandVertically(tween(240, easing = EaseOutCubic)) + fadeIn(tween(220, easing = EaseOutCubic)) + slideInVertically(animationSpec = tween(240, easing = EaseOutCubic), initialOffsetY = { -it / 3 }),
-                                exit = shrinkVertically(tween(180, easing = EaseInCubic)) + fadeOut(tween(160, easing = EaseInCubic)) + slideOutVertically(animationSpec = tween(180, easing = EaseInCubic), targetOffsetY = { -it / 3 })
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (colors.isDark) Color(0xFF161822) else Color(0xFFEEF0F6))
-                                        .border(1.dp, colors.borderSubtle.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Search,
-                                            contentDescription = null,
-                                            tint = colors.textSecondary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Box(modifier = Modifier.weight(1f)) {
-                                            if (channelSearchQuery.isEmpty()) {
-                                                Text(
-                                                    text = "Search in #${activeChip.name}...",
-                                                    fontSize = 13.sp,
-                                                    color = colors.textSecondary.copy(alpha = 0.7f)
-                                                )
-                                            }
-                                            BasicTextField(
-                                                value = channelSearchQuery,
-                                                onValueChange = { channelSearchQuery = it },
-                                                textStyle = TextStyle(
-                                                    fontSize = 13.sp,
-                                                    color = colors.textPrimary
-                                                ),
-                                                cursorBrush = SolidColor(colors.primary),
-                                                singleLine = true,
-                                                modifier = Modifier.fillMaxWidth()
-                                            )
-                                        }
-                                        if (channelSearchQuery.isNotBlank()) {
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = "${displayMessages.size} found",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = colors.primary,
-                                                style = TextStyle(fontFeatureSettings = "tnum")
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(20.dp)
-                                                    .clip(CircleShape)
-                                                    .clickable { channelSearchQuery = "" },
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Close,
-                                                    contentDescription = "Clear",
-                                                    tint = colors.textSecondary,
-                                                    modifier = Modifier.size(14.dp)
-                                                )
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .size(22.dp)
-                                                .clip(CircleShape)
-                                                .clickable {
-                                                    isChannelSearchOpen = false
-                                                    channelSearchQuery = ""
-                                                },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Close,
-                                                contentDescription = "Close Search",
-                                                tint = colors.textPrimary,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                    }
                                 }
                             }
 
@@ -2036,6 +2025,7 @@ fun ChannelsWorkspaceScreen(
                                                 },
                                                 isSelected = selectedMessageForAction?.id == msg.id,
                                                 isHighlighted = msg.id == highlightedMessageId,
+                                                searchHighlightQuery = channelSearchQuery,
                                                 onBubblePositioned = { rect ->
                                                     channelMessageBoundsMap[msg.id] = rect
                                                 },
@@ -2890,6 +2880,7 @@ private fun ChannelMessageCard(
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
     isHighlighted: Boolean = false,
+    searchHighlightQuery: String = "",
     onReply: (() -> Unit)? = null,
     onCopy: (() -> Unit)? = null,
     onUnsend: (() -> Unit)? = null,
@@ -2936,10 +2927,10 @@ private fun ChannelMessageCard(
         )
     }
 
-    // 600ms Subtle Background Pulse Animation for Scroll-to-Original
+    // 1.2s Accent Glow Pulse Animation for Search Stepping / Scroll-to-Match
     val pulseAlpha by animateFloatAsState(
-        targetValue = if (isHighlighted) 0.35f else 0f,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        targetValue = if (isHighlighted) 0.65f else 0f,
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
         label = "channelPulseAlpha"
     )
 
@@ -3101,12 +3092,17 @@ private fun ChannelMessageCard(
                 }
 
                 val pulseModifier = if (pulseAlpha > 0f) {
-                    Modifier.background(colors.primary.copy(alpha = pulseAlpha), bubbleShape)
+                    Modifier.background(colors.primary.copy(alpha = pulseAlpha * 0.4f), bubbleShape)
+                } else Modifier
+
+                val searchGlowModifier = if (pulseAlpha > 0.01f) {
+                    Modifier.border(1.8.dp, Color(0xFF818CF8).copy(alpha = pulseAlpha), bubbleShape)
                 } else Modifier
 
                 Box(
                     modifier = bubbleModifier
                         .then(pulseModifier)
+                        .then(searchGlowModifier)
                         .graphicsLayer {
                             if (isSelected) alpha = 0f
                         }
@@ -3188,12 +3184,25 @@ private fun ChannelMessageCard(
                                     .clip(RoundedCornerShape(10.dp))
                             )
                         } else {
-                            Text(
-                                text = cleanMessageContentForDisplay(message.content, ""),
-                                fontSize = 13.5.sp,
-                                color = if (isMe) ownBubbleText else friendBubbleText,
-                                lineHeight = 19.sp
-                            )
+                            val channelCleanContent = cleanMessageContentForDisplay(message.content, "")
+                            if (searchHighlightQuery.isNotBlank() && channelCleanContent.contains(searchHighlightQuery, ignoreCase = true)) {
+                                SubstringHighlightedText(
+                                    text = channelCleanContent,
+                                    query = searchHighlightQuery,
+                                    style = TextStyle(
+                                        fontSize = 13.5.sp,
+                                        color = if (isMe) ownBubbleText else friendBubbleText,
+                                        lineHeight = 19.sp
+                                    )
+                                )
+                            } else {
+                                Text(
+                                    text = channelCleanContent,
+                                    fontSize = 13.5.sp,
+                                    color = if (isMe) ownBubbleText else friendBubbleText,
+                                    lineHeight = 19.sp
+                                )
+                            }
                         }
 
                         // Outgoing message timestamp & delivery ticks pinned to bottom-right

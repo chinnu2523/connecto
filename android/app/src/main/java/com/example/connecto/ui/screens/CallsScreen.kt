@@ -62,6 +62,13 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.TextStyle
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.ui.focus.FocusRequester
+import com.example.connecto.ui.components.ConnectoAnimatedSearchBar
+import com.example.connecto.ui.components.SubstringHighlightedText
+import com.example.connecto.ui.components.SearchEmptyState
 import com.example.connecto.ui.designsystem.ConnectoTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -359,6 +366,20 @@ fun CallsScreen(
     var activeCallRoomCode by remember { mutableStateOf<String?>(null) }
     var selectedFilter by remember { mutableStateOf("All") } // "All", "Incoming", "Outgoing", "Missed"
     var callSearchQuery by remember { mutableStateOf("") }
+    var isCallSearchFocused by remember { mutableStateOf(false) }
+    val callSearchFocusRequester = remember { FocusRequester() }
+    val isSearchActive = isCallSearchFocused || callSearchQuery.isNotEmpty()
+
+    val callHeaderCollapseRatio by animateFloatAsState(
+        targetValue = if (isSearchActive) 0f else 1f,
+        animationSpec = tween(durationMillis = 220, easing = EaseOutCubic),
+        label = "callHeaderCollapseRatio"
+    )
+
+    BackHandler(enabled = isCallSearchFocused || callSearchQuery.isNotEmpty()) {
+        callSearchQuery = ""
+        isCallSearchFocused = false
+    }
 
     // Dialog state for clearing all or deleting
     var showClearAllDialog by remember { mutableStateOf(false) }
@@ -664,52 +685,66 @@ fun CallsScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // Top Header (Click to scroll to top)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        coroutineScope.launch {
-                            try {
-                                if (callListState.firstVisibleItemIndex > 15) {
-                                    callListState.scrollToItem(15)
-                                }
-                                callListState.animateScrollToItem(0)
-                            } catch (_: Exception) {}
+            // Collapsible Top Header: Animates upward (opacity: 1 -> 0, height -> 0, 220ms ease-out)
+            if (callHeaderCollapseRatio > 0.01f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            alpha = callHeaderCollapseRatio
+                            translationY = -35f * (1f - callHeaderCollapseRatio)
                         }
-                    }
-            ) {
-                ConnectoTopHeader(
-                    title = "CALLS",
-                    subtitle = "Call History & Voice Hub",
-                    userInitial = userInitial,
-                    onAddFriendClick = null,
-                    onVoiceGroupClick = null,
-                    showProfileButton = false,
-                    onAvatarClick = {},
-                    onNotificationClick = null,
-                    unreadNotificationsCount = 0,
-                    customAction = null
-                )
+                        .then(
+                            if (callHeaderCollapseRatio < 0.99f) Modifier.height((64.dp * callHeaderCollapseRatio))
+                            else Modifier
+                        )
+                        .clickable(
+                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            coroutineScope.launch {
+                                try {
+                                    if (callListState.firstVisibleItemIndex > 15) {
+                                        callListState.scrollToItem(15)
+                                    }
+                                    callListState.animateScrollToItem(0)
+                                } catch (_: Exception) {}
+                            }
+                        }
+                ) {
+                    ConnectoTopHeader(
+                        title = "CALLS",
+                        subtitle = "Call History & Voice Hub",
+                        userInitial = userInitial,
+                        onAddFriendClick = null,
+                        onVoiceGroupClick = null,
+                        showProfileButton = false,
+                        onAvatarClick = {},
+                        onNotificationClick = null,
+                        unreadNotificationsCount = 0,
+                        customAction = null
+                    )
+                }
             }
 
-            // Call History Search Bar
+            // Call History Animated Search Bar with sliding cancel button, active glow border & haptics
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
-                ConnectoTextField(
-                    value = callSearchQuery,
-                    onValueChange = { callSearchQuery = it },
+                ConnectoAnimatedSearchBar(
+                    query = callSearchQuery,
+                    onQueryChange = { callSearchQuery = it },
                     placeholder = "Search call history by name or date...",
-                    leadingIcon = Icons.Default.Search,
-                    showClearButton = true,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
+                    isFocused = isCallSearchFocused,
+                    onFocusChanged = { isCallSearchFocused = it },
+                    onCancel = {
+                        callSearchQuery = ""
+                        isCallSearchFocused = false
+                    },
+                    focusRequester = callSearchFocusRequester,
+                    isDark = colors.isDark
                 )
             }
 
@@ -913,6 +948,8 @@ fun CallsScreen(
                                     count = 6,
                                     isDark = colors.isDark
                                 )
+                            } else if (callSearchQuery.isNotBlank()) {
+                                SearchEmptyState(query = callSearchQuery, isDark = colors.isDark)
                             } else {
                                 Box(
                                     modifier = Modifier
@@ -1104,14 +1141,28 @@ fun CallsScreen(
                                             Spacer(modifier = Modifier.width(14.dp))
 
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = displayName,
-                                                    fontSize = 15.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = colors.textPrimary,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
+                                                if (callSearchQuery.isNotBlank() && displayName.contains(callSearchQuery, ignoreCase = true)) {
+                                                    SubstringHighlightedText(
+                                                        text = displayName,
+                                                        query = callSearchQuery,
+                                                        style = TextStyle(
+                                                            fontSize = 15.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = colors.textPrimary
+                                                        ),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                } else {
+                                                    Text(
+                                                        text = displayName,
+                                                        fontSize = 15.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = colors.textPrimary,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
                                                 Spacer(modifier = Modifier.height(2.dp))
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     val isCancelled = log.isOutgoing && log.durationSeconds == 0 && !log.isMissed
@@ -1134,13 +1185,26 @@ fun CallsScreen(
                                                     } else {
                                                         "$statusText • ${log.timeAgo}"
                                                     }
-                                                    Text(
-                                                        text = displaySubtext,
-                                                        fontSize = 12.sp,
-                                                        color = if (log.isMissed) colors.error else colors.textSecondary,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis
-                                                    )
+                                                    if (callSearchQuery.isNotBlank() && displaySubtext.contains(callSearchQuery, ignoreCase = true)) {
+                                                        SubstringHighlightedText(
+                                                            text = displaySubtext,
+                                                            query = callSearchQuery,
+                                                            style = TextStyle(
+                                                                fontSize = 12.sp,
+                                                                color = if (log.isMissed) colors.error else colors.textSecondary
+                                                            ),
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    } else {
+                                                        Text(
+                                                            text = displaySubtext,
+                                                            fontSize = 12.sp,
+                                                            color = if (log.isMissed) colors.error else colors.textSecondary,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
