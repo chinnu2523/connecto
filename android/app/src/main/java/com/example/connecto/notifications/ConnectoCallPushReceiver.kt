@@ -55,19 +55,6 @@ class ConnectoCallPushReceiver : BroadcastReceiver() {
                 callerName = callerDisplayName,
                 callerAvatar = callerAvatar
             )
-
-            try {
-                val fullScreenIntent = Intent(appCtx, IncomingCallActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                    putExtra(ConnectoNotificationManager.EXTRA_ROOM_ID, roomId)
-                    putExtra(ConnectoNotificationManager.EXTRA_CALLER_NAME, callerDisplayName)
-                    putExtra("extra_caller_username", callerUser)
-                    putExtra("extra_caller_avatar", callerAvatar)
-                }
-                appCtx.startActivity(fullScreenIntent)
-            } catch (e: Exception) {
-                Log.d(TAG, "Direct activity start from receiver bypassed: ${e.message}")
-            }
         }
     }
 }

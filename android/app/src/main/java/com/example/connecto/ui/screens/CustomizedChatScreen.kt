@@ -38,11 +38,13 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
@@ -56,7 +58,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalDensity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.connecto.crypto.ConnectoE2EEncryption
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -523,21 +534,21 @@ val AVAILABLE_CHAT_WALLPAPERS = listOf(
         name = "Default",
         subtitle = "Clean theme canvas",
         lightBrush = Brush.verticalGradient(listOf(Color(0xFFFFFFFF), Color(0xFFF8FAFC))),
-        darkBrush = Brush.verticalGradient(listOf(Color(0xFF141312), Color(0xFF1C1A17)))
+        darkBrush = Brush.verticalGradient(listOf(Color(0xFF0A0C10), Color(0xFF13161F)))
     ),
     ChatWallpaperOption(
         id = "glass_mesh",
         name = "Prism Glass",
         subtitle = "Aurora crystal glow",
-        lightBrush = Brush.radialGradient(listOf(Color(0xFFE0F2FE), Color(0xFFF1F5F9))),
-        darkBrush = Brush.radialGradient(listOf(Color(0xFF1E3A8A), Color(0xFF0F172A)))
+        lightBrush = Brush.linearGradient(listOf(Color(0xFFE0F2FE), Color(0xFFE0E7FF), Color(0xFFF1F5F9), Color(0xFFF8FAFC))),
+        darkBrush = Brush.linearGradient(listOf(Color(0xFF0F172A), Color(0xFF1E1B4B), Color(0xFF1E3A8A), Color(0xFF0A0C10)))
     ),
     ChatWallpaperOption(
         id = "liquid_water",
         name = "Aqua Ripples",
         subtitle = "Oceanic fluid reflection",
-        lightBrush = Brush.radialGradient(listOf(Color(0xFFE0F7FA), Color(0xFFF0FDF4))),
-        darkBrush = Brush.radialGradient(listOf(Color(0xFF0369A1), Color(0xFF082F49)))
+        lightBrush = Brush.linearGradient(listOf(Color(0xFFE0F7FA), Color(0xFFE0F2FE), Color(0xFFF0FDF4), Color(0xFFF8FAFC))),
+        darkBrush = Brush.linearGradient(listOf(Color(0xFF082F49), Color(0xFF0C4A6E), Color(0xFF0369A1), Color(0xFF0A101D)))
     ),
     ChatWallpaperOption(
         id = "oled",
@@ -550,22 +561,22 @@ val AVAILABLE_CHAT_WALLPAPERS = listOf(
         id = "mesh_dark",
         name = "Cosmic Mesh",
         subtitle = "Nebula violet slate",
-        lightBrush = Brush.radialGradient(listOf(Color(0xFFEDE9FE), Color(0xFFF1F5F9))),
-        darkBrush = Brush.radialGradient(listOf(Color(0xFF581C87), Color(0xFF1E1B4B)))
+        lightBrush = Brush.linearGradient(listOf(Color(0xFFEDE9FE), Color(0xFFF3E8FF), Color(0xFFF5F3FF), Color(0xFFF8FAFC))),
+        darkBrush = Brush.linearGradient(listOf(Color(0xFF180828), Color(0xFF3B0764), Color(0xFF581C87), Color(0xFF1E1B4B), Color(0xFF0A0C10)))
     ),
     ChatWallpaperOption(
         id = "indigo_flow",
         name = "Indigo Gradient",
         subtitle = "Soft twilight stream",
-        lightBrush = Brush.verticalGradient(listOf(Color(0xFFEEF2FF), Color(0xFFE0E7FF))),
-        darkBrush = Brush.verticalGradient(listOf(Color(0xFF3730A3), Color(0xFF1E1B4B)))
+        lightBrush = Brush.linearGradient(listOf(Color(0xFFEEF2FF), Color(0xFFE0E7FF), Color(0xFFC7D2FE), Color(0xFFEEF2FF))),
+        darkBrush = Brush.linearGradient(listOf(Color(0xFF0F111A), Color(0xFF1E1B4B), Color(0xFF312E81), Color(0xFF3730A3), Color(0xFF0A0C10)))
     ),
     ChatWallpaperOption(
         id = "emerald_glow",
         name = "Emerald Matrix",
         subtitle = "Tactical aurora matrix",
-        lightBrush = Brush.verticalGradient(listOf(Color(0xFFECFDF5), Color(0xFFD1FAE5))),
-        darkBrush = Brush.verticalGradient(listOf(Color(0xFF065F46), Color(0xFF022C22)))
+        lightBrush = Brush.linearGradient(listOf(Color(0xFFECFDF5), Color(0xFFD1FAE5), Color(0xFFA7F3D0), Color(0xFFF0FDF4))),
+        darkBrush = Brush.linearGradient(listOf(Color(0xFF022C22), Color(0xFF064E3B), Color(0xFF065F46), Color(0xFF051B14)))
     ),
     ChatWallpaperOption(
         id = "parchment_warm",
@@ -1775,6 +1786,9 @@ fun CustomizedChatScreen(
     }
 
     fun initiateVoiceCallWithFriend(friend: FriendItem) {
+        if (VoiceCallManager.isDialLockedFlow.value || VoiceCallManager.callState.value != com.example.connecto.voice.CallState.IDLE) {
+            return
+        }
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             perform1on1Call(friend)
         } else {
@@ -2235,6 +2249,141 @@ fun CustomizedChatScreen(
         showMoreOptionsMenu = false
     }
 
+    // Multi-Select Chat Messages State
+    var isMultiSelectMode by remember { mutableStateOf(false) }
+    val selectedMultiMessageIds = remember { mutableStateListOf<String>() }
+    var showForwardSheet by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+
+    // Centered Obsidian Unsend Confirmation Modal State
+    var showUnsendConfirmDialogForMsg by remember { mutableStateOf<CustomMessageItem?>(null) }
+    BackHandler(enabled = showUnsendConfirmDialogForMsg != null) {
+        showUnsendConfirmDialogForMsg = null
+    }
+
+    // Deferred Local Delete & Floating Undo Toast State
+    var pendingDeleteMessage by remember { mutableStateOf<CustomMessageItem?>(null) }
+    var pendingDeleteJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    var pendingDeleteProgress by remember { mutableStateOf(1f) }
+    var previousDmPreview by remember { mutableStateOf<String?>(null) }
+    var chatInputBarHeightPx by remember { mutableIntStateOf(0) }
+
+    val hapticFeedback = LocalHapticFeedback.current
+
+    val flushPendingDelete: () -> Unit = {
+        val msgToCommit = pendingDeleteMessage
+        if (msgToCommit != null) {
+            pendingDeleteJob?.cancel()
+            pendingDeleteJob = null
+            pendingDeleteMessage = null
+
+            val msgId = msgToCommit.id
+            val deletedSet = friendPrefs.getStringSet("deleted_for_me_$myUsername", emptySet<String>())?.toMutableSet() ?: mutableSetOf()
+            deletedSet.add(msgId)
+            friendPrefs.edit().putStringSet("deleted_for_me_$myUsername", deletedSet).apply()
+
+            coroutineScope.launch(Dispatchers.IO) {
+                try { dbHelper.deleteMessage(msgId) } catch (_: Exception) {}
+            }
+            coroutineScope.launch {
+                try {
+                    ConnectoApiClient.deleteMessageForMe(msgId, myUsername)
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    val startPendingDelete: (CustomMessageItem) -> Unit = { msg ->
+        if (pendingDeleteMessage != null) {
+            flushPendingDelete()
+        }
+        try {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        } catch (_: Exception) {}
+
+        // Capture previous DM preview
+        selectedFriend?.let { friend ->
+            val fIdx = friendsList.indexOfFirst { it.id == friend.id }
+            if (fIdx != -1) {
+                previousDmPreview = friendsList[fIdx].lastMessage
+            }
+        }
+
+        pendingDeleteMessage = msg
+        pendingDeleteProgress = 1f
+
+        // Optimistically remove from visible timeline
+        friendMessages = friendMessages.filterNot { it.id == msg.id }
+
+        // Optimistically update DM preview with new latest message
+        selectedFriend?.let { friend ->
+            val fIdx = friendsList.indexOfFirst { it.id == friend.id }
+            if (fIdx != -1) {
+                val newLastMsg = friendMessages.lastOrNull()?.content ?: ""
+                val updated = friendsList[fIdx].copy(lastMessage = newLastMsg)
+                friendsList[fIdx] = updated
+            }
+        }
+
+        // Launch 3-second countdown timer
+        pendingDeleteJob?.cancel()
+        pendingDeleteJob = coroutineScope.launch {
+            val totalDurationMs = 3000L
+            val stepMs = 30L
+            val totalSteps = (totalDurationMs / stepMs).toInt()
+            for (step in totalSteps downTo 0) {
+                pendingDeleteProgress = step.toFloat() / totalSteps.toFloat()
+                delay(stepMs)
+            }
+            flushPendingDelete()
+        }
+    }
+
+    val undoPendingDelete: () -> Unit = {
+        pendingDeleteJob?.cancel()
+        pendingDeleteJob = null
+        val msgToRestore = pendingDeleteMessage
+        pendingDeleteMessage = null
+        if (msgToRestore != null) {
+            try {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            } catch (_: Exception) {}
+            // Smoothly insert back in original chronological order
+            friendMessages = (friendMessages + msgToRestore).sortedBy { it.timestampMillis }
+            // Restore previous DM preview
+            previousDmPreview?.let { prevPreview ->
+                selectedFriend?.let { friend ->
+                    val fIdx = friendsList.indexOfFirst { it.id == friend.id }
+                    if (fIdx != -1) {
+                        val updated = friendsList[fIdx].copy(lastMessage = prevPreview)
+                        friendsList[fIdx] = updated
+                    }
+                }
+            }
+            previousDmPreview = null
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP || event == Lifecycle.Event.ON_PAUSE) {
+                flushPendingDelete()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            flushPendingDelete()
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Intercept back button when Multi-Select is active (exits Multi-Select without leaving chat)
+    BackHandler(enabled = isMultiSelectMode) {
+        isMultiSelectMode = false
+        selectedMultiMessageIds.clear()
+    }
+
     // Intercept back button when in-chat search is active
     BackHandler(enabled = isChatSearchOpen) {
         isChatSearchOpen = false
@@ -2353,6 +2502,7 @@ fun CustomizedChatScreen(
 
     // Handle System Back button when in friend profile or 1:1 direct chat
     BackHandler(enabled = selectedFriend != null || isFriendProfileOpen) {
+        flushPendingDelete()
         if (friendProfileSubPage != null) {
             friendProfileSubPage = null
         } else if (isFriendProfileOpen) {
@@ -2382,6 +2532,10 @@ fun CustomizedChatScreen(
             selectedMessageForAction = null
             showMoreOptionsMenu = false
             editingMessage = null
+            isMultiSelectMode = false
+            selectedMultiMessageIds.clear()
+            showForwardSheet = false
+            showDeleteConfirmDialog = false
             isLoadingMessages = false
             VoiceCallManager.activeChatRoomOrFriend = null
             onDirectChatStateChanged(false)
@@ -2444,12 +2598,24 @@ fun CustomizedChatScreen(
                     receipt.channelId.equals(activeDmChannelId, ignoreCase = true) || 
                     receipt.channelId.equals(currentCanonical, ignoreCase = true)
                 if (matchesReader || matchesChannel) {
+                    if (showUnsendConfirmDialogForMsg != null) {
+                        showUnsendConfirmDialogForMsg = null
+                        Toast.makeText(context, "Message was just seen — you can only delete it for yourself", Toast.LENGTH_LONG).show()
+                    }
+                    val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(Date())
                     friendMessages = friendMessages.map { msg ->
-                        if (msg.isMe && (!msg.isDelivered || !msg.isRead)) {
-                            msg.copy(isDelivered = true, isRead = true)
+                        if (msg.isMe && (!msg.isDelivered || !msg.isRead || msg.readAt.isNullOrBlank())) {
+                            msg.copy(isDelivered = true, isRead = true, readAt = msg.readAt ?: nowIso)
                         } else {
                             msg
                         }
+                    }
+                    if (selectedMessageForAction?.isMe == true) {
+                        selectedMessageForAction = selectedMessageForAction?.copy(
+                            isDelivered = true,
+                            isRead = true,
+                            readAt = selectedMessageForAction?.readAt ?: nowIso
+                        )
                     }
                 }
             }
@@ -4877,6 +5043,72 @@ fun CustomizedChatScreen(
                                 },
                                 isDark = !isLight
                             )
+                        } else if (isMultiSelectMode) {
+                            // Morphing Multi-Select Top Header: ✕ (Exit), live count (3 selected), and Select All / Clear on the right
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                            .background(actionBtnBg)
+                                            .border(1.dp, actionBtnBorder, CircleShape)
+                                            .clickable {
+                                                isMultiSelectMode = false
+                                                selectedMultiMessageIds.clear()
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Exit Multi-Select",
+                                            tint = actionIconTint,
+                                            modifier = Modifier.size(19.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    Text(
+                                        text = "${selectedMultiMessageIds.size} selected",
+                                        color = headerTitleColor,
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                val isAllSelected = selectedMultiMessageIds.size >= friendMessages.size && friendMessages.isNotEmpty()
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFF1F2433))
+                                        .border(1.dp, Color(0x1FFFFFFF), RoundedCornerShape(10.dp))
+                                        .clickable {
+                                            if (isAllSelected) {
+                                                selectedMultiMessageIds.clear()
+                                            } else {
+                                                selectedMultiMessageIds.clear()
+                                                selectedMultiMessageIds.addAll(friendMessages.map { it.id })
+                                            }
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (isAllSelected) "Clear" else "Select All",
+                                        color = Color.White,
+                                        fontSize = 12.5.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
                         } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -4892,6 +5124,7 @@ fun CustomizedChatScreen(
                                 .border(1.dp, actionBtnBorder, CircleShape)
                                 .pressScaleEffect(
                                     onClick = {
+                                        flushPendingDelete()
                                         selectedFriend?.let { friend ->
                                             markFriendChatAsReadLocallyAndRemotely(friend)
                                             if (typedMessage.isNotBlank()) {
@@ -4906,6 +5139,8 @@ fun CustomizedChatScreen(
                                         chatWallpaperId = "default"
                                         customWallpaperUri = null
                                         activeDmChannelId = null
+                                        isMultiSelectMode = false
+                                        selectedMultiMessageIds.clear()
                                         isLoadingMessages = false
                                         onDirectChatStateChanged(false)
                                     }
@@ -5052,34 +5287,12 @@ fun CustomizedChatScreen(
                             }
                         }
 
-                        // Right Action Controls: Friend Info, Voice & Video Call Buttons
+                        // Right Action Controls: Voice Call & Search in Chat
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             if (!isGroupChat) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(CircleShape)
-                                        .background(actionBtnBg)
-                                        .border(1.dp, actionBtnBorder, CircleShape)
-                                        .pressScaleEffect(
-                                            onClick = {
-                                                isFriendProfileOpen = true
-                                                friendProfileSubPage = null
-                                            }
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Info,
-                                        contentDescription = "Friend Profile Info",
-                                        tint = actionIconTint,
-                                        modifier = Modifier.size(19.dp)
-                                    )
-                                }
-
                                 Box(
                                     modifier = Modifier
                                         .size(38.dp)
@@ -5120,27 +5333,6 @@ fun CustomizedChatScreen(
                                     Icon(
                                         imageVector = Icons.Default.Search,
                                         contentDescription = "Search in chat",
-                                        tint = actionIconTint,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(CircleShape)
-                                        .background(actionBtnBg)
-                                        .border(1.dp, actionBtnBorder, CircleShape)
-                                        .pressScaleEffect(
-                                            onClick = {
-                                                showWallpaperCustomizerDialog = true
-                                            }
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Tune,
-                                        contentDescription = "Wallpaper Size & Position",
                                         tint = actionIconTint,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -7396,9 +7588,80 @@ fun CustomizedChatScreen(
                                         val msgBubbleScale = if (isRecentMsg) 0.94f + 0.06f * popInAnim.value else 1f
                                         val msgBubbleTranslateY = if (isRecentMsg) 14f * (1f - popInAnim.value) else 0f
 
+                                        val isMsgSelected = isMultiSelectMode && selectedMultiMessageIds.contains(msg.id)
+                                        var totalDeltaX by remember(msg.id) { mutableStateOf(0f) }
+                                        var totalDeltaY by remember(msg.id) { mutableStateOf(0f) }
+                                        var isSwipingRight by remember(msg.id) { mutableStateOf(false) }
+
+                                        val dragModifier = if (!isMultiSelectMode) {
+                                            Modifier.pointerInput(msg.id) {
+                                                detectDragGestures(
+                                                    onDragStart = {
+                                                        totalDeltaX = 0f
+                                                        totalDeltaY = 0f
+                                                        isSwipingRight = false
+                                                    },
+                                                    onDragEnd = {
+                                                        if (dragOffsetX >= 52f) {
+                                                            editingMessage = null
+                                                            replyingTo = msg
+                                                            try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
+                                                        }
+                                                        dragOffsetX = 0f
+                                                        hasTriggeredHaptic = false
+                                                        isSwipingRight = false
+                                                    },
+                                                    onDragCancel = {
+                                                        dragOffsetX = 0f
+                                                        hasTriggeredHaptic = false
+                                                        isSwipingRight = false
+                                                    },
+                                                    onDrag = { change, dragAmount ->
+                                                        if (!isSwipingRight) {
+                                                            totalDeltaX += dragAmount.x
+                                                            totalDeltaY += dragAmount.y
+                                                            // Only lock into horizontal swipe when deltaX > 12px AND deltaX > Math.abs(deltaY) * 1.5
+                                                            if (totalDeltaX > 12f && totalDeltaX > kotlin.math.abs(totalDeltaY) * 1.5f) {
+                                                                isSwipingRight = true
+                                                                change.consume()
+                                                            }
+                                                        } else {
+                                                            change.consume()
+                                                            // Strict Single-Direction Swipe (Swipe Right --> ONLY) for ALL messages
+                                                            if (dragAmount.x > 0f || dragOffsetX > 0f) {
+                                                                val resistance = (1f - (dragOffsetX / 90f).coerceIn(0f, 0.85f))
+                                                                val nextOffset = dragOffsetX + dragAmount.x * 0.45f * resistance
+                                                                dragOffsetX = nextOffset.coerceIn(0f, 68f)
+                                                            }
+                                                            if (dragOffsetX >= 52f && !hasTriggeredHaptic) {
+                                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                hasTriggeredHaptic = true
+                                                            } else if (dragOffsetX < 52f) {
+                                                                hasTriggeredHaptic = false
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        } else {
+                                            Modifier.clickable {
+                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                if (selectedMultiMessageIds.contains(msg.id)) {
+                                                    selectedMultiMessageIds.remove(msg.id)
+                                                    if (selectedMultiMessageIds.isEmpty()) {
+                                                        isMultiSelectMode = false
+                                                    }
+                                                } else {
+                                                    selectedMultiMessageIds.add(msg.id)
+                                                }
+                                            }
+                                        }
+
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
+                                                .animateItem()
+                                                .background(if (isMsgSelected) Color(0x246366F1) else Color.Transparent)
                                                 .zIndex(if (isSelectedMsg) 10f else 0f)
                                                 .graphicsLayer {
                                                     scaleX = msgBubbleScale
@@ -7409,67 +7672,33 @@ fun CustomizedChatScreen(
                                                     }
                                                 }
                                                 .padding(top = if (isSameUserAsPrev) 3.dp else 10.dp)
-                                                .pointerInput(msg.id) {
-                                                    detectHorizontalDragGestures(
-                                                        onDragEnd = {
-                                                            if (kotlin.math.abs(dragOffsetX) >= 40f) {
-                                                                editingMessage = null
-                                                                replyingTo = msg
-                                                                try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
-                                                            }
-                                                            dragOffsetX = 0f
-                                                            hasTriggeredHaptic = false
-                                                        },
-                                                        onDragCancel = {
-                                                            dragOffsetX = 0f
-                                                            hasTriggeredHaptic = false
-                                                        },
-                                                        onHorizontalDrag = { _, dragAmount ->
-                                                            if (msg.isMe) {
-                                                                // Outgoing messages: allow swipe left or swipe right up to 60px
-                                                                dragOffsetX = (dragOffsetX + dragAmount * 0.5f).coerceIn(-60f, 60f)
-                                                            } else {
-                                                                // Incoming messages: swipe right up to 60px
-                                                                if (dragAmount > 0 || dragOffsetX > 0) {
-                                                                    dragOffsetX = (dragOffsetX + dragAmount * 0.5f).coerceIn(0f, 60f)
-                                                                }
-                                                            }
-                                                            val dist = kotlin.math.abs(dragOffsetX)
-                                                            if (dist >= 40f && !hasTriggeredHaptic) {
-                                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                                hasTriggeredHaptic = true
-                                                            } else if (dist < 40f) {
-                                                                hasTriggeredHaptic = false
-                                                            }
-                                                        }
-                                                    )
-                                                }
+                                                .then(dragModifier)
                                         ) {
-                                            // Subtle circular Reply Icon (↩) behind the bubble that fades and scales (0.4 -> 1.0)
-                                            val dragDist = kotlin.math.abs(animatedDragOffset)
+                                            // High-contrast 32px x 32px dark circular badge (#1E2333, 1px solid rgba(255,255,255,0.14)) with white reply icon (↩)
+                                            val dragDist = animatedDragOffset.coerceAtLeast(0f)
                                             if (dragDist > 3f) {
-                                                val isSwipeRight = animatedDragOffset > 0
-                                                val progress = (dragDist / 40f).coerceIn(0f, 1f)
-                                                val isActivated = dragDist >= 40f
+                                                val isActivated = dragDist >= 52f
+                                                val progress = (dragDist / 52f).coerceIn(0f, 1f)
+                                                val badgeScale = if (isActivated) 1.12f else (0.55f + 0.45f * progress)
                                                 Box(
                                                     modifier = Modifier
-                                                        .align(if (isSwipeRight) Alignment.CenterStart else Alignment.CenterEnd)
-                                                        .padding(if (isSwipeRight) PaddingValues(start = 12.dp) else PaddingValues(end = 12.dp))
-                                                        .size(36.dp)
+                                                        .align(Alignment.CenterStart)
+                                                        .padding(start = 12.dp)
+                                                        .size(32.dp)
                                                         .graphicsLayer {
                                                             alpha = progress
-                                                            scaleX = 0.4f + 0.6f * progress
-                                                            scaleY = 0.4f + 0.6f * progress
+                                                            scaleX = badgeScale
+                                                            scaleY = badgeScale
                                                         }
                                                         .clip(CircleShape)
                                                         .background(
-                                                            if (isActivated) MaterialTheme.colorScheme.primary
-                                                            else MaterialTheme.colorScheme.surfaceVariant
+                                                            if (isActivated) Color(0xFF6366F1)
+                                                            else Color(0xFF1E2333)
                                                         )
                                                         .border(
                                                             1.dp,
-                                                            if (isActivated) MaterialTheme.colorScheme.primary
-                                                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                                            if (isActivated) Color(0xFF6366F1)
+                                                            else Color(0x24FFFFFF),
                                                             CircleShape
                                                         ),
                                                     contentAlignment = Alignment.Center
@@ -7477,39 +7706,83 @@ fun CustomizedChatScreen(
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.Reply,
                                                         contentDescription = "Reply",
-                                                        tint = if (isActivated) Color.White else MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(18.dp)
+                                                        tint = Color(0xFFFFFFFF),
+                                                        modifier = Modifier.size(16.dp)
                                                     )
                                                 }
                                             }
 
-                                            Box(
-                                                modifier = Modifier.offset { IntOffset(animatedDragOffset.roundToInt(), 0) }
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .offset { IntOffset(animatedDragOffset.roundToInt(), 0) },
+                                                verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                CustomChatBubble(
-                                                    message = msg,
-                                                    ownBg = ownBubbleBg,
-                                                    ownText = ownBubbleText,
-                                                    friendBg = friendBubbleBg,
-                                                    friendBorder = friendBubbleBorder,
-                                                    friendText = friendBubbleText,
-                                                    isSelected = selectedMessageForAction?.id == msg.id,
-                                                    showAvatar = showAvatar,
-                                                    showSenderName = showSenderName,
-                                                    isLatestRead = (msg.id == latestReadMessageId) && (selectedFriend?.isGroup != true),
-                                                    isHighlighted = msg.id == highlightedMessageId,
-                                                    isSearchGlowPulse = msg.id == pulsingGlowMessageId,
-                                                    searchHighlightQuery = if (isChatSearchOpen) chatSearchQuery else "",
-                                                    recipientAvatarUrl = selectedFriend?.avatarUrl,
-                                                    recipientName = selectedFriend?.name ?: "Friend",
-                                                    onBubblePositioned = { rect ->
-                                                        messageBoundsMap[msg.id] = rect
-                                                    },
-                                                    onMessageClick = {
-                                                        if (selectedMessageForAction != null) {
-                                                            selectedMessageForAction = if (selectedMessageForAction?.id == msg.id) null else msg
+                                                // Animated 22px Checkbox in Left Gutter for Multi-Select
+                                                AnimatedVisibility(
+                                                    visible = isMultiSelectMode,
+                                                    enter = expandHorizontally() + fadeIn(),
+                                                    exit = shrinkHorizontally() + fadeOut()
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .padding(start = 12.dp, end = 4.dp)
+                                                            .size(22.dp)
+                                                            .clip(CircleShape)
+                                                            .background(if (isMsgSelected) Color(0xFF6366F1) else Color.Transparent)
+                                                            .border(
+                                                                width = if (isMsgSelected) 0.dp else 1.5.dp,
+                                                                color = if (isMsgSelected) Color.Transparent else Color(0xFF64748B),
+                                                                shape = CircleShape
+                                                            ),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        if (isMsgSelected) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Check,
+                                                                contentDescription = "Selected",
+                                                                tint = Color.White,
+                                                                modifier = Modifier.size(13.dp)
+                                                            )
                                                         }
-                                                    },
+                                                    }
+                                                }
+
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    CustomChatBubble(
+                                                        message = msg,
+                                                        ownBg = ownBubbleBg,
+                                                        ownText = ownBubbleText,
+                                                        friendBg = friendBubbleBg,
+                                                        friendBorder = friendBubbleBorder,
+                                                        friendText = friendBubbleText,
+                                                        isSelected = selectedMessageForAction?.id == msg.id,
+                                                        showAvatar = showAvatar,
+                                                        showSenderName = showSenderName,
+                                                        isLatestRead = (msg.id == latestReadMessageId) && (selectedFriend?.isGroup != true),
+                                                        isHighlighted = msg.id == highlightedMessageId,
+                                                        isSearchGlowPulse = msg.id == pulsingGlowMessageId,
+                                                        searchHighlightQuery = if (isChatSearchOpen) chatSearchQuery else "",
+                                                        recipientAvatarUrl = selectedFriend?.avatarUrl,
+                                                        recipientName = selectedFriend?.name ?: "Friend",
+                                                        onBubblePositioned = { rect ->
+                                                            messageBoundsMap[msg.id] = rect
+                                                        },
+                                                        onMessageClick = {
+                                                            if (isMultiSelectMode) {
+                                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                                if (selectedMultiMessageIds.contains(msg.id)) {
+                                                                    selectedMultiMessageIds.remove(msg.id)
+                                                                    if (selectedMultiMessageIds.isEmpty()) {
+                                                                        isMultiSelectMode = false
+                                                                    }
+                                                                } else {
+                                                                    selectedMultiMessageIds.add(msg.id)
+                                                                }
+                                                            } else if (selectedMessageForAction != null) {
+                                                                selectedMessageForAction = if (selectedMessageForAction?.id == msg.id) null else msg
+                                                            }
+                                                        },
                                                     onMessageLongPress = { targetMsg ->
                                                         selectedMessageForAction = targetMsg
                                                     },
@@ -7532,25 +7805,8 @@ fun CustomizedChatScreen(
                                                         try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
                                                     },
                                                     onUnsendClick = {
-                                                        val msgId = msg.id
-                                                        val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) (selectedFriend?.id ?: "") else getCanonicalChatId(selectedFriend))
-                                                        friendMessages = friendMessages.filterNot { it.id == msgId }
                                                         selectedMessageForAction = null
-
-                                                        val deletedSet = friendPrefs.getStringSet("deleted_for_me_$myUsername", emptySet())?.toMutableSet() ?: mutableSetOf()
-                                                        deletedSet.add(msgId)
-                                                        friendPrefs.edit().putStringSet("deleted_for_me_$myUsername", deletedSet).apply()
-
-                                                        coroutineScope.launch(Dispatchers.IO) {
-                                                            try { dbHelper.deleteMessage(msgId) } catch (_: Exception) {}
-                                                        }
-                                                        coroutineScope.launch {
-                                                            try {
-                                                                ConnectoApiClient.deleteMessage(msgId, targetChan.ifBlank { null })
-                                                                ConnectoApiClient.deleteMessageForMe(msgId, myUsername)
-                                                            } catch (_: Exception) {}
-                                                        }
-                                                        Toast.makeText(context, "Message unsent", Toast.LENGTH_SHORT).show()
+                                                        showUnsendConfirmDialogForMsg = msg
                                                     },
                                                     onQuotedMessageClick = { quotedId ->
                                                         val targetIdx = deduplicatedMessages.indexOfFirst { it.id == quotedId }
@@ -7630,6 +7886,7 @@ fun CustomizedChatScreen(
                                             }
                                         }
                                     }
+                                }
 
                                     if (isFriendTyping) {
                                         item(key = "typing_indicator") {
@@ -7882,8 +8139,126 @@ fun CustomizedChatScreen(
                                     }
                                 }
                             }
+                        } else if (isMultiSelectMode) {
+                            // Bottom Action Dock: Replace the message input bar smoothly with a clean #12151E bulk action dock containing evenly spaced icon + label buttons
+                            val clipboard = LocalClipboardManager.current
+                            val selectedMsgs = remember(selectedMultiMessageIds.size, friendMessages) {
+                                friendMessages.filter { selectedMultiMessageIds.contains(it.id) }.sortedBy { it.timestampMillis }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(Color(0xFF12151E))
+                                    .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(18.dp))
+                                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // 1. Copy Button
+                                    val isCopyEnabled = selectedMsgs.isNotEmpty()
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable(enabled = isCopyEnabled) {
+                                                val distinctSenders = selectedMsgs.map { it.senderName }.distinct()
+                                                val formattedText = if (distinctSenders.size > 1) {
+                                                    selectedMsgs.joinToString("\n") { "[${it.senderName}]: ${it.content}" }
+                                                } else {
+                                                    selectedMsgs.joinToString("\n") { it.content }
+                                                }
+                                                clipboard.setText(AnnotatedString(formattedText))
+                                                Toast.makeText(context, "Copied ${selectedMsgs.size} messages", Toast.LENGTH_SHORT).show()
+                                                isMultiSelectMode = false
+                                                selectedMultiMessageIds.clear()
+                                            }
+                                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ContentCopy,
+                                            contentDescription = "Copy",
+                                            tint = if (isCopyEnabled) Color.White else Color(0xFF64748B),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Copy",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (isCopyEnabled) Color.White else Color(0xFF64748B)
+                                        )
+                                    }
+
+                                    // 2. Forward Button
+                                    val isForwardEnabled = selectedMsgs.isNotEmpty()
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable(enabled = isForwardEnabled) {
+                                                showForwardSheet = true
+                                            }
+                                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.Reply,
+                                            contentDescription = "Forward",
+                                            tint = if (isForwardEnabled) Color.White else Color(0xFF64748B),
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .graphicsLayer { scaleX = -1f }
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Forward",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (isForwardEnabled) Color.White else Color(0xFF64748B)
+                                        )
+                                    }
+
+                                    // 3. Delete Button
+                                    val isDeleteEnabled = selectedMsgs.isNotEmpty()
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable(enabled = isDeleteEnabled) {
+                                                showDeleteConfirmDialog = true
+                                            }
+                                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete",
+                                            tint = if (isDeleteEnabled) Color(0xFFEF4444) else Color(0xFF64748B),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Delete",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (isDeleteEnabled) Color(0xFFEF4444) else Color(0xFF64748B)
+                                        )
+                                    }
+                                }
+                            }
                         } else {
-                            // Compact Swipe-to-Reply active preview bar (48px height)
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onGloballyPositioned { coords ->
+                                        chatInputBarHeightPx = coords.size.height
+                                    }
+                            ) {
+                                // Compact Swipe-to-Reply active preview bar (48px height)
                             AnimatedVisibility(
                                 visible = replyingTo != null,
                                 enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(tween(180)) + expandVertically(),
@@ -8536,6 +8911,101 @@ fun CustomizedChatScreen(
                         }
 
                         Spacer(modifier = Modifier.height(4.dp))
+                        } // end Bottom Chat Input Area Column
+                    } // end Main Messages Column
+
+                    // Sleek, compact floating Undo toast pill docked cleanly 12px above the message input bar
+                    val density = LocalDensity.current
+                    val bottomToastOffsetDp = remember(chatInputBarHeightPx) {
+                        if (chatInputBarHeightPx > 0) {
+                            with(density) { chatInputBarHeightPx.toDp() } + 12.dp
+                        } else {
+                            76.dp
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.BottomCenter
+                    ) {
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = pendingDeleteMessage != null,
+                            enter = slideInVertically(
+                                initialOffsetY = { fullHeight -> fullHeight },
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioLowBouncy)
+                            ) + fadeIn(tween(180)),
+                            exit = slideOutVertically(
+                                targetOffsetY = { fullHeight -> fullHeight },
+                                animationSpec = tween(150, easing = EaseInCubic)
+                            ) + fadeOut(tween(150)),
+                            modifier = Modifier
+                                .padding(bottom = bottomToastOffsetDp)
+                                .padding(horizontal = 20.dp)
+                                .zIndex(95f)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color(0xFF181C28),
+                                border = BorderStroke(1.dp, Color(0x1AFFFFFF)),
+                                shadowElevation = 8.dp,
+                                modifier = Modifier
+                                    .pointerInput(Unit) {
+                                        detectVerticalDragGestures { _, dragAmount ->
+                                            if (dragAmount > 8f) {
+                                                flushPendingDelete()
+                                            }
+                                        }
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    // 3.0s Subtle Countdown Progress Ring
+                                    Box(
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .drawBehind {
+                                                drawArc(
+                                                    color = Color(0x33818CF8),
+                                                    startAngle = -90f,
+                                                    sweepAngle = 360f,
+                                                    useCenter = false,
+                                                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+                                                )
+                                                drawArc(
+                                                    color = Color(0xFF818CF8),
+                                                    startAngle = -90f,
+                                                    sweepAngle = 360f * pendingDeleteProgress.coerceIn(0f, 1f),
+                                                    useCenter = false,
+                                                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+                                                )
+                                            }
+                                    )
+                                    Text(
+                                        text = "Message deleted for you",
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Undo",
+                                        color = Color(0xFF818CF8),
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .clickable {
+                                                undoPendingDelete()
+                                            }
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                     } // end Wallpaper Box
                 }
@@ -8637,7 +9107,21 @@ fun CustomizedChatScreen(
                             selectedMessageForAction = null
                         }
                     )
-                    if (activeSelectedMsg.isMe && !activeSelectedMsg.isRead) {
+                    ActionMenuItem(
+                        icon = Icons.Default.CheckCircle,
+                        label = "Select",
+                        color = if (isLight) Color(0xFF0F172A) else Color.White,
+                        onClick = {
+                            selectedMultiMessageIds.clear()
+                            selectedMultiMessageIds.add(activeSelectedMsg.id)
+                            isMultiSelectMode = true
+                            selectedMessageForAction = null
+                        }
+                    )
+                    val isSeen = activeSelectedMsg.isRead || !activeSelectedMsg.readAt.isNullOrBlank() || activeSelectedMsg.seenBy.isNotEmpty()
+
+                    // Edit Feature Alignment: Lock Edit once seen, leaving Reply, Copy, Select, and Delete
+                    if (activeSelectedMsg.isMe && !isSeen) {
                         ActionMenuItem(
                             icon = Icons.Default.Edit,
                             label = "Edit",
@@ -8651,31 +9135,43 @@ fun CustomizedChatScreen(
                             }
                         )
                     }
+
                     if (activeSelectedMsg.isMe) {
+                        if (!isSeen) {
+                            // Unseen sent message: display "Unsend" (red trash icon)
+                            ActionMenuItem(
+                                icon = Icons.Default.Delete,
+                                label = "Unsend",
+                                color = Color(0xFFEF4444),
+                                onClick = {
+                                    val targetMsg = activeSelectedMsg
+                                    selectedMessageForAction = null
+                                    showUnsendConfirmDialogForMsg = targetMsg
+                                }
+                            )
+                        } else {
+                            // Seen sent message: automatically replaces Unsend with "Delete" (Delete for you only)
+                            ActionMenuItem(
+                                icon = Icons.Default.Delete,
+                                label = "Delete",
+                                color = Color(0xFFEF4444),
+                                onClick = {
+                                    val targetMsg = activeSelectedMsg
+                                    selectedMessageForAction = null
+                                    startPendingDelete(targetMsg)
+                                }
+                            )
+                        }
+                    } else {
+                        // Received messages (sent by others): display "Delete" (delete for me only)
                         ActionMenuItem(
                             icon = Icons.Default.Delete,
-                            label = "Unsend",
+                            label = "Delete",
                             color = Color(0xFFEF4444),
                             onClick = {
-                                val msgId = activeSelectedMsg.id
-                                val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) (selectedFriend?.id ?: "") else getCanonicalChatId(selectedFriend))
-                                friendMessages = friendMessages.filterNot { it.id == msgId }
+                                val targetMsg = activeSelectedMsg
                                 selectedMessageForAction = null
-
-                                val deletedSet = friendPrefs.getStringSet("deleted_for_me_$myUsername", emptySet())?.toMutableSet() ?: mutableSetOf()
-                                deletedSet.add(msgId)
-                                friendPrefs.edit().putStringSet("deleted_for_me_$myUsername", deletedSet).apply()
-
-                                coroutineScope.launch(Dispatchers.IO) {
-                                    try { dbHelper.deleteMessage(msgId) } catch (_: Exception) {}
-                                }
-                                coroutineScope.launch {
-                                    try {
-                                        ConnectoApiClient.deleteMessage(msgId, targetChan.ifBlank { null })
-                                        ConnectoApiClient.deleteMessageForMe(msgId, myUsername)
-                                    } catch (_: Exception) {}
-                                }
-                                Toast.makeText(context, "Message unsent", Toast.LENGTH_SHORT).show()
+                                startPendingDelete(targetMsg)
                             }
                         )
                     }
@@ -8703,6 +9199,400 @@ fun CustomizedChatScreen(
                 }
             }
         )
+
+        // Multi-Select Forward Sheet
+        if (showForwardSheet) {
+            val forwardTargets = remember(friendsList.size, userGroupsList.size) {
+                (friendsList + userGroupsList).distinctBy { it.id }
+            }
+            val selectedMsgs = remember(selectedMultiMessageIds.size, friendMessages) {
+                friendMessages.filter { selectedMultiMessageIds.contains(it.id) }.sortedBy { it.timestampMillis }
+            }
+
+            Dialog(
+                onDismissRequest = { showForwardSheet = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0x80000000))
+                        .clickable { showForwardSheet = false },
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = false) {}
+                            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                            .background(Color(0xFF13161F))
+                            .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                            .padding(horizontal = 16.dp, vertical = 18.dp)
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
+                            // Header
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Forward to...",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                IconButton(onClick = { showForwardSheet = false }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Close",
+                                        tint = Color(0xFF94A3B8)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            LazyColumn(
+                                modifier = Modifier.weight(1f, fill = false),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(forwardTargets) { target ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(Color(0xFF1C202D))
+                                            .clickable {
+                                                val myName = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@")
+                                                val targetChan = if (target.isGroup) target.id else "dm-${minOf(myName.lowercase(), target.handle.removePrefix("@").trim().lowercase())}-${maxOf(myName.lowercase(), target.handle.removePrefix("@").trim().lowercase())}"
+                                                coroutineScope.launch {
+                                                    for (msgToFwd in selectedMsgs) {
+                                                        try {
+                                                            ConnectoApiClient.sendMessage(
+                                                                channelId = targetChan,
+                                                                content = msgToFwd.content,
+                                                                replyToId = null
+                                                            )
+                                                        } catch (_: Exception) {}
+                                                    }
+                                                }
+                                                Toast.makeText(context, "Forwarded ${selectedMsgs.size} messages to ${target.name}", Toast.LENGTH_SHORT).show()
+                                                showForwardSheet = false
+                                                isMultiSelectMode = false
+                                                selectedMultiMessageIds.clear()
+                                            }
+                                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        ConnectoAvatar(
+                                            name = target.name,
+                                            avatarUrl = target.avatarUrl,
+                                            customSizeDp = 36.dp,
+                                            customFontSizeSp = 14
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column {
+                                            Text(
+                                                text = target.name,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color.White
+                                            )
+                                            Text(
+                                                text = if (target.isGroup) "Group" else target.handle,
+                                                fontSize = 11.5.sp,
+                                                color = Color(0xFF94A3B8)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Multi-Select Smart Delete Confirmation Dialog
+        if (showDeleteConfirmDialog) {
+            val selectedMsgs = remember(selectedMultiMessageIds.size, friendMessages) {
+                friendMessages.filter { selectedMultiMessageIds.contains(it.id) }.sortedBy { it.timestampMillis }
+            }
+            val allMine = remember(selectedMsgs) {
+                selectedMsgs.isNotEmpty() && selectedMsgs.all { it.isMe }
+            }
+            val anySeen = remember(selectedMsgs) {
+                selectedMsgs.any { it.isRead || !it.readAt.isNullOrBlank() || it.seenBy.isNotEmpty() }
+            }
+
+            Dialog(
+                onDismissRequest = { showDeleteConfirmDialog = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0x80000000))
+                        .clickable { showDeleteConfirmDialog = false },
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = false) {}
+                            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                            .background(Color(0xFF13161F))
+                            .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                            .padding(horizontal = 18.dp, vertical = 20.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = "Delete ${selectedMsgs.size} message${if (selectedMsgs.size > 1) "s" else ""}?",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = if (allMine && !anySeen) "You can unsend these messages for everyone in this chat or delete them for yourself only."
+                                else if (allMine) "Some messages have already been seen and can only be deleted for yourself."
+                                else "Selected messages include incoming messages and will be deleted for you only.",
+                                fontSize = 13.sp,
+                                color = Color(0xFF8E95A8)
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            if (allMine && !anySeen) {
+                                // Unsend for Everyone (Only for unseen messages)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(46.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFFEF4444))
+                                        .clickable {
+                                            val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) (selectedFriend?.id ?: "") else getCanonicalChatId(selectedFriend))
+                                            val ids = selectedMsgs.map { it.id }.toSet()
+                                            friendMessages = friendMessages.filterNot { ids.contains(it.id) }
+                                            val deletedSet = friendPrefs.getStringSet("deleted_for_me_$myUsername", emptySet())?.toMutableSet() ?: mutableSetOf()
+                                            deletedSet.addAll(ids)
+                                            friendPrefs.edit().putStringSet("deleted_for_me_$myUsername", deletedSet).apply()
+
+                                            coroutineScope.launch(Dispatchers.IO) {
+                                                for (msgId in ids) {
+                                                    try { dbHelper.deleteMessage(msgId) } catch (_: Exception) {}
+                                                }
+                                            }
+                                            coroutineScope.launch {
+                                                for (msgId in ids) {
+                                                    try {
+                                                        ConnectoApiClient.unsendMessage(msgId, targetChan.ifBlank { null })
+                                                    } catch (_: Exception) {}
+                                                }
+                                            }
+                                            Toast.makeText(context, "Unsent ${ids.size} messages", Toast.LENGTH_SHORT).show()
+                                            showDeleteConfirmDialog = false
+                                            isMultiSelectMode = false
+                                            selectedMultiMessageIds.clear()
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Unsend for Everyone",
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+
+                            // Delete for Me
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(46.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFF1C202D))
+                                    .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        val ids = selectedMsgs.map { it.id }.toSet()
+                                        friendMessages = friendMessages.filterNot { ids.contains(it.id) }
+                                        val deletedSet = friendPrefs.getStringSet("deleted_for_me_$myUsername", emptySet())?.toMutableSet() ?: mutableSetOf()
+                                        deletedSet.addAll(ids)
+                                        friendPrefs.edit().putStringSet("deleted_for_me_$myUsername", deletedSet).apply()
+
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            for (msgId in ids) {
+                                                try { dbHelper.deleteMessage(msgId) } catch (_: Exception) {}
+                                            }
+                                        }
+                                        coroutineScope.launch {
+                                            for (msgId in ids) {
+                                                try {
+                                                    ConnectoApiClient.deleteMessageForMe(msgId, myUsername)
+                                                } catch (_: Exception) {}
+                                            }
+                                        }
+                                        Toast.makeText(context, "Deleted ${ids.size} messages for me", Toast.LENGTH_SHORT).show()
+                                        showDeleteConfirmDialog = false
+                                        isMultiSelectMode = false
+                                        selectedMultiMessageIds.clear()
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Delete for Me",
+                                    fontSize = 13.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (allMine) Color.White else Color(0xFFEF4444)
+                                )
+                            }
+
+                            // Cancel
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(44.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { showDeleteConfirmDialog = false },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Cancel",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF8E95A8)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Centered Obsidian Confirmation Modal for Irreversible Unsend
+        if (showUnsendConfirmDialogForMsg != null) {
+            val msgToUnsend = showUnsendConfirmDialogForMsg
+            Dialog(
+                onDismissRequest = { showUnsendConfirmDialogForMsg = null },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0x80000000))
+                        .clickable { showUnsendConfirmDialogForMsg = null },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f)
+                            .clickable(enabled = false) {}
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color(0xFF161922))
+                            .border(1.dp, Color(0x1FFFFFFF), RoundedCornerShape(20.dp))
+                            .padding(24.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Unsend message?",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "This will permanently remove the message for everyone in this chat.",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color(0xFF94A3B8),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                lineHeight = 19.sp
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                // Cancel (neutral pill)
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFF1C202D))
+                                        .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            showUnsendConfirmDialogForMsg = null
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Cancel",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFF94A3B8)
+                                    )
+                                }
+
+                                // Unsend (solid red #EF4444 pill)
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFFEF4444))
+                                        .clickable {
+                                            showUnsendConfirmDialogForMsg = null
+                                            if (msgToUnsend != null) {
+                                                val msgId = msgToUnsend.id
+                                                val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) (selectedFriend?.id ?: "") else getCanonicalChatId(selectedFriend))
+                                                coroutineScope.launch {
+                                                    val res = ConnectoApiClient.unsendMessage(msgId, targetChan.ifBlank { null })
+                                                    if (res.isSuccess) {
+                                                        friendMessages = friendMessages.filterNot { it.id == msgId }
+                                                        withContext(Dispatchers.IO) {
+                                                            try { dbHelper.deleteMessage(msgId) } catch (_: Exception) {}
+                                                        }
+                                                        Toast.makeText(context, "Message unsent", Toast.LENGTH_SHORT).show()
+                                                    } else {
+                                                        val errMsg = res.exceptionOrNull()?.message ?: ""
+                                                        if (errMsg.contains("ALREADY_SEEN", ignoreCase = true)) {
+                                                            val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(Date())
+                                                            friendMessages = friendMessages.map { m ->
+                                                                if (m.id == msgId) m.copy(isDelivered = true, isRead = true, readAt = nowIso)
+                                                                else m
+                                                            }
+                                                            Toast.makeText(context, "Message was just seen — you can only delete it for yourself", Toast.LENGTH_LONG).show()
+                                                        } else {
+                                                            Toast.makeText(context, "Failed to unsend: $errMsg", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Unsend",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
 }
@@ -8767,6 +9657,7 @@ fun CustomChatBubble(
     onBubblePositioned: ((Rect) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val isLight = !ConnectoTheme.colors.isDark
 
@@ -8995,10 +9886,20 @@ fun CustomChatBubble(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
+                                val isRepliedMsgDeletedForMe = remember(message.replyToId) {
+                                    if (message.replyToId.isNullOrBlank()) false
+                                    else {
+                                        val sp = context.getSharedPreferences("ConnectoPrefs", android.content.Context.MODE_PRIVATE)
+                                        val uName = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+                                        val deletedSet = sp.getStringSet("deleted_for_me_$uName", emptySet<String>()) ?: emptySet<String>()
+                                        deletedSet.contains(message.replyToId)
+                                    }
+                                }
                                 Text(
-                                    text = cleanMessageContentForDisplay(message.replyToContent, ""),
+                                    text = if (isRepliedMsgDeletedForMe) "Deleted message" else cleanMessageContentForDisplay(message.replyToContent, ""),
                                     fontSize = 12.sp,
-                                    color = if (message.isMe) effectiveOwnText.copy(alpha = 0.8f) else friendText.copy(alpha = 0.75f),
+                                    fontStyle = if (isRepliedMsgDeletedForMe) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal,
+                                    color = if (isRepliedMsgDeletedForMe) (if (message.isMe) effectiveOwnText.copy(alpha = 0.5f) else friendText.copy(alpha = 0.5f)) else (if (message.isMe) effectiveOwnText.copy(alpha = 0.8f) else friendText.copy(alpha = 0.75f)),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )

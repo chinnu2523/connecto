@@ -191,6 +191,9 @@ import kotlinx.coroutines.withContext
 import com.example.connecto.notifications.NotificationPreferences
 import com.example.connecto.notifications.NotificationSoundManager
 import com.example.connecto.notifications.ConnectoNotificationManager
+import com.example.connecto.notifications.CustomNotificationToneManager
+import com.example.connecto.security.SecretVaultManager
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -314,6 +317,14 @@ enum class ProfileSubPage(
     VOICE_AUDIO(
         title = "Voice & Audio Settings",
         icon = Icons.Default.Mic
+    ),
+    CALL_RINGTONE(
+        title = "Call Ringtone",
+        icon = Icons.Default.MusicNote
+    ),
+    MESSAGE_NOTIFICATIONS(
+        title = "Message Tone & Vibration",
+        icon = Icons.Default.Notifications
     ),
     GROUPS_COMMUNITIES(
         title = "Groups & Communities",
@@ -1691,6 +1702,17 @@ fun ProfileScreen(
                         )
                         ConnectoSettingsDivider()
                         ConnectoSettingsRow(
+                            icon = Icons.Default.MusicNote,
+                            title = "Call Ringtone",
+                            value = com.example.connecto.voice.CallRingtoneManager.getSelectedRingtoneName(context),
+                            showChevron = true,
+                            onClick = {
+                                previousSubPage = null
+                                activeSubPage = ProfileSubPage.CALL_RINGTONE
+                            }
+                        )
+                        ConnectoSettingsDivider()
+                        ConnectoSettingsRow(
                             icon = Icons.Default.Language,
                             title = "Language",
                             value = "English",
@@ -1800,6 +1822,28 @@ fun ProfileScreen(
                     }
                     }
                 }
+            } else if (currentSubPage == ProfileSubPage.CALL_RINGTONE) {
+                CallRingtonePickerScreen(
+                    onBack = {
+                        if (previousSubPage != null) {
+                            activeSubPage = previousSubPage
+                            previousSubPage = null
+                        } else {
+                            activeSubPage = null
+                        }
+                    }
+                )
+            } else if (currentSubPage == ProfileSubPage.MESSAGE_NOTIFICATIONS) {
+                MessageNotificationSettingsScreen(
+                    onBack = {
+                        if (previousSubPage != null) {
+                            activeSubPage = previousSubPage
+                            previousSubPage = null
+                        } else {
+                            activeSubPage = null
+                        }
+                    }
+                )
             } else {
                 // ========== 2. DEDICATED FULL-SCREEN SUB-PAGE TAB ==========
                 Column(
@@ -4847,30 +4891,30 @@ fun ProfileScreen(
 
                                             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), thickness = 1.dp)
 
-                                            // ================= 2. NOTIFICATION SOUNDS BUTTON =================
-                                            Box(
+                                            // ================= CALL RINGTONE ROW =================
+                                            Row(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .clickable { isNotificationSoundsExpanded = !isNotificationSoundsExpanded }
                                                     .clip(RoundedCornerShape(14.dp))
-                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                                                    .border(
-                                                        1.dp,
-                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
-                                                        RoundedCornerShape(14.dp)
-                                                    )
-                                                    .padding(14.dp)
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                                                    .clickable {
+                                                        previousSubPage = ProfileSubPage.NOTIFICATIONS
+                                                        activeSubPage = ProfileSubPage.CALL_RINGTONE
+                                                    }
+                                                    .padding(14.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
                                                 Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    verticalAlignment = Alignment.CenterVertically
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.weight(1f)
                                                 ) {
                                                     Box(
                                                         modifier = Modifier
-                                                            .size(42.dp)
+                                                            .size(40.dp)
                                                             .clip(CircleShape)
-                                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f))
-                                                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape),
+                                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                                                         contentAlignment = Alignment.Center
                                                     ) {
                                                         Icon(
@@ -4880,231 +4924,248 @@ fun ProfileScreen(
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                     }
-
                                                     Spacer(modifier = Modifier.width(14.dp))
-
-                                                    Column(modifier = Modifier.weight(1f)) {
+                                                    Column {
                                                         Text(
-                                                            text = "Notification Sounds",
-                                                            fontSize = 15.sp,
+                                                            text = "Call Ringtone",
+                                                            fontSize = 14.5.sp,
                                                             fontWeight = FontWeight.Bold,
                                                             color = MaterialTheme.colorScheme.onSurface
                                                         )
-
-                                                        Spacer(modifier = Modifier.height(3.dp))
-
+                                                        Spacer(modifier = Modifier.height(2.dp))
                                                         Text(
-                                                            text = "Active: $selectedNotificationSoundName • Tap to browse",
+                                                            text = com.example.connecto.voice.CallRingtoneManager.getSelectedRingtoneName(context),
                                                             fontSize = 12.sp,
-                                                            color = MaterialTheme.colorScheme.primary,
-                                                            fontWeight = FontWeight.SemiBold
+                                                            color = MaterialTheme.colorScheme.primary
                                                         )
                                                     }
+                                                }
+                                                Icon(
+                                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
 
-                                                    // Sound Preview / Play button for current sound
-                                                    val isCurrentSoundPlaying = playingSoundId == selectedNotificationSoundId
-                                                    IconButton(
-                                                        onClick = {
-                                                            if (isCurrentSoundPlaying) {
-                                                                NotificationSoundManager.stopPreview()
-                                                            } else {
-                                                                NotificationSoundManager.playPreview(context, selectedNotificationSoundId)
-                                                            }
-                                                        },
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), thickness = 1.dp)
+
+                                            // ================= 2. MESSAGE TONE ROW =================
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(14.dp))
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                                                    .clickable {
+                                                        previousSubPage = ProfileSubPage.NOTIFICATIONS
+                                                        activeSubPage = ProfileSubPage.MESSAGE_NOTIFICATIONS
+                                                    }
+                                                    .padding(14.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Box(
                                                         modifier = Modifier
-                                                            .size(36.dp)
+                                                            .size(40.dp)
                                                             .clip(CircleShape)
-                                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f))
+                                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                                        contentAlignment = Alignment.Center
                                                     ) {
                                                         Icon(
-                                                            imageVector = if (isCurrentSoundPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
-                                                            contentDescription = if (isCurrentSoundPlaying) "Stop" else "Preview",
+                                                            imageVector = Icons.Default.MusicNote,
+                                                            contentDescription = null,
                                                             tint = MaterialTheme.colorScheme.primary,
-                                                            modifier = Modifier.size(18.dp)
+                                                            modifier = Modifier.size(20.dp)
                                                         )
                                                     }
+                                                    Spacer(modifier = Modifier.width(14.dp))
+                                                    Column {
+                                                        Text(
+                                                            text = "Message Tone",
+                                                            fontSize = 14.5.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Spacer(modifier = Modifier.height(2.dp))
+                                                        Text(
+                                                            text = CustomNotificationToneManager.getGlobalToneName(context),
+                                                            fontSize = 12.sp,
+                                                            color = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    }
+                                                }
+                                                Icon(
+                                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
 
-                                                    Spacer(modifier = Modifier.width(4.dp))
+                                            // ================= 3. MESSAGE VIBRATION ROW =================
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(14.dp))
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                                                    .clickable {
+                                                        previousSubPage = ProfileSubPage.NOTIFICATIONS
+                                                        activeSubPage = ProfileSubPage.MESSAGE_NOTIFICATIONS
+                                                    }
+                                                    .padding(14.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(40.dp)
+                                                            .clip(CircleShape)
+                                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Vibration,
+                                                            contentDescription = null,
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.width(14.dp))
+                                                    Column {
+                                                        Text(
+                                                            text = "Message Vibration",
+                                                            fontSize = 14.5.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Spacer(modifier = Modifier.height(2.dp))
+                                                        Text(
+                                                            text = CustomNotificationToneManager.getGlobalVibrationDisplayName(context),
+                                                            fontSize = 12.sp,
+                                                            color = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    }
+                                                }
+                                                Icon(
+                                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
 
-                                                    Icon(
-                                                        imageVector = if (isNotificationSoundsExpanded) Icons.Default.Tune else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
+                                            // ================= 4. CUSTOM CONTACT NOTIFICATIONS OVERRIDES LIST =================
+                                            var notifOverridesRefreshKey by remember { mutableStateOf(0) }
+                                            val nonVaultedContactOverrides = remember(notifOverridesRefreshKey) {
+                                                CustomNotificationToneManager.getAllContactOverrides(context).filter {
+                                                    !SecretVaultManager.isContactHiddenInVault(context, it.contactId)
                                                 }
                                             }
 
-                                            // ================= 3. LATEST TRENDING SOUNDS LIST =================
-                                            AnimatedVisibility(
-                                                visible = isNotificationSoundsExpanded,
-                                                enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
-                                                exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
-                                            ) {
+                                            if (nonVaultedContactOverrides.isNotEmpty()) {
                                                 Column(
                                                     modifier = Modifier.fillMaxWidth(),
-                                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                                 ) {
-                                                    Row(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(horizontal = 4.dp, vertical = 2.dp),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.SpaceBetween
-                                                    ) {
-                                                        Text(
-                                                            text = "LATEST TRENDING SOUNDS",
-                                                            fontSize = 12.sp,
-                                                            fontWeight = FontWeight.ExtraBold,
-                                                            color = MaterialTheme.colorScheme.primary,
-                                                            letterSpacing = 1.sp
-                                                        )
-                                                        Text(
-                                                            text = "Tap to select & preview",
-                                                            fontSize = 11.sp,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    }
+                                                    Text(
+                                                        text = "CUSTOM CONTACT NOTIFICATIONS",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        letterSpacing = 1.sp
+                                                    )
 
-                                                    NotificationSoundManager.TRENDING_SOUNDS.forEach { sound ->
-                                                        val isSelected = selectedNotificationSoundId == sound.id
-                                                        val isPlaying = playingSoundId == sound.id
-
-                                                        Box(
+                                                    nonVaultedContactOverrides.forEach { item ->
+                                                        val vibTitle = CustomNotificationToneManager.VIBRATION_PRESETS.find { it.id == item.vibrationPresetId }?.title ?: "Custom"
+                                                        Row(
                                                             modifier = Modifier
                                                                 .fillMaxWidth()
-                                                                .clickable {
-                                                                    selectedNotificationSoundId = sound.id
-                                                                    selectedNotificationSoundName = sound.name
-                                                                    NotificationPreferences.setSelectedSound(context, sound.id, sound.name)
-                                                                    ConnectoNotificationManager.getOrCreateMessageChannelForSound(context, sound.id)
-                                                                    NotificationSoundManager.playPreview(context, sound.id)
-                                                                    Toast.makeText(context, "Notification sound set to ${sound.name}", Toast.LENGTH_SHORT).show()
-                                                                }
                                                                 .clip(RoundedCornerShape(12.dp))
-                                                                .background(
-                                                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
-                                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
-                                                                )
-                                                                .border(
-                                                                    1.2.dp,
-                                                                    if (isSelected) MaterialTheme.colorScheme.primary
-                                                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.20f),
-                                                                    RoundedCornerShape(12.dp)
-                                                                )
-                                                                .padding(horizontal = 12.dp, vertical = 10.dp)
+                                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                                                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.SpaceBetween
                                                         ) {
                                                             Row(
-                                                                modifier = Modifier.fillMaxWidth(),
-                                                                verticalAlignment = Alignment.CenterVertically
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                modifier = Modifier.weight(1f)
                                                             ) {
-                                                                // Selection indicator icon
-                                                                Box(
-                                                                    modifier = Modifier
-                                                                        .size(32.dp)
-                                                                        .clip(CircleShape)
-                                                                        .background(
-                                                                            if (isSelected) MaterialTheme.colorScheme.primary
-                                                                            else MaterialTheme.colorScheme.surfaceVariant
-                                                                        ),
-                                                                    contentAlignment = Alignment.Center
-                                                                ) {
-                                                                    if (isSelected) {
-                                                                        Icon(
-                                                                            imageVector = Icons.Default.Check,
-                                                                            contentDescription = null,
-                                                                            tint = MaterialTheme.colorScheme.onPrimary,
-                                                                            modifier = Modifier.size(16.dp)
-                                                                        )
-                                                                    } else {
-                                                                        Icon(
-                                                                            imageVector = Icons.Default.VolumeUp,
-                                                                            contentDescription = null,
-                                                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                                            modifier = Modifier.size(16.dp)
+                                                                if (!item.contactAvatar.isNullOrBlank()) {
+                                                                    AsyncImage(
+                                                                        model = item.contactAvatar,
+                                                                        contentDescription = item.contactName,
+                                                                        modifier = Modifier
+                                                                            .size(34.dp)
+                                                                            .clip(CircleShape),
+                                                                        contentScale = ContentScale.Crop
+                                                                    )
+                                                                } else {
+                                                                    Box(
+                                                                        modifier = Modifier
+                                                                            .size(34.dp)
+                                                                            .clip(CircleShape)
+                                                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                                                                        contentAlignment = Alignment.Center
+                                                                    ) {
+                                                                        Text(
+                                                                            text = item.contactName.ifBlank { item.contactId }.take(1).uppercase(),
+                                                                            fontSize = 14.sp,
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            color = MaterialTheme.colorScheme.primary
                                                                         )
                                                                     }
                                                                 }
 
-                                                                Spacer(modifier = Modifier.width(12.dp))
+                                                                Spacer(modifier = Modifier.width(10.dp))
 
                                                                 Column(modifier = Modifier.weight(1f)) {
-                                                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                                                        Text(
-                                                                            text = sound.name,
-                                                                            fontSize = 14.sp,
-                                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                                            color = MaterialTheme.colorScheme.onSurface
-                                                                        )
-                                                                        Spacer(modifier = Modifier.width(8.dp))
-                                                                        Box(
-                                                                            modifier = Modifier
-                                                                                .clip(RoundedCornerShape(4.dp))
-                                                                                .background(
-                                                                                    when (sound.tag) {
-                                                                                        "Trending #1" -> Color(0xFF8B5CF6).copy(alpha = 0.25f)
-                                                                                        "Viral" -> Color(0xFFEC4899).copy(alpha = 0.25f)
-                                                                                        "Futuristic" -> Color(0xFF06B6D4).copy(alpha = 0.25f)
-                                                                                        "Aesthetic" -> Color(0xFF10B981).copy(alpha = 0.25f)
-                                                                                        "Popular" -> Color(0xFFF59E0B).copy(alpha = 0.25f)
-                                                                                        else -> MaterialTheme.colorScheme.surfaceVariant
-                                                                                    }
-                                                                                )
-                                                                                .padding(horizontal = 5.dp, vertical = 1.5.dp)
-                                                                        ) {
-                                                                            Text(
-                                                                                text = sound.tag.uppercase(),
-                                                                                fontSize = 9.sp,
-                                                                                fontWeight = FontWeight.ExtraBold,
-                                                                                color = when (sound.tag) {
-                                                                                    "Trending #1" -> Color(0xFFA78BFA)
-                                                                                    "Viral" -> Color(0xFFF472B6)
-                                                                                    "Futuristic" -> Color(0xFF22D3EE)
-                                                                                    "Aesthetic" -> Color(0xFF34D399)
-                                                                                    "Popular" -> Color(0xFFFBBF24)
-                                                                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                                                                }
-                                                                            )
-                                                                        }
-                                                                    }
-
-                                                                    Spacer(modifier = Modifier.height(2.dp))
-
                                                                     Text(
-                                                                        text = sound.subtitle,
-                                                                        fontSize = 11.5.sp,
-                                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                        text = item.contactName.ifBlank { "@${item.contactId}" },
+                                                                        fontSize = 13.5.sp,
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                                        maxLines = 1,
+                                                                        overflow = TextOverflow.Ellipsis
+                                                                    )
+                                                                    Text(
+                                                                        text = "${item.toneName} · $vibTitle",
+                                                                        fontSize = 11.sp,
+                                                                        color = MaterialTheme.colorScheme.primary,
                                                                         maxLines = 1,
                                                                         overflow = TextOverflow.Ellipsis
                                                                     )
                                                                 }
+                                                            }
 
-                                                                Spacer(modifier = Modifier.width(8.dp))
-
-                                                                // Play / Stop Preview button
-                                                                IconButton(
-                                                                    onClick = {
-                                                                        if (isPlaying) {
-                                                                            NotificationSoundManager.stopPreview()
-                                                                        } else {
-                                                                            NotificationSoundManager.playPreview(context, sound.id)
-                                                                        }
-                                                                    },
-                                                                    modifier = Modifier
-                                                                        .size(34.dp)
-                                                                        .clip(CircleShape)
-                                                                        .background(
-                                                                            if (isPlaying) MaterialTheme.colorScheme.primary
-                                                                            else MaterialTheme.colorScheme.surfaceVariant
-                                                                        )
-                                                                ) {
-                                                                    Icon(
-                                                                        imageVector = if (isPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
-                                                                        contentDescription = if (isPlaying) "Stop" else "Play",
-                                                                        tint = if (isPlaying) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                                                                        modifier = Modifier.size(16.dp)
-                                                                    )
-                                                                }
+                                                            // 1-Tap ✕ Reset Button
+                                                            IconButton(
+                                                                onClick = {
+                                                                    CustomNotificationToneManager.removeContactOverride(context, item.contactId)
+                                                                    notifOverridesRefreshKey++
+                                                                    Toast.makeText(context, "Reverted ${item.contactName} to global default", Toast.LENGTH_SHORT).show()
+                                                                },
+                                                                modifier = Modifier
+                                                                    .size(30.dp)
+                                                                    .clip(CircleShape)
+                                                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Close,
+                                                                    contentDescription = "Reset",
+                                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                    modifier = Modifier.size(15.dp)
+                                                                )
                                                             }
                                                         }
                                                     }
@@ -5197,7 +5258,43 @@ fun ProfileScreen(
 
                             ProfileSubPage.VOICE_AUDIO -> {
                                 item(key = "sub_voice_audio_settings") {
-                                    VoiceAudioSettingsCard(hasCoverPhoto = hasCoverPhoto)
+                                    VoiceAudioSettingsCard(
+                                        hasCoverPhoto = hasCoverPhoto,
+                                        onNavigateToRingtone = {
+                                            previousSubPage = ProfileSubPage.VOICE_AUDIO
+                                            activeSubPage = ProfileSubPage.CALL_RINGTONE
+                                        }
+                                    )
+                                }
+                            }
+
+                            ProfileSubPage.CALL_RINGTONE -> {
+                                item(key = "sub_call_ringtone") {
+                                    CallRingtonePickerScreen(
+                                        onBack = {
+                                            if (previousSubPage != null) {
+                                                activeSubPage = previousSubPage
+                                                previousSubPage = null
+                                            } else {
+                                                activeSubPage = null
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+
+                            ProfileSubPage.MESSAGE_NOTIFICATIONS -> {
+                                item(key = "sub_message_notifications") {
+                                    MessageNotificationSettingsScreen(
+                                        onBack = {
+                                            if (previousSubPage != null) {
+                                                activeSubPage = previousSubPage
+                                                previousSubPage = null
+                                            } else {
+                                                activeSubPage = null
+                                            }
+                                        }
+                                    )
                                 }
                             }
 
@@ -6545,7 +6642,10 @@ fun ProfileScreen(
 // ================= HELPER COMPOSABLES =================
 
 @Composable
-private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
+private fun VoiceAudioSettingsCard(
+    hasCoverPhoto: Boolean,
+    onNavigateToRingtone: (() -> Unit)? = null
+) {
     val context = LocalContext.current
     val themeColors = ConnectoTheme.colors
     val isVoiceIsoActive by com.example.connecto.voice.VoiceCallManager.isVoiceIsolationEnabled.collectAsState()
@@ -6936,6 +7036,61 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                     },
                     colors = getMonochromeSwitchColors(isLight = !themeColors.isDark)
                 )
+            }
+
+            // Call Ringtone Settings Row
+            if (onNavigateToRingtone != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(themeColors.surfaceVariant.copy(alpha = if (themeColors.isDark) 0.35f else 0.5f))
+                        .border(1.dp, themeColors.borderSubtle, RoundedCornerShape(12.dp))
+                        .clickable { onNavigateToRingtone() }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(themeColors.primary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MusicNote,
+                                contentDescription = null,
+                                tint = themeColors.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Call Ringtone",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = themeColors.textPrimary
+                            )
+                            Text(
+                                text = com.example.connecto.voice.CallRingtoneManager.getSelectedRingtoneName(context),
+                                fontSize = 11.5.sp,
+                                color = themeColors.primary
+                            )
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = themeColors.textSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }

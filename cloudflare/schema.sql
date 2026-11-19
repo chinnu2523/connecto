@@ -135,6 +135,7 @@ CREATE TABLE IF NOT EXISTS messages (
     content TEXT NOT NULL,
     attachments TEXT DEFAULT '[]',
     nonce TEXT DEFAULT NULL,
+    read_at TEXT DEFAULT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -173,6 +174,23 @@ CREATE TABLE IF NOT EXISTS dm_read_states (
 );
 
 CREATE INDEX IF NOT EXISTS idx_dm_read_user_channel ON dm_read_states(user_id, channel_id);
+
+CREATE TABLE IF NOT EXISTS user_deleted_messages (
+    user_id TEXT NOT NULL,
+    message_id TEXT NOT NULL,
+    conversation_id TEXT DEFAULT NULL,
+    deleted_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (user_id, message_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_deleted_conv ON user_deleted_messages(user_id, conversation_id);
+CREATE INDEX IF NOT EXISTS idx_user_deleted_msg ON user_deleted_messages(message_id);
+
+CREATE TABLE IF NOT EXISTS message_deletions (
+    message_id TEXT NOT NULL,
+    username TEXT NOT NULL,
+    PRIMARY KEY (message_id, username)
+);
 
 -- ------------------------------------------------------------------------------
 -- 3. NOTIFICATIONS

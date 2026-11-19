@@ -312,9 +312,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
 
       // --- WEBRTC & FALLBACK VOICE EVENTS ---
       else if (event.type === 'voice_data') {
-        if (event.audio && callState === 'CONNECTED') {
-          voiceManager.playVoiceChunk(event.audio);
-        }
+        // Suppressed: 100% of media travels strictly over RTCPeerConnection (Opus over RTP/UDP)
       } else if (event.type === 'voice_room_joined') {
         setInVoiceRoom(true);
         const existingPeers: string[] = event.existing_peer_ids || [];

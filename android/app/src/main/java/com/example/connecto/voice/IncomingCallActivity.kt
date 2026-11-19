@@ -77,9 +77,22 @@ class IncomingCallActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (VoiceCallManager.callState.value != CallState.INCOMING_RINGING) {
+            finish()
+            return
+        }
+
         setupLockscreenFlags()
         acquireWakeLock()
-        CallRingtoneManager.startRingtoneAndVibration(this)
+
+        val roomId = intent.getStringExtra(ConnectoNotificationManager.EXTRA_ROOM_ID) ?: ""
+        val callerName = intent.getStringExtra(ConnectoNotificationManager.EXTRA_CALLER_NAME) ?: "Connecto Gamer"
+        val callerUsername = intent.getStringExtra("extra_caller_username") ?: callerName
+        val callerAvatar = intent.getStringExtra("extra_caller_avatar")
+
+        if (!CallRingtoneManager.isRinging) {
+            CallRingtoneManager.startRingtoneAndVibration(this, callerUserId = callerUsername)
+        }
 
         // Auto-dismiss if caller hangs up, cancels, declines, or call ends
         lifecycleScope.launch {
@@ -91,11 +104,6 @@ class IncomingCallActivity : ComponentActivity() {
                 }
             }
         }
-
-        val roomId = intent.getStringExtra(ConnectoNotificationManager.EXTRA_ROOM_ID) ?: ""
-        val callerName = intent.getStringExtra(ConnectoNotificationManager.EXTRA_CALLER_NAME) ?: "Connecto Gamer"
-        val callerUsername = intent.getStringExtra("extra_caller_username") ?: callerName
-        val callerAvatar = intent.getStringExtra("extra_caller_avatar")
 
         setContent {
             ConnectoTheme(darkTheme = true) {
@@ -133,11 +141,16 @@ class IncomingCallActivity : ComponentActivity() {
     }
 
     private fun startRingtoneAndVibration() {
-        CallRingtoneManager.startRingtoneAndVibration(this)
+        CallRingtoneManager.startRingtoneAndVibration(this, callerUserId = intent.getStringExtra("extra_caller_username"))
     }
 
     private fun stopRingtoneAndVibration() {
         CallRingtoneManager.stopRingtoneAndVibration(this)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     override fun onPause() {

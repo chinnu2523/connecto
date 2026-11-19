@@ -67,6 +67,28 @@ object SecretVaultManager {
         return prefs.getBoolean(PREF_KEY_HIDE_LOCKED_CHATS, false)
     }
 
+    fun isContactHiddenInVault(context: Context, contactId: String?, contactUsername: String? = null): Boolean {
+        if (contactId.isNullOrBlank() && contactUsername.isNullOrBlank()) return false
+        if (isVaultUnlocked.value) return false
+        if (!isHideLockedChatsEnabled(context)) return false
+
+        val friendPrefs = context.getSharedPreferences("connecto_friend_prefs", Context.MODE_PRIVATE)
+        val myUsername = (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+        val cleanId = contactId?.trim()?.lowercase()?.removePrefix("#")?.removePrefix("@")?.removePrefix("dm-") ?: ""
+        val cleanUser = contactUsername?.trim()?.lowercase()?.removePrefix("@") ?: ""
+
+        val keysToCheck = mutableListOf<String>()
+        if (cleanId.isNotBlank()) {
+            keysToCheck.add("chat_locked_$cleanId")
+            if (myUsername.isNotBlank()) keysToCheck.add("${myUsername}_chat_locked_$cleanId")
+        }
+        if (cleanUser.isNotBlank()) {
+            keysToCheck.add("chat_locked_$cleanUser")
+            if (myUsername.isNotBlank()) keysToCheck.add("${myUsername}_chat_locked_$cleanUser")
+        }
+        return keysToCheck.any { friendPrefs.getBoolean(it, false) }
+    }
+
     fun setHideLockedChats(context: Context, enabled: Boolean) {
         val prefs = SecureStorageManager.getEncryptedPrefs(context)
         prefs.edit().putBoolean(PREF_KEY_HIDE_LOCKED_CHATS, enabled).apply()

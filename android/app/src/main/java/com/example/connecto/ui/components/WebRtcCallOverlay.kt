@@ -1643,7 +1643,7 @@ fun ConnectionQualityIndicator(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Real-Time WebRTC Diagnostics Pill (ICE, Candidate, Audio Out, Audio In)
+// Real-Time WebRTC Diagnostics Pill (Proto, RTT, JitterBuf, ICE, Candidate, Loss)
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 fun CallDiagnosticPill(
@@ -1677,6 +1677,25 @@ fun CallDiagnosticPill(
         else    -> Color(0xFFCBD5E1)
     }
 
+    val proto = callStats?.protocol?.lowercase() ?: "udp"
+    val protoColor = if (proto == "udp") Color(0xFF38BDF8) else Color(0xFFFBBF24)
+
+    val rttMs = callStats?.roundTripTimeMs?.toInt() ?: 0
+    val rttColor = when {
+        rttMs in 1..80 -> Color(0xFF34D399)
+        rttMs in 81..180 -> Color(0xFFFBBF24)
+        rttMs > 180 -> Color(0xFFEF4444)
+        else -> Color(0xFF94A3B8)
+    }
+
+    val jitterBufMs = callStats?.jitterBufferMs?.toInt() ?: 0
+    val jbColor = when {
+        jitterBufMs in 1..60 -> Color(0xFF34D399)
+        jitterBufMs in 61..120 -> Color(0xFFFBBF24)
+        jitterBufMs > 120 -> Color(0xFFEF4444)
+        else -> Color(0xFF94A3B8)
+    }
+
     val packetsSent = callStats?.packetsSent ?: 0
     val micStatus = if (callStats?.micActive != false) "mic:ON" else "mic:MUT"
     val bytesIn = callStats?.bytesReceived ?: 0L
@@ -1695,7 +1714,7 @@ fun CallDiagnosticPill(
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33475569))
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.5.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
@@ -1709,25 +1728,36 @@ fun CallDiagnosticPill(
                         .background(iceColor)
                 )
                 Text(
-                    text = "ICE: $iceDisplay",
-                    fontSize = 10.5.sp,
+                    text = "Proto: $proto ($candidate)",
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = iceColor
+                    color = protoColor
                 )
                 Text(
                     text = "•",
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                     color = Color.White.copy(alpha = 0.35f)
                 )
                 Text(
-                    text = "Cand: $candidate",
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = candColor
+                    text = "RTT: ${rttMs}ms",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = rttColor
+                )
+                Text(
+                    text = "•",
+                    fontSize = 9.sp,
+                    color = Color.White.copy(alpha = 0.35f)
+                )
+                Text(
+                    text = "JitterBuf: ${jitterBufMs}ms",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = jbColor
                 )
                 Text(
                     text = if (isExpanded) "▲" else "▼",
-                    fontSize = 9.sp,
+                    fontSize = 8.5.sp,
                     color = Color.White.copy(alpha = 0.5f)
                 )
             }
@@ -1739,18 +1769,38 @@ fun CallDiagnosticPill(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = "Audio Out: ${packetsSent}p ($micStatus)",
-                        fontSize = 10.sp,
+                        text = "ICE: $iceDisplay",
+                        fontSize = 9.5.sp,
+                        color = iceColor
+                    )
+                    Text(
+                        text = "•",
+                        fontSize = 9.sp,
+                        color = Color.White.copy(alpha = 0.35f)
+                    )
+                    Text(
+                        text = "Loss: ${String.format(java.util.Locale.US, "%.1f", callStats?.packetLossPct ?: 0.0)}%",
+                        fontSize = 9.5.sp,
                         color = Color(0xFFCBD5E1)
                     )
                     Text(
                         text = "•",
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         color = Color.White.copy(alpha = 0.35f)
                     )
                     Text(
-                        text = "Audio In: $bytesInFormatted",
-                        fontSize = 10.sp,
+                        text = "Out: ${packetsSent}p ($micStatus)",
+                        fontSize = 9.5.sp,
+                        color = Color(0xFFCBD5E1)
+                    )
+                    Text(
+                        text = "•",
+                        fontSize = 9.sp,
+                        color = Color.White.copy(alpha = 0.35f)
+                    )
+                    Text(
+                        text = "In: $bytesInFormatted",
+                        fontSize = 9.5.sp,
                         color = Color(0xFFCBD5E1)
                     )
                 }

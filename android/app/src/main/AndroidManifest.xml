@@ -149,6 +149,17 @@
             android:readPermission="com.connecto.permission.READ_SSO_CREDENTIALS"
             android:exported="true" />
 
+        <!-- Android 15 FileProvider for custom notification tone SystemUI access -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- Broadcast receiver for incoming VoIP calls and wake-up pushes (Internal Only) -->
         <receiver
             android:name=".notifications.ConnectoCallPushReceiver"

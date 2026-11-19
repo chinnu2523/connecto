@@ -1,15 +1,60 @@
 import { wsClient } from './websocket';
 
 /**
- * WebRTC Configuration using public STUN servers.
- * Documented Note: A TURN server (e.g., coturn) is required in production for reliable
- * media relay across strict corporate firewalls and symmetric NATs.
+ * WebRTC Configuration using Cloudflare Anycast STUN and TURN (UDP prioritized first).
  */
 export const RTC_CONFIGURATION: RTCConfiguration = {
   iceServers: [
-    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+    { urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+    {
+      urls: [
+        'turn:turn.cloudflare.com:3478?transport=udp',
+        'turn:turn.cloudflare.com:443?transport=tcp',
+        'turns:turn.cloudflare.com:443?transport=tcp',
+      ],
+      username: 'cloudflare',
+      credential: 'cloudflare',
+    },
   ],
+  iceCandidatePoolSize: 4,
+  bundlePolicy: 'max-bundle',
+  rtcpMuxPolicy: 'require',
 };
+
+/**
+ * Mangle SDP to enforce low-latency Opus parameters with forward error correction.
+ */
+function mangleSdpForLowLatency(sdp: string): string {
+  const lines = sdp.split('\r\n');
+  let opusPayload: string | null = null;
+  for (const line of lines) {
+    const m = line.match(/^a=rtpmap:(\d+) opus\/48000/);
+    if (m) {
+      opusPayload = m[1];
+      break;
+    }
+  }
+  const targetPayload = opusPayload || '111';
+  const fmtpPrefix = `a=fmtp:${targetPayload}`;
+  const opusParams = 'minptime=10; ptime=20; useinbandfec=1; usedtx=1; maxaveragebitrate=40000; stereo=0; cbr=0';
+  const hasFmtp = lines.some((l) => l.startsWith(fmtpPrefix));
+  const result: string[] = [];
+  for (const line of lines) {
+    if (line.startsWith(fmtpPrefix)) {
+      result.push(`${fmtpPrefix} ${opusParams}`);
+    } else if (!hasFmtp && line.startsWith(`a=rtpmap:${targetPayload}`)) {
+      result.push(line);
+      result.push(`${fmtpPrefix} ${opusParams}`);
+    } else {
+      result.push(line);
+    }
+  }
+  if (!hasFmtp && !lines.some((l) => l.startsWith(`a=rtpmap:${targetPayload}`))) {
+    result.push('a=rtpmap:111 opus/48000/2');
+    result.push(`a=fmtp:111 ${opusParams}`);
+  }
+  return result.join('\r\n') + '\r\n';
+}
 
 export class VoiceCallManager {
   private peerConnections: Map<string, RTCPeerConnection> = new Map();
@@ -17,8 +62,6 @@ export class VoiceCallManager {
   private activeVoiceChannelId: string | null = null;
   private onRemoteStreamCallback: ((peerId: string, stream: MediaStream) => void) | null = null;
   private audioContext: AudioContext | null = null;
-  private scriptProcessor: ScriptProcessorNode | null = null;
-  private audioSourceNode: MediaStreamAudioSourceNode | null = null;
 
   public setOnRemoteStreamListener(callback: (peerId: string, stream: MediaStream) => void) {
     this.onRemoteStreamCallback = callback;
@@ -36,7 +79,7 @@ export class VoiceCallManager {
       if (!this.audioContext) {
         const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
         if (AudioCtx) {
-          this.audioContext = new AudioCtx({ sampleRate: 16000 });
+          this.audioContext = new AudioCtx({ sampleRate: 48000 });
         }
       }
       if (this.audioContext && this.audioContext.state === 'suspended') {
@@ -51,9 +94,32 @@ export class VoiceCallManager {
     }
   }
 
+  public async preFetchTurnCredentials() {
+    try {
+      const res = await fetch('/api/turn-credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const servers = data.iceServers || data.ice_servers;
+        if (Array.isArray(servers) && servers.length > 0) {
+          RTC_CONFIGURATION.iceServers = servers.filter((s: any) => {
+            const urls = Array.isArray(s.urls) ? s.urls : [s.urls || s.url];
+            return !urls.some((u: string) => typeof u === 'string' && u.includes('openrelay.metered.ca'));
+          });
+        }
+      }
+    } catch {
+      // Fallback to static Cloudflare TURN
+    }
+  }
+
   public async joinVoiceChannel(channelId: string) {
     this.activeVoiceChannelId = channelId;
     this.unlockAudio();
+    this.preFetchTurnCredentials().catch(() => {});
 
     try {
       // Capture local microphone stream with echo cancellation & noise suppression
@@ -62,6 +128,8 @@ export class VoiceCallManager {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 48000,
         },
         video: false,
       });
@@ -70,100 +138,13 @@ export class VoiceCallManager {
       this.localStream = new MediaStream(); // Fallback empty stream
     }
 
-    // Start WebSocket audio packet streaming fallback
-    this.startWebSocketAudioFallback(channelId);
-
-    // Join voice room over WebSocket (support both type and action for compatibility)
+    // Join voice room over WebSocket for signaling (100% media is pure WebRTC)
     wsClient.send({
       type: 'voice_join',
       action: 'voice:join',
       channel_id: channelId,
       room_id: channelId,
     });
-  }
-
-  public startWebSocketAudioFallback(roomId: string) {
-    if (!this.localStream || !this.localStream.getAudioTracks().length) return;
-    try {
-      if (!this.audioContext) {
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioCtx) {
-          this.audioContext = new AudioCtx({ sampleRate: 16000 });
-        }
-      }
-      if (!this.audioContext) return;
-      if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume();
-      }
-      if (this.scriptProcessor) return;
-
-      this.audioSourceNode = this.audioContext.createMediaStreamSource(this.localStream);
-      // Process in ~128ms chunks at 16kHz
-      this.scriptProcessor = this.audioContext.createScriptProcessor(2048, 1, 1);
-      this.scriptProcessor.onaudioprocess = (e) => {
-        if (!this.activeVoiceChannelId) return;
-        const inputData = e.inputBuffer.getChannelData(0);
-        const int16Array = new Int16Array(inputData.length);
-        for (let i = 0; i < inputData.length; i++) {
-          const s = Math.max(-1, Math.min(1, inputData[i]));
-          int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-        }
-        const uint8Array = new Uint8Array(int16Array.buffer);
-        let binary = '';
-        for (let i = 0; i < uint8Array.byteLength; i++) {
-          binary += String.fromCharCode(uint8Array[i]);
-        }
-        const base64 = btoa(binary);
-        wsClient.send({
-          type: 'voice_data',
-          action: 'voice_data',
-          room_id: roomId,
-          channel_id: roomId,
-          audio: base64,
-        });
-      };
-      this.audioSourceNode.connect(this.scriptProcessor);
-      this.scriptProcessor.connect(this.audioContext.destination);
-    } catch (e) {
-      console.warn('Fallback audio sender initialization failed:', e);
-    }
-  }
-
-  public playVoiceChunk(base64Audio: string) {
-    try {
-      if (!this.audioContext) {
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioCtx) {
-          this.audioContext = new AudioCtx({ sampleRate: 16000 });
-        }
-      }
-      if (!this.audioContext) return;
-      if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume();
-      }
-
-      const binaryStr = atob(base64Audio);
-      const len = binaryStr.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) {
-        bytes[i] = binaryStr.charCodeAt(i);
-      }
-      const int16Array = new Int16Array(bytes.buffer);
-      const float32Array = new Float32Array(int16Array.length);
-      for (let i = 0; i < int16Array.length; i++) {
-        float32Array[i] = int16Array[i] / 32768.0;
-      }
-
-      const audioBuffer = this.audioContext.createBuffer(1, float32Array.length, 16000);
-      audioBuffer.copyToChannel(float32Array, 0);
-
-      const source = this.audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(this.audioContext.destination);
-      source.start();
-    } catch {
-      // ignore decode error
-    }
   }
 
   public leaveVoiceChannel() {
@@ -175,19 +156,6 @@ export class VoiceCallManager {
         room_id: this.activeVoiceChannelId,
       });
       this.activeVoiceChannelId = null;
-    }
-
-    if (this.scriptProcessor) {
-      try {
-        this.scriptProcessor.disconnect();
-      } catch {}
-      this.scriptProcessor = null;
-    }
-    if (this.audioSourceNode) {
-      try {
-        this.audioSourceNode.disconnect();
-      } catch {}
-      this.audioSourceNode = null;
     }
 
     // Stop and release local audio tracks
@@ -227,6 +195,10 @@ export class VoiceCallManager {
     }
   }
 
+  public playVoiceChunk(_base64Audio: string) {
+    // Suppressed: 100% of media travels over RTCPeerConnection (Opus over RTP/UDP)
+  }
+
   public async initiateOffer(targetPeerId: string) {
     if (!this.activeVoiceChannelId) return;
 
@@ -238,12 +210,16 @@ export class VoiceCallManager {
     });
     await pc.setLocalDescription(offer);
 
+    const mangledSdp = mangleSdpForLowLatency(offer.sdp || '');
     wsClient.send({
       type: 'voice_offer',
+      action: 'call:offer',
       channel_id: this.activeVoiceChannelId,
       room_id: this.activeVoiceChannelId,
       target_user_id: targetPeerId,
-      sdp: offer.sdp,
+      target: targetPeerId,
+      target_user: targetPeerId,
+      sdp: mangledSdp,
     });
   }
 
@@ -269,12 +245,16 @@ export class VoiceCallManager {
       });
       await pc.setLocalDescription(answer);
 
+      const mangledSdp = mangleSdpForLowLatency(answer.sdp || '');
       wsClient.send({
         type: 'voice_answer',
+        action: 'call:answer',
         channel_id: this.activeVoiceChannelId,
         room_id: this.activeVoiceChannelId,
         target_user_id: senderPeerId,
-        sdp: answer.sdp,
+        target: senderPeerId,
+        target_user: senderPeerId,
+        sdp: mangledSdp,
       });
     } catch (err) {
       console.error('Failed to handle offer:', err);
@@ -310,29 +290,42 @@ export class VoiceCallManager {
 
     const pc = new RTCPeerConnection(RTC_CONFIGURATION);
 
-    // Attach local audio tracks
+    // Attach local audio tracks (Never attached to local destination or speakers)
     if (this.localStream) {
       this.localStream.getTracks().forEach((track) => {
         pc.addTrack(track, this.localStream!);
       });
     }
 
-    // Handle ICE candidates
+    // Handle ICE candidates immediately (True Trickle ICE)
     pc.onicecandidate = (event) => {
       if (event.candidate && this.activeVoiceChannelId) {
         wsClient.send({
           type: 'voice_ice_candidate',
+          action: 'call:ice_candidate',
           channel_id: this.activeVoiceChannelId,
           room_id: this.activeVoiceChannelId,
           target_user_id: peerId,
+          target: peerId,
+          target_user: peerId,
           candidate: event.candidate.toJSON(),
         });
       }
     };
 
-    // Handle remote audio stream and automatically mount & play in DOM audio player
+    // Handle remote audio stream and play in persistent DOM audio player
     pc.ontrack = (event) => {
       console.log('WebRTC ontrack received from peer:', peerId, event.track.kind);
+      // Tight playout delay hints on receiver
+      try {
+        if ('playoutDelayHint' in event.receiver) {
+          (event.receiver as any).playoutDelayHint = 0.05;
+        }
+        if ('jitterBufferTarget' in event.receiver) {
+          (event.receiver as any).jitterBufferTarget = 50;
+        }
+      } catch {}
+
       const stream = event.streams && event.streams[0] ? event.streams[0] : new MediaStream([event.track]);
 
       let audioEl = (document.getElementById('remote_call_audio') ||
@@ -345,7 +338,9 @@ export class VoiceCallManager {
         audioEl.style.display = 'none';
         document.body.appendChild(audioEl);
       }
-      audioEl.srcObject = stream;
+      if (audioEl.srcObject !== stream) {
+        audioEl.srcObject = stream;
+      }
       audioEl.volume = 1.0;
       audioEl.play().catch((err) => {
         console.warn('Auto-play blocked by browser policy, awaiting user gesture:', err);

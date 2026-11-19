@@ -2697,7 +2697,35 @@ object ConnectoApiClient {
                 body = null,
                 token = token ?: sessionToken
             )
-            Result.success(res.isSuccess)
+            if (res.isSuccess) {
+                Result.success(true)
+            } else {
+                Result.failure(res.exceptionOrNull() ?: Exception("Failed to delete message"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun unsendMessage(
+        messageId: String,
+        channelId: String? = null,
+        token: String? = null
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val cleanChannel = channelId?.trim()?.lowercase()?.removePrefix("#")
+            val query = if (!cleanChannel.isNullOrBlank()) "?channel_id=${java.net.URLEncoder.encode(cleanChannel, "UTF-8")}" else ""
+            val res = executeRequest(
+                endpoint = "/api/messages/$messageId/unsend$query",
+                method = "DELETE",
+                body = null,
+                token = token ?: sessionToken
+            )
+            if (res.isSuccess) {
+                Result.success(true)
+            } else {
+                Result.failure(res.exceptionOrNull() ?: Exception("Failed to unsend message"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -2763,12 +2791,23 @@ object ConnectoApiClient {
                 put("username", username.trim().removePrefix("@"))
             }
             val res = executeRequest(
-                endpoint = "/api/messages/delete-for-me",
+                endpoint = "/api/messages/$messageId/delete-for-me",
                 method = "POST",
                 body = body.toString(),
                 token = sessionToken
             )
-            Result.success(res.isSuccess)
+            if (res.isSuccess) {
+                Result.success(true)
+            } else {
+                val fallbackRes = executeRequest(
+                    endpoint = "/api/messages/delete-for-me",
+                    method = "POST",
+                    body = body.toString(),
+                    token = sessionToken
+                )
+                if (fallbackRes.isSuccess) Result.success(true)
+                else Result.failure(fallbackRes.exceptionOrNull() ?: Exception("Failed to delete message for me"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

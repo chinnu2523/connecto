@@ -7216,13 +7216,12 @@ async def get_ice_servers():
         turn_servers = [
             {
                 "urls": [
-                    "turn:openrelay.metered.ca:80",
-                    "turn:openrelay.metered.ca:443",
-                    "turn:openrelay.metered.ca:443?transport=tcp",
-                    "turns:openrelay.metered.ca:443?transport=tcp"
+                    "turn:turn.cloudflare.com:3478?transport=udp",
+                    "turn:turn.cloudflare.com:443?transport=tcp",
+                    "turns:turn.cloudflare.com:443?transport=tcp"
                 ],
-                "username": "openrelay",
-                "credential": "openrelay"
+                "username": "cloudflare",
+                "credential": "cloudflare"
             }
         ]
 

@@ -2,6 +2,7 @@ package com.example.connecto.ui.components
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -42,6 +43,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.Refresh
@@ -57,6 +59,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -146,7 +149,7 @@ fun WallpaperCustomizerDialog(
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
+            color = if (isDarkTheme) Color(0xFF0A0C10) else MaterialTheme.colorScheme.background
         ) {
             Column(
                 modifier = Modifier
@@ -158,8 +161,8 @@ fun WallpaperCustomizerDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.20f))
+                        .background(if (isDarkTheme) Color(0xFF13161F) else MaterialTheme.colorScheme.surface)
+                        .border(1.dp, if (isDarkTheme) Color(0x14FFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.20f))
                         .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
                     Row(
@@ -172,7 +175,7 @@ fun WallpaperCustomizerDialog(
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Close",
-                                    tint = MaterialTheme.colorScheme.onSurface
+                                    tint = if (isDarkTheme) Color.White else MaterialTheme.colorScheme.onSurface
                                 )
                             }
                             Spacer(modifier = Modifier.width(4.dp))
@@ -180,7 +183,7 @@ fun WallpaperCustomizerDialog(
                                 text = "Wallpaper",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = if (isDarkTheme) Color.White else MaterialTheme.colorScheme.onSurface
                             )
                         }
 
@@ -200,14 +203,14 @@ fun WallpaperCustomizerDialog(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "Reset",
                                 modifier = Modifier.size(15.dp),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = Color(0xFF6366F1)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Reset",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = Color(0xFF6366F1)
                             )
                         }
                     }
@@ -252,7 +255,8 @@ fun WallpaperCustomizerDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f))
+                            .background(Color(0xFF11141D))
+                            .border(1.dp, Color(0x0FFFFFFF), RoundedCornerShape(12.dp))
                             .padding(3.dp)
                     ) {
                         val tabWidth = maxWidth / tabs.size
@@ -272,7 +276,8 @@ fun WallpaperCustomizerDialog(
                                 .width(tabWidth)
                                 .height(34.dp)
                                 .clip(RoundedCornerShape(9.dp))
-                                .background(MaterialTheme.colorScheme.surface)
+                                .background(Color(0xFF1F2433))
+                                .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(9.dp))
                         )
 
                         Row(
@@ -281,12 +286,12 @@ fun WallpaperCustomizerDialog(
                             tabs.forEach { (index, label, icon) ->
                                 val isSelected = activeTab == index
                                 val textColor by animateColorAsState(
-                                    targetValue = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    targetValue = if (isSelected) Color.White else Color(0xFF8E95A8),
                                     animationSpec = tween(200),
                                     label = "wpTabTextColor"
                                 )
                                 val iconColor by animateColorAsState(
-                                    targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    targetValue = if (isSelected) Color.White else Color(0xFF8E95A8),
                                     animationSpec = tween(200),
                                     label = "wpTabIconColor"
                                 )
@@ -352,8 +357,8 @@ fun WallpaperCustomizerDialog(
                                                 .clip(RoundedCornerShape(18.dp))
                                                 .background(Color(0xFF12151E))
                                                 .border(
-                                                    width = if (isSelected) 1.5.dp else 1.dp,
-                                                    color = if (isSelected) Color.White else Color(0x0FFFFFFF),
+                                                    width = if (isSelected) 2.dp else 1.dp,
+                                                    color = if (isSelected) Color(0xFF6366F1) else Color(0x0FFFFFFF),
                                                     shape = RoundedCornerShape(18.dp)
                                                 )
                                                 .clickable(
@@ -379,14 +384,14 @@ fun WallpaperCustomizerDialog(
                                                     text = wallpaper.name,
                                                     fontSize = 13.sp,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis,
                                                     modifier = Modifier.padding(top = 10.dp, start = 6.dp, bottom = 4.dp, end = 6.dp)
                                                 )
                                             }
 
-                                            // 20px checkmark badge anchored at top: 14px, right: 14px
+                                            // 20px checkmark badge anchored at top: 6px, right: 6px
                                             if (isSelected) {
                                                 Box(
                                                     modifier = Modifier
@@ -394,13 +399,13 @@ fun WallpaperCustomizerDialog(
                                                         .padding(top = 6.dp, end = 6.dp)
                                                         .size(20.dp)
                                                         .clip(CircleShape)
-                                                        .background(Color.White),
+                                                        .background(Color(0xFF6366F1)),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Icon(
                                                         imageVector = Icons.Default.Check,
                                                         contentDescription = null,
-                                                        tint = Color(0xFF0A0B0E),
+                                                        tint = Color.White,
                                                         modifier = Modifier.size(12.dp)
                                                     )
                                                 }
@@ -738,132 +743,196 @@ fun WallpaperCustomizerDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.20f))
+                        .background(if (isDarkTheme) Color(0xFF0A0C10) else MaterialTheme.colorScheme.surface)
+                        .border(1.dp, if (isDarkTheme) Color(0x14FFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.20f))
                         .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Set for all chats toggle switch row
-                        Row(
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        // Grouped Obsidian Surface Card for Toggles
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable {
-                                    val next = !applyToAllChats
-                                    applyToAllChats = next
-                                    if (next) shareWithFriend = false
-                                }
-                                .padding(horizontal = 4.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFF12151E))
+                                .border(1.dp, Color(0x0FFFFFFF), RoundedCornerShape(14.dp))
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
                         ) {
-                            Text(
-                                text = "Set for all chats",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Switch(
-                                checked = applyToAllChats,
-                                onCheckedChange = { checked ->
-                                    applyToAllChats = checked
-                                    if (checked) shareWithFriend = false
-                                },
-                                modifier = Modifier.scale(0.82f)
-                            )
-                        }
-
-                        // Share with [Contact Name] toggle switch row (Direct chats only)
-                        if (isDirectChat && !friendName.isNullOrBlank()) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable {
-                                        val next = !shareWithFriend
-                                        shareWithFriend = next
-                                        if (next) applyToAllChats = false
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                // Set for all chats toggle switch row
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val next = !applyToAllChats
+                                            applyToAllChats = next
+                                            if (next) shareWithFriend = false
+                                        }
+                                        .padding(vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Set for all chats",
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color.White
+                                        )
+                                        Text(
+                                            text = "Use this wallpaper across all your direct chats",
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF8E95A8)
+                                        )
                                     }
-                                    .padding(horizontal = 4.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Share with $friendName",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "Apply this background for both of you",
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    Switch(
+                                        checked = applyToAllChats,
+                                        onCheckedChange = { checked ->
+                                            applyToAllChats = checked
+                                            if (checked) shareWithFriend = false
+                                        },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color.White,
+                                            checkedTrackColor = Color(0xFF6366F1),
+                                            uncheckedThumbColor = Color(0xFF94A3B8),
+                                            uncheckedTrackColor = Color(0xFF1E2333),
+                                            uncheckedBorderColor = Color.Transparent
+                                        ),
+                                        modifier = Modifier.scale(0.82f)
                                     )
                                 }
-                                Switch(
-                                    checked = shareWithFriend,
-                                    onCheckedChange = { checked ->
-                                        shareWithFriend = checked
-                                        if (checked) applyToAllChats = false
-                                    },
-                                    modifier = Modifier.scale(0.82f)
-                                )
+
+                                // Share with [Contact Name] toggle switch row (Direct chats only)
+                                if (isDirectChat && !friendName.isNullOrBlank()) {
+                                    // Vertical divider
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(1.dp)
+                                            .background(Color(0x0FFFFFFF))
+                                    )
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                val next = !shareWithFriend
+                                                shareWithFriend = next
+                                                if (next) applyToAllChats = false
+                                            }
+                                            .padding(vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Share with $friendName",
+                                                fontSize = 13.5.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color.White
+                                            )
+                                            Text(
+                                                text = "Apply this background for both of you",
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF8E95A8)
+                                            )
+                                        }
+                                        Switch(
+                                            checked = shareWithFriend,
+                                            onCheckedChange = { checked ->
+                                                shareWithFriend = checked
+                                                if (checked) applyToAllChats = false
+                                            },
+                                            colors = SwitchDefaults.colors(
+                                                checkedThumbColor = Color.White,
+                                                checkedTrackColor = Color(0xFF6366F1),
+                                                uncheckedThumbColor = Color(0xFF94A3B8),
+                                                uncheckedTrackColor = Color(0xFF1E2333),
+                                                uncheckedBorderColor = Color.Transparent
+                                            ),
+                                            modifier = Modifier.scale(0.82f)
+                                        )
+                                    }
+                                }
                             }
                         }
 
+                        // Footer Buttons: Sleek #1A1E2B Cancel pill + #6366F1 Indigo primary button
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Button(
-                                onClick = onDismissRequest,
+                            Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(42.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                    .height(44.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFF1A1E2B))
+                                    .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(12.dp))
+                                    .clickable { onDismissRequest() },
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(text = "Cancel", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    text = "Cancel",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF94A3B8)
+                                )
                             }
 
-                            Button(
-                                onClick = {
-                                    val updated = WallpaperTransform(
-                                        scale = scale,
-                                        offsetX = offsetX,
-                                        offsetY = offsetY,
-                                        contentScaleMode = mode,
-                                        dim = dim,
-                                        blur = blur
-                                    )
-                                    onApply?.invoke(selectedWallpaperId, selectedCustomUri, updated, applyToAllChats, shareWithFriend)
-                                    onSave?.invoke(updated)
-                                    onDismissRequest()
-                                },
+                            val applyInteraction = remember { MutableInteractionSource() }
+                            val isApplyPressed by applyInteraction.collectIsPressedAsState()
+                            val applyScale by animateFloatAsState(
+                                targetValue = if (isApplyPressed) 0.96f else 1.0f,
+                                animationSpec = spring(stiffness = 400f, dampingRatio = 0.8f),
+                                label = "wpApplyScale"
+                            )
+
+                            Box(
                                 modifier = Modifier
                                     .weight(1.5f)
-                                    .height(42.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                )
+                                    .height(44.dp)
+                                    .graphicsLayer {
+                                        scaleX = applyScale
+                                        scaleY = applyScale
+                                    }
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFF6366F1))
+                                    .clickable(
+                                        interactionSource = applyInteraction,
+                                        indication = null
+                                    ) {
+                                        val updated = WallpaperTransform(
+                                            scale = scale,
+                                            offsetX = offsetX,
+                                            offsetY = offsetY,
+                                            contentScaleMode = mode,
+                                            dim = dim,
+                                            blur = blur
+                                        )
+                                        onApply?.invoke(selectedWallpaperId, selectedCustomUri, updated, applyToAllChats, shareWithFriend)
+                                        onSave?.invoke(updated)
+                                        onDismissRequest()
+                                    },
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Apply",
-                                    fontSize = 12.5.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Apply",
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
                     }
@@ -876,6 +945,8 @@ fun WallpaperCustomizerDialog(
 /**
  * Isolated live wallpaper preview viewport.
  * Uses deferred lambdas to avoid recomposing the parent dialog during gesture pan/zoom.
+ * Frameless rounded preview card (border-radius: 20px, height: ~180px, subtle 1px solid rgba(255, 255, 255, 0.08) hairline)
+ * showing live incoming/outgoing sample bubbles over the selected wallpaper with smooth 220ms crossfade transitions.
  */
 @Composable
 private fun WallpaperLivePreview(
@@ -895,113 +966,169 @@ private fun WallpaperLivePreview(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(200.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
-            .background(if (isDarkTheme) Color.Black else Color(0xFFF8FAFC))
+            .height(180.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(20.dp))
+            .background(Color(0xFF0A0C10))
     ) {
-        // Wallpaper Layer with deferred graphicsLayer
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clipToBounds()
-                .pointerInput(Unit) {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        onGestureTransform(pan, zoom)
-                    }
-                }
-        ) {
-            if (selectedWallpaperId == "custom" && !selectedCustomUri.isNullOrBlank()) {
-                val currentBlur = blurProvider()
-                AsyncImage(
-                    model = Uri.parse(selectedCustomUri),
-                    contentDescription = null,
-                    contentScale = contentScale,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            scaleX = scaleProvider()
-                            scaleY = scaleProvider()
-                            translationX = offsetXProvider()
-                            translationY = offsetYProvider()
-                        }
-                        .then(
-                            if (currentBlur > 0f) Modifier.blur(currentBlur.dp) else Modifier
-                        )
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            scaleX = scaleProvider()
-                            scaleY = scaleProvider()
-                            translationX = offsetXProvider()
-                            translationY = offsetYProvider()
-                        }
-                        .background(
-                            if (!isDarkTheme) presetWallpaper.lightBrush else presetWallpaper.darkBrush
-                        )
-                )
-            }
-
-            // Scrim Overlay
+        // Wallpaper Layer with 220ms crossfade transitions
+        Crossfade(
+            targetState = Pair(selectedWallpaperId, selectedCustomUri),
+            animationSpec = tween(durationMillis = 220),
+            label = "wallpaperLiveCrossfade"
+        ) { (wpId, customUri) ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .drawWithContent {
-                        drawContent()
-                        val currentDim = dimProvider()
-                        val scrimColor = if (!isDarkTheme) Color.White.copy(alpha = currentDim * 0.85f)
-                        else Color.Black.copy(alpha = currentDim)
-                        drawRect(scrimColor)
+                    .clipToBounds()
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            onGestureTransform(pan, zoom)
+                        }
                     }
-            )
+            ) {
+                if (wpId == "custom" && !customUri.isNullOrBlank()) {
+                    val currentBlur = blurProvider()
+                    AsyncImage(
+                        model = Uri.parse(customUri),
+                        contentDescription = null,
+                        contentScale = contentScale,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = scaleProvider()
+                                scaleY = scaleProvider()
+                                translationX = offsetXProvider()
+                                translationY = offsetYProvider()
+                            }
+                            .then(
+                                if (currentBlur > 0f) Modifier.blur(currentBlur.dp) else Modifier
+                            )
+                    )
+                } else {
+                    val activePreset = remember(wpId) {
+                        AVAILABLE_CHAT_WALLPAPERS.find { it.id == wpId } ?: presetWallpaper
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = scaleProvider()
+                                scaleY = scaleProvider()
+                                translationX = offsetXProvider()
+                                translationY = offsetYProvider()
+                            }
+                            .background(
+                                if (!isDarkTheme) activePreset.lightBrush else activePreset.darkBrush
+                            )
+                    )
+                }
+
+                // Scrim Overlay
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .drawWithContent {
+                            drawContent()
+                            val currentDim = dimProvider()
+                            val scrimColor = if (!isDarkTheme) Color.White.copy(alpha = currentDim * 0.85f)
+                            else Color.Black.copy(alpha = currentDim)
+                            drawRect(scrimColor)
+                        }
+                )
+            }
         }
 
-        // Mock Chat Bubbles Overlay
+        // Realistic Mock Chat Bubbles Overlay (Incoming + Outgoing)
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (isDarkTheme) Color(0xFF1E293B).copy(alpha = 0.95f)
-                        else Color.White.copy(alpha = 0.96f)
-                    )
-                    .border(
-                        1.dp,
-                        if (isDarkTheme) Color(0xFF334155).copy(alpha = 0.6f)
-                        else Color(0xFFE2E8F0),
-                        RoundedCornerShape(12.dp)
-                    )
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            // Sample Incoming Bubble
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier.padding(end = 36.dp)
             ) {
-                Text(
-                    text = "Hello! Looks great ✨",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = if (isDarkTheme) Color(0xFFF8FAFC) else Color(0xFF0F172A)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF334155))
+                        .border(1.dp, Color(0x1FFFFFFF), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "C",
+                        fontSize = 11.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp, bottomEnd = 14.dp, bottomStart = 4.dp))
+                        .background(Color(0xFF1E2333).copy(alpha = 0.94f))
+                        .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp, bottomEnd = 14.dp, bottomStart = 4.dp))
+                        .padding(horizontal = 11.dp, vertical = 7.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = "Hey! Check out this wallpaper ✨",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "10:42 AM",
+                            fontSize = 9.sp,
+                            color = Color(0xFF94A3B8),
+                            modifier = Modifier
+                                .align(Alignment.End)
+                                .padding(top = 2.dp)
+                        )
+                    }
+                }
             }
 
+            // Sample Outgoing Bubble
             Box(
                 modifier = Modifier
                     .align(Alignment.End)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF47526B))
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .padding(start = 36.dp)
+                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp, bottomStart = 14.dp, bottomEnd = 4.dp))
+                    .background(Color(0xFF6366F1).copy(alpha = 0.95f))
+                    .padding(horizontal = 11.dp, vertical = 7.dp)
             ) {
-                Text(
-                    text = "Looks clean and responsive! 🚀",
-                    fontSize = 11.sp,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
+                Column {
+                    Text(
+                        text = "Looks super clean and high craft! 🚀",
+                        fontSize = 11.5.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(top = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "10:43 AM",
+                            fontSize = 9.sp,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Icon(
+                            imageVector = Icons.Default.DoneAll,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                }
             }
         }
     }

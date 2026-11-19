@@ -226,16 +226,23 @@ object ConnectoNotificationManager {
                 setShowBadge(true)
             }
 
-            // 3. Incoming Voice Calls Channel (IMPORTANCE_MAX, CATEGORY_CALL, looping ringtone attributes, bypass DND)
+            // 3. Incoming Voice Calls Channel (IMPORTANCE_HIGH, CATEGORY_CALL, silent sound so CallRingtoneManager exclusively controls ringtone & vibration)
+            try {
+                val existingCallChan = notificationManager.getNotificationChannel(CHANNEL_INCOMING_CALLS)
+                if (existingCallChan != null && (existingCallChan.sound != null || existingCallChan.shouldVibrate())) {
+                    notificationManager.deleteNotificationChannel(CHANNEL_INCOMING_CALLS)
+                }
+            } catch (_: Throwable) {}
+
             val incomingCallsChannel = NotificationChannel(
                 CHANNEL_INCOMING_CALLS,
                 "Incoming Calls",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Incoming 1-on-1 and group voice call alerts"
-                enableVibration(true)
-                vibrationPattern = longArrayOf(0, 1000, 800, 1000, 800)
-                setSound(callSoundUri, callAudioAttributes)
+                enableVibration(false)
+                vibrationPattern = null
+                setSound(null, null)
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
                 setShowBadge(true)
                 try {
@@ -280,13 +287,27 @@ object ConnectoNotificationManager {
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PRIVATE
             }
 
+            val vaultPrivateChannel = NotificationChannel(
+                "msg_vault_private",
+                "Private Messages",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Encrypted private message notifications"
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 250)
+                setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION), notifAudioAttributes)
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PRIVATE
+                setShowBadge(true)
+            }
+
             val channelsToRegister = mutableListOf(
                 directMessagesChannel,
                 channelsGroupsChannel,
                 incomingCallsChannel,
                 activeCallServiceChannel,
                 socialChannel,
-                silentMessagesChannel
+                silentMessagesChannel,
+                vaultPrivateChannel
             )
 
             // Register dedicated channels for custom trending notification sounds (Faah, Chin Tapak, etc.)
@@ -315,7 +336,8 @@ object ConnectoNotificationManager {
             }
 
             notificationManager.createNotificationChannels(channelsToRegister)
-            Log.d(TAG, "Notification channels registered successfully (direct messages, channels/groups, calls, active service)")
+            CustomNotificationToneManager.recreateGlobalMessageChannel(context)
+            Log.d(TAG, "Notification channels registered successfully (direct messages, channels/groups, calls, active service, versioned global)")
         }
     }
 
@@ -383,6 +405,15 @@ object ConnectoNotificationManager {
         // 0. Check Foreground Suppression: suppress if app is in foreground and viewing this conversation
         if (isCurrentConversationActive(channelOrDmId, senderUsername)) {
             Log.d(TAG, "Notification suppressed: App is in foreground viewing $channelOrDmId / $senderUsername")
+            // Active Open Chat: suppress system notification banner and play only soft in-app sound/tick if not muted
+            if (!isConversationMuted(context, channelOrDmId, senderUsername)) {
+                try {
+                    val am = context.getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager
+                    if (am?.ringerMode == android.media.AudioManager.RINGER_MODE_NORMAL) {
+                        NotificationSoundManager.playNotificationSound(context)
+                    }
+                } catch (_: Throwable) {}
+            }
             return false
         }
 
@@ -861,15 +892,21 @@ object ConnectoNotificationManager {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
 
-                val selectedSoundId = NotificationPreferences.getSelectedSoundId(context)
-                val targetChannelId = if (isSilent) CHANNEL_SILENT_MESSAGES else getOrCreateMessageChannelForSound(context, selectedSoundId, isDm)
-                val soundUri = if (isSilent) null else (NotificationSoundManager.getSoundUri(context, selectedSoundId)
-                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
-                val vibrationPattern = if (isSilent) null else longArrayOf(0, 250, 200, 250)
+                val routing = CustomNotificationToneManager.resolveRouting(
+                    context = context,
+                    conversationId = conversationId,
+                    senderUsername = cleanSenderKey,
+                    isDm = isDm,
+                    isSilent = isSilent,
+                    isLocked = isLocked
+                )
+                val targetChannelId = routing.channelId
+                val soundUri = routing.soundUri
+                val vibrationPattern = routing.vibrationPattern
                 val priorityLevel = if (isSilent) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_HIGH
 
                 // Biometric Lock Chat Session & Secret Vault Privacy Redaction
-                if (isLocked) {
+                if (isLocked || routing.isVaultPrivate) {
                     val lockedTitle = "Connecto"
                     val lockedBody = "Connecto • New message"
                     val lockedSubText = "🔒 End-to-End Encrypted"
@@ -1066,7 +1103,11 @@ object ConnectoNotificationManager {
                 NotificationManagerCompat.from(context).notify(notifId, notification)
                 Log.d(TAG, "MessagingStyle notification posted for $conversationId (notifId=$notifId, msgs=${threadList.size})")
 
-                NotificationSoundManager.playNotificationSound(context)
+                // On Android 8.0+ (API 26+), the system NotificationChannel natively triggers the audio & vibration.
+                // For pre-Oreo devices, trigger manual audio playback.
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O && !routing.isMutedOrSilent) {
+                    NotificationSoundManager.playNotificationSound(context)
+                }
             } catch (t: Throwable) {
                 Log.e(TAG, "Failed to post message notification: ${t.message}", t)
             }

@@ -5115,9 +5115,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
               let unreadCnt = 0;
 
               try {
-                const lastMsgRow = await env.DB.prepare(
-                  "SELECT content, created_at FROM messages WHERE channel_id IN (?, ?) ORDER BY created_at DESC LIMIT 1"
-                ).bind(cName1, cName2).first();
+                const lastMsgRow = await env.DB.prepare(`
+                  SELECT content, created_at FROM messages 
+                  WHERE channel_id IN (?, ?)
+                    AND id NOT IN (SELECT message_id FROM user_deleted_messages WHERE user_id = ? OR lower(user_id) = ?)
+                    AND id NOT IN (SELECT message_id FROM message_deletions WHERE lower(username) = ?)
+                  ORDER BY created_at DESC LIMIT 1
+                `).bind(cName1, cName2, caller.id || caller.username.toLowerCase(), caller.username.toLowerCase(), caller.username.toLowerCase()).first();
                 if (lastMsgRow) {
                   lastMsgText = lastMsgRow.content || null;
                   lastMsgTime = lastMsgRow.created_at || null;
@@ -5524,9 +5528,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             let lastMsgText = "Direct chat active • Tap to message";
             let lastMsgTime = new Date().toISOString();
             try {
-              const lastMsgRow = await env.DB.prepare(
-                "SELECT content, created_at FROM messages WHERE channel_id IN (?, ?) ORDER BY created_at DESC LIMIT 1"
-              ).bind(cName1, cName2).first();
+              const lastMsgRow = await env.DB.prepare(`
+                SELECT content, created_at FROM messages 
+                WHERE channel_id IN (?, ?)
+                  AND id NOT IN (SELECT message_id FROM user_deleted_messages WHERE user_id = ? OR lower(user_id) = ?)
+                  AND id NOT IN (SELECT message_id FROM message_deletions WHERE lower(username) = ?)
+                ORDER BY created_at DESC LIMIT 1
+              `).bind(cName1, cName2, caller.id || caller.username.toLowerCase(), caller.username.toLowerCase(), caller.username.toLowerCase()).first();
               if (lastMsgRow && lastMsgRow.content) {
                 lastMsgText = lastMsgRow.content;
                 lastMsgTime = lastMsgRow.created_at || lastMsgTime;
@@ -5674,6 +5682,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       let messages = [];
       if (env.DB) {
         try {
+          const callerId = authUser.id || currentUser;
           const res = await env.DB.prepare(`
             SELECT m.id, m.channel_id, m.content, m.attachments, m.created_at,
                    COALESCE(u.username, m.sender_id) as author_name,
@@ -5682,13 +5691,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
                    COALESCE(u.id, m.sender_id) as author_id
             FROM messages m
             LEFT JOIN users u ON m.sender_id = u.id OR lower(m.sender_id) = lower(u.username) OR lower(m.sender_id) = lower('usr_' || u.username)
-            WHERE m.channel_id IN (?, ?, ?, ?)
-               OR m.channel_id IN (SELECT id FROM channels WHERE lower(name) IN (?, ?, ?, ?) OR id IN (?, ?))
+            WHERE (m.channel_id IN (?, ?, ?, ?)
+               OR m.channel_id IN (SELECT id FROM channels WHERE lower(name) IN (?, ?, ?, ?) OR id IN (?, ?)))
+              AND m.id NOT IN (SELECT message_id FROM user_deleted_messages WHERE user_id = ? OR lower(user_id) = ?)
+              AND m.id NOT IN (SELECT message_id FROM message_deletions WHERE lower(username) = ?)
             ORDER BY m.created_at ASC
             LIMIT 100
           `).bind(
             dmChannelId, altChannelId, revChannelId, revAltChannelId,
-            dmChannelId, altChannelId, revChannelId, revAltChannelId, dmChannelId, altChannelId
+            dmChannelId, altChannelId, revChannelId, revAltChannelId, dmChannelId, altChannelId,
+            callerId, currentUser, currentUser
           ).all();
 
           messages = (res.results || []).map(r => {
@@ -6290,6 +6302,49 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse(channels);
   }
 
+  // 14b. Messages Search: GET (/api/messages/search)
+  if (path === "/api/messages/search" && (method === "GET" || method === "HEAD")) {
+    const caller = await resolveUserFromRequest(request, env);
+    if (!caller) return jsonResponse({ error: "Unauthorized" }, 401);
+    const q = (url.searchParams.get("q") || "").trim();
+    const ch = (url.searchParams.get("channel_id") || "").trim();
+    const cUser = caller.username.toLowerCase().replace(/^@/, "");
+    const cId = caller.id || cUser;
+    let results = [];
+    if (env.DB && q) {
+      try {
+        let sql = `
+          SELECT m.id, m.channel_id, m.content, m.created_at,
+                 COALESCE(u.username, m.sender_id) as author_name,
+                 COALESCE(u.display_name, u.username, m.sender_id) as author_display_name,
+                 COALESCE(u.avatar_url, '👾') as author_avatar
+          FROM messages m
+          LEFT JOIN users u ON m.sender_id = u.id OR lower(m.sender_id) = lower(u.username)
+          WHERE m.content LIKE ?
+            AND m.id NOT IN (SELECT message_id FROM user_deleted_messages WHERE user_id = ? OR lower(user_id) = ?)
+            AND m.id NOT IN (SELECT message_id FROM message_deletions WHERE lower(username) = ?)
+        `;
+        const bindings = [`%${q}%`, cId, cUser, cUser];
+        if (ch) {
+          sql += ` AND (m.channel_id = ? OR m.channel_id IN (SELECT id FROM channels WHERE lower(name) = ?)) `;
+          bindings.push(ch, ch.toLowerCase());
+        }
+        sql += ` ORDER BY m.created_at DESC LIMIT 50 `;
+        const rows = await env.DB.prepare(sql).bind(...bindings).all();
+        results = (rows.results || []).map(r => ({
+          id: r.id,
+          channel_id: r.channel_id,
+          content: r.content,
+          created_at: r.created_at,
+          author_name: r.author_name,
+          author_display_name: r.author_display_name,
+          author_avatar: r.author_avatar
+        }));
+      } catch (_) {}
+    }
+    return jsonResponse({ status: "ok", query: q, results });
+  }
+
   // 15. Channel Messages: GET & POST
   const isChannelMsgs = (path.includes("/channels/") || path.includes("/chat/channels/")) && path.endsWith("/messages");
   const isDirectMsgs = path === "/api/messages";
@@ -6393,8 +6448,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         const queryBindings = [...channelCandidates];
 
         if (reqUser) {
+          querySql += ` AND m.id NOT IN (SELECT message_id FROM user_deleted_messages WHERE user_id = ? OR lower(user_id) = ?) `;
           querySql += ` AND m.id NOT IN (SELECT message_id FROM message_deletions WHERE lower(username) = ?) `;
-          queryBindings.push(reqUser);
+          queryBindings.push(caller.id || reqUser, reqUser, reqUser);
         }
 
         querySql += ` ORDER BY m.created_at ASC LIMIT 100 `;
@@ -6780,30 +6836,99 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     });
   }
 
-  // 17a-2. Delete Message for Everyone: DELETE (/api/messages/:id)
-  const delMsgMatch = path.match(/^\/api(?:\/v1)?(?:\/chat)?\/messages\/([a-zA-Z0-9_\-]+)$/);
+  // 17a-2. Delete / Unsend Message Globally: DELETE (/api/messages/:id or /api/messages/:id/unsend)
+  const delMsgMatch = path.match(/^\/api(?:\/v1)?(?:\/chat)?\/messages\/([a-zA-Z0-9_\-]+)(?:\/unsend)?$/);
   if (delMsgMatch && method === "DELETE") {
     const caller = await resolveUserFromRequest(request, env);
     if (!caller) {
-      return jsonResponse({ error: "Unauthorized: Active session required to delete messages." }, 401);
+      return jsonResponse({ error: "Unauthorized: Active session required to unsend messages." }, 401);
     }
     const msgId = delMsgMatch[1];
     if (env.DB) {
       try {
-        const msg = await env.DB.prepare("SELECT sender_id, channel_id FROM messages WHERE id = ? LIMIT 1").bind(msgId).first();
+        const msg = await env.DB.prepare("SELECT * FROM messages WHERE id = ? LIMIT 1").bind(msgId).first();
         if (!msg) {
           return jsonResponse({ error: "Message not found" }, 404);
         }
         const isSender = (msg.sender_id === caller.id || (msg.sender_id && msg.sender_id.toLowerCase() === caller.username.toLowerCase()));
         if (!isSender && !caller.is_admin) {
-          return jsonResponse({ error: "Forbidden: You can only delete your own messages." }, 403);
+          return jsonResponse({ error: "Forbidden: You can only unsend your own messages." }, 403);
         }
+
+        // Strict Server-Side Verification: Read-State Gate
+        let isSeen = Boolean(msg.read_at);
+        if (!isSeen) {
+          const receipt = await env.DB.prepare(
+            "SELECT 1 FROM message_read_receipts WHERE message_id = ? AND user_id != ? AND lower(user_id) != ? LIMIT 1"
+          ).bind(msgId, caller.id, caller.username.toLowerCase()).first().catch(() => null);
+          if (receipt) isSeen = true;
+
+          if (!isSeen && msg.channel_id && (msg.channel_id.startsWith("dm-") || msg.channel_id.startsWith("dm_"))) {
+            const dmRead = await env.DB.prepare(
+              "SELECT 1 FROM dm_read_states WHERE (channel_id = ? OR channel_id = ?) AND (user_id != ? AND lower(user_id) != ?) AND last_read_at >= ? LIMIT 1"
+            ).bind(msg.channel_id, msg.channel_id.replace(/^dm-/, "dm_"), caller.id, caller.username.toLowerCase(), msg.created_at).first().catch(() => null);
+            if (dmRead) isSeen = true;
+          }
+        }
+
+        // If message has already been seen, reject with HTTP 409 Conflict
+        if (isSeen) {
+          return jsonResponse({
+            error: "ALREADY_SEEN",
+            message: "Already seen — you can only delete it for yourself"
+          }, 409);
+        }
+
+        // Global permanent deletion
         await env.DB.prepare("DELETE FROM messages WHERE id = ?").bind(msgId).run();
+        await env.DB.prepare("DELETE FROM message_read_receipts WHERE message_id = ?").bind(msgId).run().catch(() => {});
+        await env.DB.prepare("DELETE FROM pinned_messages WHERE message_id = ?").bind(msgId).run().catch(() => {});
+
+        // Clean R2 media if any
+        try {
+          if (msg.attachments && (env.BUCKET || env.R2)) {
+            const atts = JSON.parse(msg.attachments);
+            const mediaList = Array.isArray(atts) ? atts : (atts.files || [atts]);
+            for (const item of mediaList) {
+              const key = item.key || item.path || (item.url ? item.url.split("/").pop() : null);
+              if (key) {
+                const r2 = env.BUCKET || env.R2;
+                await r2.delete(key).catch(() => {});
+              }
+            }
+          }
+        } catch (_) {}
+
+        // Global Unsend Broadcast
+        const unsendPayload = {
+          type: "MESSAGE_UNSENT",
+          action: "MESSAGE_UNSENT",
+          message_id: msgId,
+          id: msgId,
+          channel_id: msg.channel_id,
+          channel: msg.channel_id,
+          sender: caller.username,
+          sender_id: caller.id,
+          timestamp: new Date().toISOString()
+        };
+
+        if (env.CHAT_ROOM) {
+          try {
+            const doId = env.CHAT_ROOM.idFromName("global");
+            const doStub = env.CHAT_ROOM.get(doId);
+            await doStub.fetch("https://connecto.internal/broadcast", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(unsendPayload)
+            }).catch(() => {});
+          } catch (_) {}
+        }
       } catch (err) {
         console.warn("[EDGE_DELETE_MSG]", err.message);
+        return jsonResponse({ error: err.message }, 500);
       }
     }
-    return jsonResponse({ status: "ok", message_id: msgId });
+    return jsonResponse({ status: "ok", message_id: msgId, unsent: true });
   }
 
   // 17b. Message Threads: GET & POST (/api/messages/:id/thread)
@@ -6926,29 +7051,49 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     });
   }
 
-  // 17d. Delete Message For Me: POST (/api/messages/delete-for-me)
-  if ((path === "/api/messages/delete-for-me" || path === "/api/v1/chat/messages/delete-for-me") && method === "POST") {
-    // SEC-W09 FIX: Authenticate caller strictly; user cannot delete messages for another user
+  // 17d. Delete Message For Me: POST (/api/messages/:id/delete-for-me or /api/messages/delete-for-me)
+  const delForMeMatch = path.match(/^\/api(?:\/v1)?(?:\/chat)?\/messages\/([a-zA-Z0-9_\-]+)\/delete-for-me$/);
+  if ((delForMeMatch && method === "POST") || ((path === "/api/messages/delete-for-me" || path === "/api/v1/chat/messages/delete-for-me") && method === "POST")) {
     const u = await resolveUserFromRequest(request, env);
     if (!u || !u.username) {
       return jsonResponse({ error: "Unauthorized: Active session required." }, 401);
     }
     const uname = (u.username || "").toLowerCase().trim().replace(/^@/, "");
-    const body = await request.json().catch(() => ({}));
-    const messageId = (body.message_id || body.messageId || "").trim();
+    const uid = u.id || uname;
+    let messageId = delForMeMatch ? delForMeMatch[1] : "";
+    if (!messageId) {
+      const body = await request.json().catch(() => ({}));
+      messageId = (body.message_id || body.messageId || "").trim();
+    }
     if (!messageId) {
       return jsonResponse({ error: "message_id required" }, 400);
     }
     if (env.DB) {
       try {
+        const msg = await env.DB.prepare("SELECT channel_id FROM messages WHERE id = ? LIMIT 1").bind(messageId).first().catch(() => null);
+        const convId = msg ? msg.channel_id : null;
+
+        // Persist to user_deleted_messages in Cloudflare D1
+        await env.DB.prepare(
+          "INSERT OR REPLACE INTO user_deleted_messages (user_id, message_id, conversation_id, deleted_at) VALUES (?, ?, ?, datetime('now'))"
+        ).bind(uid, messageId, convId).run().catch(() => {});
+
+        if (uname !== uid) {
+          await env.DB.prepare(
+            "INSERT OR REPLACE INTO user_deleted_messages (user_id, message_id, conversation_id, deleted_at) VALUES (?, ?, ?, datetime('now'))"
+          ).bind(uname, messageId, convId).run().catch(() => {});
+        }
+
+        // Also update legacy message_deletions
         await env.DB.prepare(
           "INSERT OR IGNORE INTO message_deletions (message_id, username) VALUES (?, ?)"
-        ).bind(messageId, uname).run();
+        ).bind(messageId, uname).run().catch(() => {});
       } catch (err) {
         return jsonResponse({ error: err.message }, 500);
       }
     }
-    return jsonResponse({ status: "ok", message_id: messageId, username: uname });
+    // Zero broadcast to recipient: returns confirmation to caller only
+    return jsonResponse({ status: "ok", message_id: messageId, username: uname, delete_for_me: true });
   }
 
   // 17e. Channel Pins: GET, POST, DELETE (/api/channels/:id/pin, /api/channels/:id/unpin)
@@ -7432,13 +7577,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       generatedTurnServers = [
         {
           urls: [
-            "turn:openrelay.metered.ca:80",
-            "turn:openrelay.metered.ca:443",
-            "turn:openrelay.metered.ca:443?transport=tcp",
-            "turns:openrelay.metered.ca:443?transport=tcp"
+            "turn:turn.cloudflare.com:3478?transport=udp",
+            "turn:turn.cloudflare.com:443?transport=tcp",
+            "turns:turn.cloudflare.com:443?transport=tcp"
           ],
-          username: "openrelay",
-          credential: "openrelay"
+          username: "cloudflare",
+          credential: "cloudflare"
         }
       ];
     }
@@ -12265,6 +12409,72 @@ export class ConnectoRealtimeRoom {
             });
           }
         }
+
+        // 7. UNSEND_MESSAGE via WebSocket with Strict Read-State Gate
+        if (data.type === "UNSEND_MESSAGE" || data.type === "unsend_message" || data.action === "UNSEND_MESSAGE" || data.action === "unsend_message") {
+          const msgId = data.message_id || data.id;
+          if (msgId && this.env && this.env.DB) {
+            try {
+              const msg = await this.env.DB.prepare("SELECT * FROM messages WHERE id = ? LIMIT 1").bind(msgId).first();
+              if (!msg) {
+                server.send(JSON.stringify({ type: "error", error: "Message not found", message_id: msgId }));
+                return;
+              }
+              const isSender = (msg.sender_id === meta.userId || (msg.sender_id && msg.sender_id.toLowerCase() === meta.username.toLowerCase()));
+              if (!isSender && !meta.isAdmin) {
+                server.send(JSON.stringify({ type: "error", error: "Forbidden: You can only unsend your own messages.", message_id: msgId }));
+                return;
+              }
+
+              let isSeen = Boolean(msg.read_at);
+              if (!isSeen) {
+                const receipt = await this.env.DB.prepare(
+                  "SELECT 1 FROM message_read_receipts WHERE message_id = ? AND user_id != ? AND lower(user_id) != ? LIMIT 1"
+                ).bind(msgId, meta.userId || meta.username, meta.username.toLowerCase()).first().catch(() => null);
+                if (receipt) isSeen = true;
+
+                if (!isSeen && msg.channel_id && (msg.channel_id.startsWith("dm-") || msg.channel_id.startsWith("dm_"))) {
+                  const dmRead = await this.env.DB.prepare(
+                    "SELECT 1 FROM dm_read_states WHERE (channel_id = ? OR channel_id = ?) AND (user_id != ? AND lower(user_id) != ?) AND last_read_at >= ? LIMIT 1"
+                  ).bind(msg.channel_id, msg.channel_id.replace(/^dm-/, "dm_"), meta.userId || meta.username, meta.username.toLowerCase(), msg.created_at).first().catch(() => null);
+                  if (dmRead) isSeen = true;
+                }
+              }
+
+              if (isSeen) {
+                server.send(JSON.stringify({
+                  type: "error",
+                  error: "ALREADY_SEEN",
+                  message_id: msgId,
+                  message: "Already seen — you can only delete it for yourself"
+                }));
+                return;
+              }
+
+              await this.env.DB.prepare("DELETE FROM messages WHERE id = ?").bind(msgId).run();
+              await this.env.DB.prepare("DELETE FROM message_read_receipts WHERE message_id = ?").bind(msgId).run().catch(() => {});
+              await this.env.DB.prepare("DELETE FROM pinned_messages WHERE message_id = ?").bind(msgId).run().catch(() => {});
+
+              const unsendPayload = {
+                type: "MESSAGE_UNSENT",
+                action: "MESSAGE_UNSENT",
+                message_id: msgId,
+                id: msgId,
+                channel_id: msg.channel_id,
+                channel: msg.channel_id,
+                sender: meta.username,
+                timestamp: new Date().toISOString()
+              };
+              if (msg.channel_id) {
+                this.broadcastToChannel(msg.channel_id, unsendPayload);
+              }
+              this.broadcastToAll(unsendPayload);
+            } catch (err) {
+              console.error("[WS_UNSEND_ERROR]", err);
+            }
+          }
+          return;
+        }
       } catch (err) {
         console.error("[WS_MSG_ERROR]", err);
       }
@@ -12378,6 +12588,23 @@ export class ConnectoRealtimeRoom {
         channel_name: payload.channel,
         message: payload.message
       });
+    } else if (payload.type === "MESSAGE_UNSENT" || payload.type === "message_unsent") {
+      const msgId = payload.message_id || payload.id;
+      const targetChan = payload.channel_id || payload.channel;
+      const unsendEvt = {
+        type: "MESSAGE_UNSENT",
+        action: "MESSAGE_UNSENT",
+        message_id: msgId,
+        id: msgId,
+        channel_id: targetChan,
+        channel: targetChan,
+        sender_id: payload.sender_id,
+        timestamp: payload.timestamp || new Date().toISOString()
+      };
+      if (targetChan) {
+        this.broadcastToChannel(targetChan, unsendEvt);
+      }
+      this.broadcastToAll(unsendEvt);
     } else if (payload.type === "dm_message") {
       this.sendToUser(payload.target, {
         type: "new_message",

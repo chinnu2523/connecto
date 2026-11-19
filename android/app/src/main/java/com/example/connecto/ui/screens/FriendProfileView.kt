@@ -45,12 +45,16 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Wallpaper
+import com.example.connecto.voice.CallRingtoneManager
+import com.example.connecto.notifications.CustomNotificationToneManager
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.Tune
@@ -957,6 +961,24 @@ fun FriendProfileScreen(
                 }
             }
 
+            "call_ringtone" -> {
+                CallRingtonePickerScreen(
+                    targetContactId = friend.id.ifBlank { friend.handle },
+                    targetContactName = effectiveName,
+                    targetContactAvatar = friend.avatarUrl ?: profData?.avatarUrl,
+                    onBack = { onNavigateSubPage(null) }
+                )
+            }
+
+            "notif_tone_vibration" -> {
+                MessageNotificationSettingsScreen(
+                    targetContactId = friend.id.ifBlank { friend.handle },
+                    targetContactName = effectiveName,
+                    targetContactAvatar = friend.avatarUrl ?: profData?.avatarUrl,
+                    onBack = { onNavigateSubPage(null) }
+                )
+            }
+
             else -> {
                 // ================= MAIN FRIEND PROFILE OVERVIEW TAB =================
                 Column(
@@ -1343,6 +1365,55 @@ fun FriendProfileScreen(
                                     }
                                 }
                             )
+                        }
+
+                        // 6b. BUTTON 3: CUSTOM RINGTONE (For direct 1:1 chats)
+                        if (!friend.isGroup) {
+                            item(key = "nav_call_ringtone") {
+                                val contactId = friend.id.ifBlank { friend.handle }
+                                val ringtoneSetting = remember(contactId, subPage) {
+                                    CallRingtoneManager.getContactRingtoneSetting(context, contactId)
+                                }
+                                val badgeText = ringtoneSetting?.displayName?.uppercase() ?: "DEFAULT (GLOBAL)"
+                                val badgeColor = if (ringtoneSetting != null) Color(0xFF6366F1) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+
+                                FriendProfileNavButton(
+                                    title = "Custom Ringtone",
+                                    subtitle = if (ringtoneSetting != null) "Assigned: ${ringtoneSetting.displayName}" else "Personalized incoming call audio for this contact",
+                                    icon = Icons.Default.MusicNote,
+                                    badgeText = badgeText,
+                                    badgeColor = badgeColor,
+                                    onClick = { onNavigateSubPage("call_ringtone") }
+                                )
+                            }
+
+                            // 6c. BUTTON 4: NOTIFICATION TONE & VIBRATION (For direct 1:1 chats)
+                            item(key = "nav_notif_tone_vibration") {
+                                val contactId = friend.id.ifBlank { friend.handle }
+                                val notifOverride = remember(contactId, subPage) {
+                                    CustomNotificationToneManager.getContactOverride(context, contactId)
+                                }
+                                val vibTitle = CustomNotificationToneManager.VIBRATION_PRESETS.find { it.id == notifOverride?.vibrationPresetId }?.title ?: "Custom"
+                                val badgeText = if (notifOverride != null) {
+                                    "${notifOverride.toneName.uppercase()} · ${vibTitle.uppercase()}"
+                                } else {
+                                    "DEFAULT (GLOBAL)"
+                                }
+                                val badgeColor = if (notifOverride != null) Color(0xFF6366F1) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+
+                                FriendProfileNavButton(
+                                    title = "Notification Tone & Vibration",
+                                    subtitle = if (notifOverride != null) {
+                                        "Assigned: ${notifOverride.toneName} · $vibTitle"
+                                    } else {
+                                        "Default (Global) alert sound & haptics"
+                                    },
+                                    icon = Icons.Default.Vibration,
+                                    badgeText = badgeText,
+                                    badgeColor = badgeColor,
+                                    onClick = { onNavigateSubPage("notif_tone_vibration") }
+                                )
+                            }
                         }
 
                         // 7. DANGER ZONE: UNFRIEND
