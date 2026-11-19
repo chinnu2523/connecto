@@ -4,6 +4,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -314,6 +316,21 @@ object ConnectoApiClient {
     fun getSessionPrefs(ctx: android.content.Context): android.content.SharedPreferences {
         return com.example.connecto.security.SecureStorageManager.getEncryptedPrefs(ctx)
     }
+
+    fun getPersistentDeviceId(context: android.content.Context? = null): String {
+        val ctx = context ?: applicationContext
+        return if (ctx != null) {
+            com.example.connecto.security.SecureStorageManager.getOrCreateDeviceId(ctx)
+        } else {
+            "dev_android_unknown"
+        }
+    }
+
+    private val sessionFetchMutex = Mutex()
+    @Volatile
+    private var lastSessionFetchTime = 0L
+    @Volatile
+    private var cachedSessions: List<UserSessionDto> = emptyList()
 
 
     @Volatile
@@ -1017,6 +1034,10 @@ object ConnectoApiClient {
                 if (age != null) put("age", age)
                 put("agreed_to_terms", agreedToTerms)
                 if (!otpCode.isNullOrEmpty()) put("otp_code", otpCode)
+                put("device_id", getPersistentDeviceId())
+                put("device_model", getPhoneModel())
+                put("os_version", getPhoneVersion())
+                put("app_type", "android")
             }
 
             var response = executeRequest(
@@ -1142,6 +1163,10 @@ object ConnectoApiClient {
                 put("username", cleanIdentifier)
                 put("login", cleanIdentifier)
                 put("password", cleanPassword)
+                put("device_id", getPersistentDeviceId())
+                put("device_model", getPhoneModel())
+                put("os_version", getPhoneVersion())
+                put("app_type", "android")
             }
 
             suspend fun attemptLogin(): Result<String> {
@@ -1296,6 +1321,10 @@ object ConnectoApiClient {
                 put("username", loginIdentifier.trim())
                 put("otp_code", otpCode.trim())
                 put("otp", otpCode.trim())
+                put("device_id", getPersistentDeviceId())
+                put("device_model", getPhoneModel())
+                put("os_version", getPhoneVersion())
+                put("app_type", "android")
             }
             val response = executeRequest(
                 endpoint = "/api/v1/auth/login/2fa-verify",
@@ -1560,59 +1589,67 @@ object ConnectoApiClient {
         }
     }
 
-    suspend fun getUserSessions(): Result<List<UserSessionDto>> = withContext(Dispatchers.IO) {
-        try {
-            val tokenToUse = sessionToken ?: getPersistedToken()
-            val response = executeRequest(
-                endpoint = "/api/auth/sessions",
-                method = "GET",
-                body = null,
-                token = tokenToUse
-            )
-            if (response.isSuccess) {
-                val json = JSONObject(response.getOrThrow())
-                val sessionsArray = json.optJSONArray("sessions") ?: JSONArray()
-                val list = mutableListOf<UserSessionDto>()
-                for (i in 0 until sessionsArray.length()) {
-                    val item = sessionsArray.getJSONObject(i)
-                    val isCurr = item.optBoolean("is_current", false)
-                    val sId = item.optString("id", "")
-                    if (isCurr && sId.isNotBlank()) {
-                        currentSessionId = sId
-                        try {
-                            applicationContext?.let { getSessionPrefs(it) }
-                                ?.edit()?.putString("current_session_id", sId)?.apply()
-                        } catch (_: Exception) {}
-                    }
-                    list.add(
-                        UserSessionDto(
-                            id = sId,
-                            deviceName = item.optString("device_name", "Connected Device"),
-                            location = item.optString("location", "Unknown Location"),
-                            ipAddress = item.optString("ip_address", "Unknown IP"),
-                            createdAt = item.optString("created_at", ""),
-                            lastActiveAt = item.optString("last_active_at", ""),
-                            isCurrent = item.optBoolean("is_current", false),
-                            phoneType = item.optString("phone_type").takeIf { it.isNotBlank() },
-                            phoneVersion = item.optString("phone_version").takeIf { it.isNotBlank() },
-                            osVersion = item.optString("os_version").takeIf { it.isNotBlank() },
-                            deviceType = item.optString("device_type").takeIf { it.isNotBlank() }
-                        )
-                    )
-                }
-                Result.success(list)
-            } else {
-                val rawMsg = response.exceptionOrNull()?.message ?: "Failed to fetch active sessions"
-                val cleanMsg = try {
-                    if (rawMsg.contains("{")) {
-                        val parsed = JSONObject(rawMsg.substring(rawMsg.indexOf("{")))
-                        parsed.optString("detail", parsed.optString("error", rawMsg))
-                    } else rawMsg
-                } catch (_: Exception) { rawMsg }
-                Result.failure(Exception(cleanMsg))
+    suspend fun getUserSessions(forceRefresh: Boolean = false): Result<List<UserSessionDto>> = withContext(Dispatchers.IO) {
+        sessionFetchMutex.withLock {
+            val now = System.currentTimeMillis()
+            if (!forceRefresh && cachedSessions.isNotEmpty() && (now - lastSessionFetchTime) < 3000L) {
+                return@withContext Result.success(cachedSessions)
             }
-        } catch (e: Exception) {
-            Result.failure(e)
+            try {
+                val tokenToUse = sessionToken ?: getPersistedToken()
+                val response = executeRequest(
+                    endpoint = "/api/auth/sessions",
+                    method = "GET",
+                    body = null,
+                    token = tokenToUse
+                )
+                if (response.isSuccess) {
+                    val json = JSONObject(response.getOrThrow())
+                    val sessionsArray = json.optJSONArray("sessions") ?: JSONArray()
+                    val list = mutableListOf<UserSessionDto>()
+                    for (i in 0 until sessionsArray.length()) {
+                        val item = sessionsArray.getJSONObject(i)
+                        val isCurr = item.optBoolean("is_current", false)
+                        val sId = item.optString("id", "")
+                        if (isCurr && sId.isNotBlank()) {
+                            currentSessionId = sId
+                            try {
+                                applicationContext?.let { getSessionPrefs(it) }
+                                    ?.edit()?.putString("current_session_id", sId)?.apply()
+                            } catch (_: Exception) {}
+                        }
+                        list.add(
+                            UserSessionDto(
+                                id = sId,
+                                deviceName = item.optString("device_name", "Connected Device"),
+                                location = item.optString("location", "Unknown Location"),
+                                ipAddress = item.optString("ip_address", "Unknown IP"),
+                                createdAt = item.optString("created_at", ""),
+                                lastActiveAt = item.optString("last_active_at", ""),
+                                isCurrent = item.optBoolean("is_current", false),
+                                phoneType = item.optString("phone_type").takeIf { it.isNotBlank() },
+                                phoneVersion = item.optString("phone_version").takeIf { it.isNotBlank() },
+                                osVersion = item.optString("os_version").takeIf { it.isNotBlank() },
+                                deviceType = item.optString("device_type").takeIf { it.isNotBlank() }
+                            )
+                        )
+                    }
+                    cachedSessions = list
+                    lastSessionFetchTime = System.currentTimeMillis()
+                    Result.success(list)
+                } else {
+                    val rawMsg = response.exceptionOrNull()?.message ?: "Failed to fetch active sessions"
+                    val cleanMsg = try {
+                        if (rawMsg.contains("{")) {
+                            val parsed = JSONObject(rawMsg.substring(rawMsg.indexOf("{")))
+                            parsed.optString("detail", parsed.optString("error", rawMsg))
+                        } else rawMsg
+                    } catch (_: Exception) { rawMsg }
+                    Result.failure(Exception(cleanMsg))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
     }
 
@@ -1628,6 +1665,8 @@ object ConnectoApiClient {
                 token = sessionToken
             )
             if (response.isSuccess) {
+                cachedSessions = emptyList()
+                lastSessionFetchTime = 0L
                 Result.success(true)
             } else {
                 val rawMsg = response.exceptionOrNull()?.message ?: "Failed to terminate session"
@@ -1653,6 +1692,8 @@ object ConnectoApiClient {
                 token = sessionToken
             )
             if (response.isSuccess) {
+                cachedSessions = emptyList()
+                lastSessionFetchTime = 0L
                 val json = JSONObject(response.getOrThrow())
                 val count = json.optInt("count", 0)
                 Result.success(count)
@@ -4760,6 +4801,7 @@ object ConnectoApiClient {
                     val devName = getPhoneModel()
                     val devVersion = getPhoneVersion()
                     val devType = getDeviceType()
+                    val devId = getPersistentDeviceId()
                     setRequestProperty("X-Phone-Type", devName)
                     setRequestProperty("X-Phone-Version", devVersion)
                     setRequestProperty("X-Device-Model", devName)
@@ -4767,6 +4809,8 @@ object ConnectoApiClient {
                     setRequestProperty("X-Device-Type", devType)
                     setRequestProperty("X-Device-Name", devName)
                     setRequestProperty("X-Device-OS", "Android ${android.os.Build.VERSION.RELEASE}")
+                    setRequestProperty("X-Device-Id", devId)
+                    setRequestProperty("X-App-Type", "android")
                 }
 
                 if (body != null && (method == "POST" || method == "PUT" || method == "PATCH")) {

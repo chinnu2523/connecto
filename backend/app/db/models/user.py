@@ -48,9 +48,13 @@ class UserSession(Base):
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    device_id = Column(String(128), nullable=True, index=True)
     session_token_hash = Column(String(255), unique=True, nullable=False, index=True)
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(String(512), nullable=True)
+    device_name = Column(String(100), nullable=True)
+    location = Column(String(100), nullable=True)
+    last_active_at = Column(DateTime(timezone=True), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
 

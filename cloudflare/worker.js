@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.7.4",
-        version_name: "v5.7.4",
-        version_code: 181,
-        build: 181,
-        sha256: "1a23cb6c6e4d06210df1b53a95c947cf3ba3c3d8ddb1ce25f5cd0ef146ea05c6",
+        version: "5.7.5",
+        version_name: "v5.7.5",
+        version_code: 182,
+        build: 182,
+        sha256: "052941c1f1d3d833b3a6fb18a24bd2f5fbe365541010a4364d6d8d6e56870a9c",
         filename: "connecto-fun.apk",
-        size_bytes: 38134072,
+        size_bytes: 38134079,
         size_display: "36.4 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -218,6 +218,7 @@ Sitemap: https://connecto.fun/sitemap.xml
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Hardware-Backed Persistent Device ID, Backend Session Upsert & Clean UI Deduplication (v5.7.5): Resolved critical session duplication bug where logging in on the same physical phone (e.g., Vivo V2307) created multiple active sessions (4 ACTIVE) on app restarts, token refreshes, or mobile IP changes. Implemented persistent client deviceId combining KeyStore-backed SecureStorageManager and Android ID that stays identical across reboots and network switches. Added device_id column and index on user_sessions in Cloudflare D1. Backend recordUserSession performs an UPSERT on (userId, deviceId) to update IP, location, and timestamps in place instead of creating duplicate records, and automatically prunes stale duplicate records. Added idempotency debounce/mutex on client session fetching to eliminate double-writes on app mount. Polished Session Management UI in ProfileScreen by removing double-nested bordered card wrappers, grouping device metadata into a unified subtitle (Android 15 • Smartphone), and masking long IPv6 addresses.",
           "Mathematical Layout, Swipe-to-Delete zIndex, Concentric Radii & Spring Physics (v5.7.4): Implemented strict mathematical layout and spring physics across DMs, Wallpaper customizer, Friend Profile, and Chat & Lock. Fixed swipe-to-delete bleed-through bug with zIndex(0f) compact red delete zone (#DC2626, 88px) and zIndex(1f) solid opaque #0A0B0E foreground clipping cleanly. Trash icon scales from 0.6 to 1.0 with spring bounce. Restored real decrypted lastMessage subtitles, 12px presence dots with 2px cutout border, 56px high-contrast FAB (#4F46E5), concentric wallpaper cards (R_outer = R_inner + Padding), sliding background pills on segmented controls, and soft sunken encryption card.",
           "Post-Login Crash Prevention & Defensive Startup Initialization (v5.7.3): Completely eliminated app force-closes on login. Deferred WebRTC PeerConnectionFactory initialization and audio hardware configuration (AudioRecord/AudioTrack/AudioManager mode changes) until an actual voice call begins, preventing security exceptions on Android 12+/14+ prior to permission grant. Replaced all unsafe non-null assertions (!!) across MainActivity, CustomizedChatScreen, ChannelsWorkspaceScreen, and ProfileScreen with safe let-blocks and fallbacks. Added null-safe default fallbacks for all message and user fields (reactions, seenBy, readAt, replyToMessageId, lastSeen) to safely deserialize older backend database records. Wrapped Foreground Service starts in RECORD_AUDIO checks with defensive try/catches. Dispatched presence updates safely to Dispatchers.Main and protected SQLite column reading against null data.",
           "Carrier-Grade Phone Notification System (v5.7.2): Implemented carrier-grade Android notification architecture across DMs, Channels, and Incoming/Ongoing Calls. Registered 4 distinct Android Notification Channels on app init (connecto_direct_messages, connecto_channels_groups, connecto_incoming_calls with CATEGORY_CALL and DND bypass, and connecto_active_call_service). Upgraded messages to rich NotificationCompat.MessagingStyle with Person.Builder() async circular avatars and thread grouping by conversationId (last 5 messages per stack). Added direct notification shade inline reply (RemoteInput key_text_reply) and 1-tap Mark as Read background action. Strict foreground suppression suppresses notifications when viewing the active chat. Integrated Chat & Lock biometric privacy redaction (VISIBILITY_PRIVATE, '🔒 Locked chat • New encrypted message', disabled inline reply) and mute checks. Real-time tray sync deletes unsent/revoked messages and edits unread messages in place. Incoming calls feature NotificationCompat.CallStyle with FullScreenIntent directly over lock screen, and ongoing calls run foreground CallStyle with chronometer and notification shade Mute/Unmute action.",
@@ -605,18 +606,18 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.4/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.3/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.5/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.4/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.4-b181-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.5-b182-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.7.4");
-          res.headers.set("X-Connecto-Build", "181");
+          res.headers.set("X-Connecto-Version", "v5.7.5");
+          res.headers.set("X-Connecto-Build", "182");
           return res;
         }
 
@@ -652,8 +653,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.7.4");
-              downloadHeaders.set("X-Connecto-Build", "181");
+              downloadHeaders.set("X-Connecto-Version", "v5.7.5");
+              downloadHeaders.set("X-Connecto-Build", "182");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1612,13 +1613,16 @@ function parseSessionDeviceDetails(ua = "", headers = null) {
 
 function extractDeviceInfo(request, body = {}) {
   const ua = request.headers.get("user-agent") || "";
+  const headerDeviceId = (request.headers.get("x-device-id") || "").trim();
   const headerDevice = (request.headers.get("x-phone-type") || request.headers.get("x-device-model") || request.headers.get("x-device-name") || "").trim();
   const headerOS = (request.headers.get("x-phone-version") || request.headers.get("x-device-version") || request.headers.get("x-device-os") || "").trim();
   const headerType = (request.headers.get("x-device-type") || "").trim();
+  const bodyDeviceId = (body && body.device_id ? String(body.device_id) : "").trim();
   const bodyDevice = (body && (body.phone_type || body.device_model || body.device_name) || "").trim();
   const bodyVersion = (body && (body.phone_version || body.device_version || body.os_version) || "").trim();
   const bodyType = (body && body.device_type || "").trim();
 
+  const deviceId = headerDeviceId || bodyDeviceId || null;
   const parsed = parseSessionDeviceDetails(ua, request.headers);
   const deviceName = headerDevice || bodyDevice || parsed.device_name;
   const phoneType = headerDevice || bodyDevice || parsed.phone_type;
@@ -1653,39 +1657,92 @@ function extractDeviceInfo(request, body = {}) {
     location = "Local Network";
   }
 
-  return { deviceName, phoneType, phoneVersion, deviceType, location, ip, userAgent: enrichedUa };
+  return { deviceId, deviceName, phoneType, phoneVersion, deviceType, location, ip, userAgent: enrichedUa };
 }
 
 async function recordUserSession(userId, token, request, body = {}, env) {
   if (!env || !env.DB || !userId || !token) return;
   try {
-    const { deviceName, phoneType, location, ip, userAgent } = extractDeviceInfo(request, body);
+    const { deviceId, deviceName, phoneType, location, ip, userAgent } = extractDeviceInfo(request, body);
     const hashHex = await sha256Hex(token);
     const sessionId = "sess_" + crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 30 * 86400 * 1000).toISOString();
     const nowIso = new Date().toISOString();
+    const finalDeviceName = (phoneType || deviceName || "Unknown Device").substring(0, 100);
 
-    await env.DB.prepare(
-      `INSERT INTO user_sessions (id, user_id, session_token_hash, ip_address, user_agent, device_name, location, expires_at, created_at, last_active_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(session_token_hash) DO UPDATE SET
-         last_active_at = excluded.last_active_at,
-         ip_address = excluded.ip_address,
-         user_agent = excluded.user_agent,
-         location = excluded.location,
-         device_name = excluded.device_name`
-    ).bind(
-      sessionId,
-      userId,
-      hashHex,
-      ip,
-      userAgent.substring(0, 500),
-      (phoneType || deviceName).substring(0, 100),
-      location.substring(0, 100),
-      expiresAt,
-      nowIso,
-      nowIso
-    ).run();
+    // Look for existing active session for this user + deviceId, or user + finalDeviceName
+    let existingSession = null;
+    if (deviceId) {
+      existingSession = await env.DB.prepare(
+        "SELECT id FROM user_sessions WHERE user_id = ? AND device_id = ? ORDER BY last_active_at DESC LIMIT 1"
+      ).bind(userId, deviceId).first();
+    }
+    if (!existingSession && finalDeviceName && finalDeviceName !== "Unknown Device") {
+      existingSession = await env.DB.prepare(
+        "SELECT id FROM user_sessions WHERE user_id = ? AND device_name = ? ORDER BY last_active_at DESC LIMIT 1"
+      ).bind(userId, finalDeviceName).first();
+    }
+
+    if (existingSession && existingSession.id) {
+      // Upsert: update existing session row in place
+      await env.DB.prepare(
+        `UPDATE user_sessions
+         SET session_token_hash = ?,
+             device_id = COALESCE(?, device_id),
+             ip_address = ?,
+             user_agent = ?,
+             device_name = ?,
+             location = ?,
+             last_active_at = ?,
+             expires_at = ?
+         WHERE id = ?`
+      ).bind(
+        hashHex,
+        deviceId,
+        ip,
+        userAgent.substring(0, 500),
+        finalDeviceName,
+        location.substring(0, 100),
+        nowIso,
+        expiresAt,
+        existingSession.id
+      ).run();
+
+      // Prune any duplicate stale rows for this user + device
+      if (deviceId) {
+        await env.DB.prepare(
+          "DELETE FROM user_sessions WHERE user_id = ? AND device_id = ? AND id != ?"
+        ).bind(userId, deviceId, existingSession.id).run().catch(() => {});
+      } else if (finalDeviceName) {
+        await env.DB.prepare(
+          "DELETE FROM user_sessions WHERE user_id = ? AND device_name = ? AND id != ?"
+        ).bind(userId, finalDeviceName, existingSession.id).run().catch(() => {});
+      }
+    } else {
+      await env.DB.prepare(
+        `INSERT INTO user_sessions (id, user_id, device_id, session_token_hash, ip_address, user_agent, device_name, location, expires_at, created_at, last_active_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(session_token_hash) DO UPDATE SET
+           device_id = COALESCE(excluded.device_id, user_sessions.device_id),
+           last_active_at = excluded.last_active_at,
+           ip_address = excluded.ip_address,
+           user_agent = excluded.user_agent,
+           location = excluded.location,
+           device_name = excluded.device_name`
+      ).bind(
+        sessionId,
+        userId,
+        deviceId,
+        hashHex,
+        ip,
+        userAgent.substring(0, 500),
+        finalDeviceName,
+        location.substring(0, 100),
+        expiresAt,
+        nowIso,
+        nowIso
+      ).run();
+    }
   } catch (err) {
     console.warn("[recordUserSession] Failed to record session:", err.message);
   }
@@ -2041,14 +2098,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.7.4",
-        version_code: 181,
-        size_bytes: 38134072,
+        version_name: "5.7.5",
+        version_code: 182,
+        size_bytes: 38134079,
         size_formatted: "36.4 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Hardware-Backed Persistent Device ID, Backend Session Upsert & Clean UI Deduplication (v5.7.5): Resolved critical session duplication bug where logging in on the same physical phone (e.g., Vivo V2307) created multiple active sessions (4 ACTIVE) on app restarts, token refreshes, or mobile IP changes. Implemented persistent client deviceId combining KeyStore-backed SecureStorageManager and Android ID that stays identical across reboots and network switches. Added device_id column and index on user_sessions in Cloudflare D1. Backend recordUserSession performs an UPSERT on (userId, deviceId) to update IP, location, and timestamps in place instead of creating duplicate records, and automatically prunes stale duplicate records. Added idempotency debounce/mutex on client session fetching to eliminate double-writes on app mount. Polished Session Management UI in ProfileScreen by removing double-nested bordered card wrappers, grouping device metadata into a unified subtitle (Android 15 • Smartphone), and masking long IPv6 addresses.",
           "Mathematical Layout, Swipe-to-Delete zIndex, Concentric Radii & Spring Physics (v5.7.4): Implemented strict mathematical layout and spring physics across DMs, Wallpaper customizer, Friend Profile, and Chat & Lock. Fixed swipe-to-delete bleed-through bug with zIndex(0f) compact red delete zone (#DC2626, 88px) and zIndex(1f) solid opaque #0A0B0E foreground clipping cleanly. Trash icon scales from 0.6 to 1.0 with spring bounce. Restored real decrypted lastMessage subtitles, 12px presence dots with 2px cutout border, 56px high-contrast FAB (#4F46E5), concentric wallpaper cards (R_outer = R_inner + Padding), sliding background pills on segmented controls, and soft sunken encryption card.",
           "Post-Login Crash Prevention & Defensive Startup Initialization (v5.7.3): Completely eliminated app force-closes on login. Deferred WebRTC PeerConnectionFactory initialization and audio hardware configuration (AudioRecord/AudioTrack/AudioManager mode changes) until an actual voice call begins, preventing security exceptions on Android 12+/14+ prior to permission grant. Replaced all unsafe non-null assertions (!!) across MainActivity, CustomizedChatScreen, ChannelsWorkspaceScreen, and ProfileScreen with safe let-blocks and fallbacks. Added null-safe default fallbacks for all message and user fields (reactions, seenBy, readAt, replyToMessageId, lastSeen) to safely deserialize older backend database records. Wrapped Foreground Service starts in RECORD_AUDIO checks with defensive try/catches. Dispatched presence updates safely to Dispatchers.Main and protected SQLite column reading against null data.",
           "Carrier-Grade Phone Notification System (v5.7.2): Implemented carrier-grade Android notification architecture across DMs, Channels, and Incoming/Ongoing Calls. Registered 4 distinct Android Notification Channels on app init (connecto_direct_messages, connecto_channels_groups, connecto_incoming_calls with CATEGORY_CALL and DND bypass, and connecto_active_call_service). Upgraded messages to rich NotificationCompat.MessagingStyle with Person.Builder() async circular avatars and thread grouping by conversationId (last 5 messages per stack). Added direct notification shade inline reply (RemoteInput key_text_reply) and 1-tap Mark as Read background action. Strict foreground suppression suppresses notifications when viewing the active chat. Integrated Chat & Lock biometric privacy redaction (VISIBILITY_PRIVATE, '🔒 Locked chat • New encrypted message', disabled inline reply) and mute checks. Real-time tray sync deletes unsent/revoked messages and edits unread messages in place. Incoming calls feature NotificationCompat.CallStyle with FullScreenIntent directly over lock screen, and ongoing calls run foreground CallStyle with chronometer and notification shade Mute/Unmute action.",
@@ -3475,7 +3533,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       let rawSessions = { results: [] };
       try {
         rawSessions = await env.DB.prepare(
-          `SELECT s.id, s.device_name, s.location, s.ip_address, s.user_agent, s.created_at, s.last_active_at, s.session_token_hash
+          `SELECT s.id, s.device_id, s.device_name, s.location, s.ip_address, s.user_agent, s.created_at, s.last_active_at, s.session_token_hash
            FROM user_sessions s
            WHERE s.user_id = ? 
              AND s.expires_at > datetime('now')
@@ -3487,12 +3545,26 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
 
       let hasCurrent = false;
-      const sessionsList = (rawSessions.results || []).map(s => {
+      const seenDevices = new Set();
+      const duplicateIdsToDelete = [];
+      const sessionsList = [];
+
+      for (const s of (rawSessions.results || [])) {
         const isCurrent = currentHash ? (s.session_token_hash === currentHash) : false;
         if (isCurrent) hasCurrent = true;
+
+        // Deduplication key: device_id first, then device_name, then user_agent
+        const devKey = s.device_id || s.device_name || s.user_agent || s.id;
+        if (seenDevices.has(devKey) && !isCurrent) {
+          duplicateIdsToDelete.push(s.id);
+          continue;
+        }
+        seenDevices.add(devKey);
+
         const devDetails = parseSessionDeviceDetails(s.user_agent || "", isCurrent ? request.headers : null);
-        return {
+        sessionsList.push({
           id: s.id,
+          device_id: s.device_id,
           device_name: devDetails.device_name || s.device_name || "Connected Device",
           phone_type: devDetails.phone_type,
           phone_version: devDetails.phone_version,
@@ -3503,8 +3575,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           created_at: s.created_at,
           last_active_at: s.last_active_at || s.created_at,
           is_current: isCurrent
-        };
-      });
+        });
+      }
+
+      // Asynchronously prune duplicate stale IDs from database if any were found
+      if (duplicateIdsToDelete.length > 0) {
+        const placeholders = duplicateIdsToDelete.map(() => "?").join(",");
+        env.DB.prepare(`DELETE FROM user_sessions WHERE id IN (${placeholders})`).bind(...duplicateIdsToDelete).run().catch(() => {});
+      }
 
       if (!hasCurrent && sessionsList.length > 0) {
         sessionsList[0].is_current = true;
@@ -7338,13 +7416,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.7.4",
-      version_name: "v5.7.4",
-      version_code: 181,
-      build: 181,
-      sha256: "1a23cb6c6e4d06210df1b53a95c947cf3ba3c3d8ddb1ce25f5cd0ef146ea05c6",
+      version: "5.7.5",
+      version_name: "v5.7.5",
+      version_code: 182,
+      build: 182,
+      sha256: "052941c1f1d3d833b3a6fb18a24bd2f5fbe365541010a4364d6d8d6e56870a9c",
       filename: "connecto-fun.apk",
-      size_bytes: 38134072,
+      size_bytes: 38134079,
       size_display: "36.4 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7358,10 +7436,29 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
+          version: "v5.7.5",
+          date: "Nov 19, 2026",
+          category: "session-management",
+          tag: "Latest Release",
+          title: "Connecto v5.7.5: Hardware-Backed Persistent Device ID, Backend Session Upsert & UI Clean Deduplication",
+          summary: "Resolved critical session duplication bug where logging in on the same physical phone (e.g., Vivo V2307) created multiple active sessions (4 ACTIVE) on app restarts, token refreshes, or mobile IP changes. Implemented persistent client deviceId combining KeyStore-backed SecureStorageManager and Android ID that stays identical across reboots and network switches. Added device_id column and index on user_sessions in Cloudflare D1. Backend recordUserSession performs an UPSERT on (userId, deviceId) to update IP, location, and timestamps in place instead of creating duplicate records, and automatically prunes stale duplicate records. Added idempotency debounce/mutex on client session fetching to eliminate double-writes on app mount. Polished Session Management UI in ProfileScreen by removing double-nested bordered card wrappers, grouping device metadata into a unified subtitle (Android 15 • Smartphone), and masking long IPv6 addresses.",
+          highlights: [
+            "Hardware-Backed Persistent Device ID: Generated and stored persistent installation UUID in Android KeyStore-backed SecureStorageManager keyed by Android ID. Stays identical across restarts, token refreshes, and cell tower / Wi-Fi IP hops.",
+            "Client Handshake & Header Attribution: Attached X-Device-Id, X-Device-Model, X-Device-OS, and X-App-Type (android) to all HTTP requests and WebSocket handshakes, plus device_id JSON payloads in login/signup.",
+            "Backend Session Upsert on (userId, deviceId): In Cloudflare D1, user_sessions matches existing device records and updates session_token_hash, ip_address, location, and last_active_at in place, preventing duplicate rows.",
+            "Database Deduplication Cleanup: Pruned all historical duplicate session rows across user_sessions in Cloudflare D1, retaining only the single most recent active session per physical device.",
+            "Idempotency Debounce on Session Fetch: Mutex-locked and cached client-side session registration to eliminate parallel double-writes during simultaneous Home screen mount and socket connection.",
+            "Session Management UI Polish: Removed outer double-bordered liquidGlassCard wrapper in LoggedInSessionsCard so device items sit cleanly on the obsidian canvas. Grouped Android 15 (API 35) and Smartphone into a single muted subtitle line.",
+            "IPv6 Masking & Overflow Prevention: Masked raw IPv6 addresses exceeding 18 characters (e.g. 2401:4900:...82d5) to eliminate timestamp crowding.",
+            "Android Native App v5.7.5 (Build 182 • 36.4 MB): SHA-256 052941c1f1d3d833b3a6fb18a24bd2f5fbe365541010a4364d6d8d6e56870a9c."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
           version: "v5.7.4",
           date: "Nov 18, 2026",
           category: "ui-ux",
-          tag: "Latest Release",
+          tag: "Release",
           title: "Connecto v5.7.4: Mathematical Layout, Swipe-to-Delete zIndex, Concentric Radii & Spring Physics",
           summary: "Implemented strict mathematical layout and spring physics across DMs, Wallpaper customizer, Friend Profile, and Chat & Lock. Fixed swipe-to-delete bleed-through bug with zIndex(0f) compact red delete zone (#DC2626, 88px) and zIndex(1f) solid opaque #0A0B0E foreground clipping cleanly. Trash icon scales from 0.6 to 1.0 with spring bounce. Restored real decrypted lastMessage subtitles, 12px presence dots with 2px cutout border, 56px high-contrast FAB (#4F46E5), concentric wallpaper cards (R_outer = R_inner + Padding), sliding background pills on segmented controls, and soft sunken encryption card.",
           highlights: [

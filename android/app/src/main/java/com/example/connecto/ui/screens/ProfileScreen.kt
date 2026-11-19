@@ -8469,25 +8469,13 @@ fun LoggedInSessionsCard(
     onTerminateAllOthers: () -> Unit,
     hasCoverPhoto: Boolean
 ) {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .liquidGlassCard(
-                shape = RoundedCornerShape(20.dp),
-                backgroundColor = if (ConnectoTheme.isLiquidGlass) Color.Transparent
-                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
-                    else MaterialTheme.colorScheme.surface,
-                borderColor = if (ConnectoTheme.isLiquidGlass) Color.White.copy(alpha = 0.35f)
-                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
-                    else MaterialTheme.colorScheme.primary
-            )
-            .padding(16.dp)
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            // Header Row: Icon + Title + Refresh Button
+        // Header Row: Icon + Title + Refresh Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -8663,7 +8651,6 @@ fun LoggedInSessionsCard(
                     }
                 }
             }
-        }
     }
 }
 
@@ -8794,58 +8781,26 @@ private fun SessionItemRow(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(3.dp))
 
-                        // Chips Row: Phone Version & Phone Type
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            if (!displayPhoneVersion.isNullOrBlank()) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                                        .border(0.8.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.Info,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(10.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        Text(
-                                            text = displayPhoneVersion,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
+                        // Grouped device metadata subtitle: e.g. Android 15 (API 35) • Smartphone
+                        val deviceSubtitle = listOfNotNull(
+                            displayPhoneVersion?.takeIf { it.isNotBlank() },
+                            displayDeviceType?.takeIf { it.isNotBlank() }
+                        ).joinToString(" • ")
 
-                            if (!displayDeviceType.isNullOrBlank()) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                                        .border(0.8.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(6.dp))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = displayDeviceType,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
+                        if (deviceSubtitle.isNotBlank()) {
+                            Text(
+                                text = deviceSubtitle,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         // Location
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -8922,13 +8877,23 @@ private fun SessionItemRow(
 
                 if (session.ipAddress.isNotBlank()) {
                     Text(
-                        text = "IP: ${session.ipAddress}",
+                        text = "IP: ${formatIpAddress(session.ipAddress)}",
                         fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 1
                     )
                 }
             }
         }
+    }
+}
+
+private fun formatIpAddress(ip: String): String {
+    val clean = ip.trim()
+    return if (clean.contains(":") && clean.length > 18) {
+        "${clean.substring(0, 10)}...${clean.substring(clean.length - 4)}"
+    } else {
+        clean
     }
 }
 

@@ -1547,7 +1547,12 @@ object VoiceCallManager {
         val encodedId = try { URLEncoder.encode(userId, "UTF-8") } catch (_: Exception) { userId }
         val encodedToken = try { URLEncoder.encode(token, "UTF-8") } catch (_: Exception) { token }
 
-        val wsPath = "/api/v1/ws?user_id=$encodedId&username=$encodedUser&token=$encodedToken"
+        val deviceId = ConnectoApiClient.getPersistentDeviceId(appContext)
+        val devModel = ConnectoApiClient.getPhoneModel()
+        val devOs = ConnectoApiClient.getPhoneVersion()
+        val encodedDeviceId = try { URLEncoder.encode(deviceId, "UTF-8") } catch (_: Exception) { deviceId }
+
+        val wsPath = "/api/v1/ws?user_id=$encodedId&username=$encodedUser&token=$encodedToken&device_id=$encodedDeviceId"
         val url = ConnectoNetworkConfig.getWsUrl(wsPath)
 
         // SEC-A04 FIX: Do not log bearer tokens to Logcat in cleartext; supply Authorization header
@@ -1556,6 +1561,10 @@ object VoiceCallManager {
         val request = Request.Builder()
             .url(url)
             .addHeader("Authorization", "Bearer $token")
+            .addHeader("X-Device-Id", deviceId)
+            .addHeader("X-Device-Model", devModel)
+            .addHeader("X-Device-OS", devOs)
+            .addHeader("X-App-Type", "android")
             .build()
 
             webSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {

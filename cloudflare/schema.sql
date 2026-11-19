@@ -44,6 +44,7 @@ CREATE INDEX IF NOT EXISTS idx_users_presence ON users(is_online, is_stealth);
 CREATE TABLE IF NOT EXISTS user_sessions (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    device_id TEXT DEFAULT NULL,
     session_token_hash TEXT NOT NULL UNIQUE,
     ip_address TEXT DEFAULT NULL,
     user_agent TEXT DEFAULT NULL,
@@ -55,6 +56,7 @@ CREATE TABLE IF NOT EXISTS user_sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_user_device ON user_sessions(user_id, device_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_expires ON user_sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token_hash);
 

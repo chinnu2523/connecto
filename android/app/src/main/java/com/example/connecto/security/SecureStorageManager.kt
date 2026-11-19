@@ -60,4 +60,48 @@ object SecureStorageManager {
             }
         }
     }
+
+    private const val KEY_CLIENT_DEVICE_ID = "client_device_id"
+
+    /**
+     * Returns a stable, persistent device ID unique to this physical installation.
+     * Stored in encrypted storage and remains identical across app restarts, token refreshes,
+     * and network/IP changes.
+     */
+    fun getOrCreateDeviceId(context: Context): String {
+        val prefs = getEncryptedPrefs(context)
+        val existing = prefs.getString(KEY_CLIENT_DEVICE_ID, null)
+        if (!existing.isNullOrBlank()) {
+            return existing
+        }
+        synchronized(this) {
+            val doubleCheck = prefs.getString(KEY_CLIENT_DEVICE_ID, null)
+            if (!doubleCheck.isNullOrBlank()) {
+                return doubleCheck
+            }
+            val androidId = try {
+                android.provider.Settings.Secure.getString(
+                    context.contentResolver,
+                    android.provider.Settings.Secure.ANDROID_ID
+                )
+            } catch (_: Exception) {
+                null
+            }
+            val newDeviceId = if (!androidId.isNullOrBlank() && androidId != "9774d56d682e549c") {
+                "dev_" + java.util.UUID.nameUUIDFromBytes("${context.packageName}:$androidId".toByteArray()).toString()
+            } else {
+                "dev_" + java.util.UUID.randomUUID().toString()
+            }
+            prefs.edit().putString(KEY_CLIENT_DEVICE_ID, newDeviceId).apply()
+            return newDeviceId
+        }
+    }
+
+    fun clearDeviceId(context: Context) {
+        try {
+            getEncryptedPrefs(context).edit().remove(KEY_CLIENT_DEVICE_ID).apply()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to clear client deviceId", e)
+        }
+    }
 }
