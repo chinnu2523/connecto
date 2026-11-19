@@ -17,6 +17,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.EaseOutCubic
@@ -4609,10 +4610,16 @@ fun CustomizedChatScreen(
 
                         // Friend / Group Name & Avatar Row
                         val isGroupChat = selectedFriend?.isGroup == true
+                        val headerEntranceAlpha by animateFloatAsState(
+                            targetValue = 1f,
+                            animationSpec = tween(durationMillis = 240, easing = EaseOutCubic),
+                            label = "headerEntranceAlpha"
+                        )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .weight(1f)
+                                .graphicsLayer { alpha = headerEntranceAlpha }
                                 .clickable {
                                     if (isGroupChat) {
                                         showCreateGroupChatDialog = false
@@ -5745,16 +5752,17 @@ fun CustomizedChatScreen(
                     }
 
                     // ================= MESSAGES TAB FAB & SPEED-DIAL =================
-                    // 1. Scrim overlay when speed-dial is expanded (rgba(6, 7, 10, 0.65))
+                    // 1. Scrim overlay when speed-dial is expanded (rgba(0, 0, 0, 0.60), zIndex below FAB layer)
                     androidx.compose.animation.AnimatedVisibility(
                         visible = isFabExpanded,
                         enter = fadeIn(animationSpec = tween(200, easing = EaseOutCubic)),
-                        exit = fadeOut(animationSpec = tween(180, easing = EaseInCubic))
+                        exit = fadeOut(animationSpec = tween(180, easing = EaseInCubic)),
+                        modifier = Modifier.zIndex(1f)
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color(0xA606070A))
+                                .background(Color.Black.copy(alpha = 0.60f))
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
@@ -5764,7 +5772,7 @@ fun CustomizedChatScreen(
                         )
                     }
 
-                    // 2. Expandable Speed-Dial Action Pills (Staggered Fan-Out from bottom to top, 40ms delay)
+                    // 2. Expandable Speed-Dial Action Pills (Staggered upward with 35ms delay between each item)
                     val r1Alpha by animateFloatAsState(
                         targetValue = if (isFabExpanded) 1f else 0f,
                         animationSpec = if (isFabExpanded) tween(200, delayMillis = 0, easing = EaseOutCubic) else tween(120),
@@ -5783,7 +5791,7 @@ fun CustomizedChatScreen(
 
                     val r2Alpha by animateFloatAsState(
                         targetValue = if (isFabExpanded) 1f else 0f,
-                        animationSpec = if (isFabExpanded) tween(200, delayMillis = 40, easing = EaseOutCubic) else tween(120),
+                        animationSpec = if (isFabExpanded) tween(200, delayMillis = 35, easing = EaseOutCubic) else tween(120),
                         label = "fabR2Alpha"
                     )
                     val r2Y by animateFloatAsState(
@@ -5799,7 +5807,7 @@ fun CustomizedChatScreen(
 
                     val r3Alpha by animateFloatAsState(
                         targetValue = if (isFabExpanded) 1f else 0f,
-                        animationSpec = if (isFabExpanded) tween(200, delayMillis = 80, easing = EaseOutCubic) else tween(120),
+                        animationSpec = if (isFabExpanded) tween(200, delayMillis = 70, easing = EaseOutCubic) else tween(120),
                         label = "fabR3Alpha"
                     )
                     val r3Y by animateFloatAsState(
@@ -5817,6 +5825,7 @@ fun CustomizedChatScreen(
                         Column(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
+                                .zIndex(2f)
                                 .padding(end = 20.dp, bottom = 86.dp),
                             horizontalAlignment = Alignment.End,
                             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -5824,7 +5833,7 @@ fun CustomizedChatScreen(
                             val haptic = LocalHapticFeedback.current
                             val isDark = !isLight
 
-                            // Option A: Voice Group / Audio Room (Top row, delay 80ms)
+                            // Option A: Voice Group / Audio Room (Top row, delay 70ms)
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -5845,17 +5854,17 @@ fun CustomizedChatScreen(
                                     }
                             ) {
                                 Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = if (isDark) Color(0xFF1C202B) else Color.White,
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = if (isDark) Color(0xFF181C28) else Color.White,
                                     shadowElevation = 6.dp,
-                                    border = null
+                                    border = if (isDark) androidx.compose.foundation.BorderStroke(1.dp, Color(0x1AFFFFFF)) else androidx.compose.foundation.BorderStroke(1.dp, Color(0x0F000000))
                                 ) {
                                     Text(
                                         text = "Voice Group",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = if (isDark) Color.White else Color(0xFF0F172A),
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
                                     )
                                 }
                                 Box(
@@ -5875,7 +5884,7 @@ fun CustomizedChatScreen(
                                 }
                             }
 
-                            // Option B: New Group Chat (Middle row, delay 40ms)
+                            // Option B: New Group Chat (Middle row, delay 35ms)
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -5896,17 +5905,17 @@ fun CustomizedChatScreen(
                                     }
                             ) {
                                 Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = if (isDark) Color(0xFF1C202B) else Color.White,
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = if (isDark) Color(0xFF181C28) else Color.White,
                                     shadowElevation = 6.dp,
-                                    border = null
+                                    border = if (isDark) androidx.compose.foundation.BorderStroke(1.dp, Color(0x1AFFFFFF)) else androidx.compose.foundation.BorderStroke(1.dp, Color(0x0F000000))
                                 ) {
                                     Text(
                                         text = "New Group",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = if (isDark) Color.White else Color(0xFF0F172A),
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
                                     )
                                 }
                                 Box(
@@ -5947,17 +5956,17 @@ fun CustomizedChatScreen(
                                     }
                             ) {
                                 Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = if (isDark) Color(0xFF1C202B) else Color.White,
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = if (isDark) Color(0xFF181C28) else Color.White,
                                     shadowElevation = 6.dp,
-                                    border = null
+                                    border = if (isDark) androidx.compose.foundation.BorderStroke(1.dp, Color(0x1AFFFFFF)) else androidx.compose.foundation.BorderStroke(1.dp, Color(0x0F000000))
                                 ) {
                                     Text(
                                         text = "New Chat",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = if (isDark) Color.White else Color(0xFF0F172A),
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
                                     )
                                 }
                                 Box(
@@ -5979,7 +5988,7 @@ fun CustomizedChatScreen(
                         }
                     }
 
-                    // 3. Primary Floating Action Button (Rotates 45deg from + to x)
+                    // 3. Primary Floating Action Button (Rotates 45deg from + to x with 200ms spring)
                     val haptic = LocalHapticFeedback.current
                     val fabInteraction = remember { MutableInteractionSource() }
                     val isFabPressed by fabInteraction.collectIsPressedAsState()
@@ -5990,13 +5999,14 @@ fun CustomizedChatScreen(
                     )
                     val fabRotation by animateFloatAsState(
                         targetValue = if (isFabExpanded) 45f else 0f,
-                        animationSpec = spring(stiffness = 400f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
                         label = "fabRotation"
                     )
 
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
+                            .zIndex(3f)
                             .padding(end = 20.dp, bottom = 20.dp)
                             .graphicsLayer {
                                 scaleX = fabScale
@@ -6604,10 +6614,34 @@ fun CustomizedChatScreen(
                                         val clipboardManager = LocalClipboardManager.current
                                         val isSelectedMsg = selectedMessageForAction?.id == msg.id
 
+                                        val isRecentMsg = remember(msg.id) {
+                                            val diff = System.currentTimeMillis() - msg.timestampMillis
+                                            diff in 0..4000L
+                                        }
+                                        val popInAnim = remember { Animatable(if (isRecentMsg) 0f else 1f) }
+                                        LaunchedEffect(msg.id) {
+                                            if (isRecentMsg && popInAnim.value < 1f) {
+                                                popInAnim.animateTo(
+                                                    targetValue = 1f,
+                                                    animationSpec = tween(durationMillis = 180, easing = EaseOutCubic)
+                                                )
+                                            }
+                                        }
+                                        val msgBubbleScale = if (isRecentMsg) 0.94f + 0.06f * popInAnim.value else 1f
+                                        val msgBubbleTranslateY = if (isRecentMsg) 14f * (1f - popInAnim.value) else 0f
+
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .zIndex(if (isSelectedMsg) 10f else 0f)
+                                                .graphicsLayer {
+                                                    scaleX = msgBubbleScale
+                                                    scaleY = msgBubbleScale
+                                                    translationY = msgBubbleTranslateY.dp.toPx()
+                                                    if (isRecentMsg) {
+                                                        alpha = 0.4f + 0.6f * popInAnim.value
+                                                    }
+                                                }
                                                 .padding(top = if (isSameUserAsPrev) 3.dp else 10.dp)
                                                 .pointerInput(msg.id) {
                                                     detectHorizontalDragGestures(

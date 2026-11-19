@@ -1009,7 +1009,18 @@ fun ConnectoApp(
                                 userScrollEnabled = !isDirectChatOpen && !isChannelDrawerOpen,
                                 beyondViewportPageCount = 1
                             ) { pageIndex ->
-                                Box(modifier = Modifier.fillMaxSize().clipToBounds()) {
+                                val pageSelected = tabPagerState.currentPage == pageIndex
+                                val pageAlpha by androidx.compose.animation.core.animateFloatAsState(
+                                    targetValue = if (pageSelected) 1.0f else 0.6f,
+                                    animationSpec = tween(durationMillis = 120, easing = androidx.compose.animation.core.LinearEasing),
+                                    label = "tabContentCrossfade"
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer { alpha = pageAlpha }
+                                        .clipToBounds()
+                                ) {
                                     when (tabs[pageIndex]) {
                                     ConnectoTab.HOME -> {
                                         HomeChatScreen(

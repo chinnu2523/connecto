@@ -2,6 +2,7 @@ package com.example.connecto.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.Spring
@@ -124,38 +125,30 @@ fun ChannelNavigationDrawer(
 
     val colors = LocalConnectoColors.current
 
-    // Fluid Ease-in / Ease-out transition curve for the navigation drawer
+    // Fluid 260ms cubic-bezier decelerate transition curve for the navigation drawer
     val drawerProgress by animateFloatAsState(
         targetValue = if (isOpen) 1f else 0f,
         animationSpec = tween(
-            durationMillis = 320,
-            easing = EaseInOutCubic
+            durationMillis = 260,
+            easing = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)
         ),
         label = "channelDrawerProgress"
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // 1. Content underneath with subtle cinematic depth push
+        // 1. Content underneath (smooth full-size chat, no squeezing or text clipping)
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    if (drawerProgress > 0.001f) {
-                        scaleX = 1f - 0.035f * drawerProgress
-                        scaleY = 1f - 0.035f * drawerProgress
-                        transformOrigin = TransformOrigin(1f, 0.5f)
-                    }
-                }
+            modifier = Modifier.fillMaxSize()
         ) {
             content()
         }
 
-        // 2. Full-screen backdrop / Scrim covering the empty space on the right
+        // 2. Full-screen backdrop / Scrim covering the chat behind it (rgba(0, 0, 0, 0.6))
         if (drawerProgress > 0.001f) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.65f * drawerProgress))
+                    .background(Color.Black.copy(alpha = 0.60f * drawerProgress))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -206,24 +199,50 @@ fun ChannelNavigationDrawer(
                         .padding(horizontal = 18.dp, vertical = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Drawer Top Bar (Close Action)
+                    // Drawer Header (Workspace Title & Active Members across from ✕ Close Button)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Column {
+                            Text(
+                                text = "Connecto Workspace",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF10B981))
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "24 members online",
+                                    fontSize = 11.5.sp,
+                                    color = colors.textSecondary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
                         Box(
                             modifier = Modifier
                                 .size(34.dp)
                                 .pressScaleEffect(onClick = onCloseDrawer)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                .background(if (colors.isDark) Color(0xFF1E2230) else MaterialTheme.colorScheme.surfaceVariant),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Close,
                                 contentDescription = "Close Menu",
-                                tint = MaterialTheme.colorScheme.onSurface,
+                                tint = colors.textPrimary,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -325,9 +344,10 @@ private fun DrawerChannelItem(
 ) {
     var isPressed by remember { mutableStateOf(false) }
     val colors = LocalConnectoColors.current
+    val isDark = colors.isDark
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1.0f,
+        targetValue = if (isPressed) 0.97f else 1.0f,
         animationSpec = spring(
             stiffness = Spring.StiffnessMediumLow,
             dampingRatio = Spring.DampingRatioMediumBouncy
@@ -336,7 +356,7 @@ private fun DrawerChannelItem(
     )
 
     val iconScale by animateFloatAsState(
-        targetValue = if (isSelected) 1.15f else 1.0f,
+        targetValue = if (isSelected) 1.10f else 1.0f,
         animationSpec = spring(
             stiffness = Spring.StiffnessLow,
             dampingRatio = Spring.DampingRatioMediumBouncy
@@ -344,14 +364,32 @@ private fun DrawerChannelItem(
         label = "iconScale"
     )
 
+    val itemBg by animateColorAsState(
+        targetValue = if (isSelected) {
+            if (isDark) Color(0xFF1C202E) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+        } else {
+            Color.Transparent
+        },
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "itemBg"
+    )
+
     val textColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        targetValue = if (isSelected) {
+            if (isDark) Color.White else MaterialTheme.colorScheme.primary
+        } else {
+            colors.textPrimary
+        },
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "textColor"
     )
 
     val subtitleColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
+        targetValue = if (isSelected) {
+            if (isDark) Color(0xFF94A3B8) else MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+        } else {
+            colors.textSecondary
+        },
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "subColor"
     )
@@ -360,17 +398,8 @@ private fun DrawerChannelItem(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                else (if (colors.isGlass) Color(0x26FFFFFF) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            )
-            .border(
-                width = 1.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                else (if (colors.isGlass) Color(0x33FFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
-                shape = RoundedCornerShape(12.dp)
-            )
+            .clip(RoundedCornerShape(14.dp))
+            .background(itemBg)
             .clickable {
                 onSelect()
             }
@@ -389,17 +418,24 @@ private fun DrawerChannelItem(
                     modifier = Modifier
                         .size(34.dp)
                         .scale(iconScale)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(
-                            if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            if (isSelected) {
+                                if (isDark) Color(0xFF2E354B) else MaterialTheme.colorScheme.primary
+                            } else {
+                                if (isDark) Color(0xFF1E2230) else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                            }
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = channel.icon,
                         contentDescription = null,
-                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                        tint = if (isSelected) {
+                            if (isDark) Color.White else MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            colors.textSecondary
+                        },
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -411,7 +447,7 @@ private fun DrawerChannelItem(
                         Text(
                             text = "#${channel.name}",
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                             color = textColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -435,8 +471,13 @@ private fun DrawerChannelItem(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
                             .background(
-                                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                                if (isSelected) {
+                                    if (isDark) Color(0xFF38BDF8).copy(alpha = 0.20f)
+                                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                } else {
+                                    if (isDark) Color(0xFF262B3D)
+                                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                                }
                             )
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
@@ -444,7 +485,7 @@ private fun DrawerChannelItem(
                             text = channel.badgeTag,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = if (isSelected && isDark) Color(0xFF38BDF8) else MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -459,7 +500,7 @@ private fun DrawerChannelItem(
                         Icon(
                             imageVector = Icons.Rounded.CheckCircle,
                             contentDescription = "Selected",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = if (isDark) Color(0xFF38BDF8) else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                     }

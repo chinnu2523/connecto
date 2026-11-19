@@ -1327,15 +1327,29 @@ fun ChannelsWorkspaceScreen(
                                         DropdownMenu(
                                             expanded = showChannelOptionsMenu,
                                             onDismissRequest = { showChannelOptionsMenu = false },
-                                            modifier = Modifier.background(if (colors.isDark) Color(0xEB181B24) else Color.White)
+                                            shape = RoundedCornerShape(16.dp),
+                                            containerColor = if (colors.isDark) Color(0xFF181C28) else Color.White,
+                                            border = androidx.compose.foundation.BorderStroke(
+                                                1.dp,
+                                                if (colors.isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)
+                                            ),
+                                            modifier = Modifier.padding(6.dp)
                                         ) {
                                             DropdownMenuItem(
-                                                text = { Text(if (isChannelMuted) "Unmute Channel" else "Mute Channel", color = colors.textPrimary) },
+                                                text = {
+                                                    Text(
+                                                        if (isChannelMuted) "Unmute Channel" else "Mute Channel",
+                                                        color = colors.textPrimary,
+                                                        fontWeight = FontWeight.Medium,
+                                                        fontSize = 13.5.sp
+                                                    )
+                                                },
                                                 leadingIcon = {
                                                     Icon(
                                                         imageVector = if (isChannelMuted) Icons.Default.Notifications else Icons.Default.NotificationsOff,
                                                         contentDescription = null,
-                                                        tint = if (isChannelMuted) colors.success else colors.textSecondary
+                                                        tint = if (isChannelMuted) colors.success else colors.textSecondary,
+                                                        modifier = Modifier.size(18.dp)
                                                     )
                                                 },
                                                 onClick = {
@@ -1343,7 +1357,8 @@ fun ChannelsWorkspaceScreen(
                                                     isChannelMuted = !isChannelMuted
                                                     sharedPrefs.edit().putBoolean("muted_ch_$cleanSelectedChannel", isChannelMuted).apply()
                                                     Toast.makeText(context, if (isChannelMuted) "Muted #${activeChip.name}" else "Unmuted #${activeChip.name}", Toast.LENGTH_SHORT).show()
-                                                }
+                                                },
+                                                modifier = Modifier.clip(RoundedCornerShape(10.dp))
                                             )
                                         }
                                     }
@@ -1948,10 +1963,44 @@ fun ChannelsWorkspaceScreen(
                                             }
                                         }
 
+                                        val isRecentMsg = remember(msg.id) {
+                                            try {
+                                                val raw = msg.createdAt.substringBefore(".")
+                                                val d = if (msg.createdAt.contains("T")) {
+                                                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).parse(raw)
+                                                } else {
+                                                    SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).parse(raw)
+                                                }
+                                                val diff = if (d != null) System.currentTimeMillis() - d.time else 999999L
+                                                diff in 0..4000L
+                                            } catch (_: Exception) {
+                                                false
+                                            }
+                                        }
+                                        val popInAnim = remember { Animatable(if (isRecentMsg) 0f else 1f) }
+                                        LaunchedEffect(msg.id) {
+                                            if (isRecentMsg && popInAnim.value < 1f) {
+                                                popInAnim.animateTo(
+                                                    targetValue = 1f,
+                                                    animationSpec = tween(durationMillis = 180, easing = EaseOutCubic)
+                                                )
+                                            }
+                                        }
+                                        val msgBubbleScale = if (isRecentMsg) 0.94f + 0.06f * popInAnim.value else 1f
+                                        val msgBubbleTranslateY = if (isRecentMsg) 14f * (1f - popInAnim.value) else 0f
+
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .offset { IntOffset(animatedItemSwipeOffset.roundToInt(), 0) }
+                                                .graphicsLayer {
+                                                    scaleX = msgBubbleScale
+                                                    scaleY = msgBubbleScale
+                                                    translationY = msgBubbleTranslateY.dp.toPx()
+                                                    if (isRecentMsg) {
+                                                        alpha = 0.4f + 0.6f * popInAnim.value
+                                                    }
+                                                }
                                         ) {
                                             ChannelMessageCard(
                                                 message = msg,
@@ -2086,15 +2135,13 @@ fun ChannelsWorkspaceScreen(
 
                     androidx.compose.animation.AnimatedVisibility(
                         visible = canScrollDown && displayMessages.isNotEmpty(),
-                        enter = fadeIn(animationSpec = tween(durationMillis = 240, easing = EaseOutCubic)) +
-                                scaleIn(initialScale = 0.65f, animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)) +
-                                slideInVertically(initialOffsetY = { it / 2 }, animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)),
-                        exit = fadeOut(animationSpec = tween(durationMillis = 180, easing = EaseInCubic)) +
-                               scaleOut(targetScale = 0.65f, animationSpec = tween(durationMillis = 180, easing = EaseInCubic)) +
-                               slideOutVertically(targetOffsetY = { it / 2 }, animationSpec = tween(durationMillis = 180, easing = EaseInCubic)),
+                        enter = fadeIn(animationSpec = tween(durationMillis = 160, easing = EaseOutCubic)) +
+                                scaleIn(initialScale = 0f, animationSpec = spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessMediumLow)),
+                        exit = fadeOut(animationSpec = tween(durationMillis = 140, easing = EaseInCubic)) +
+                               scaleOut(targetScale = 0f, animationSpec = tween(durationMillis = 140, easing = EaseInCubic)),
                         modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 12.dp)
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp, bottom = 76.dp)
                     ) {
                         Box(
                             modifier = Modifier
@@ -2115,15 +2162,15 @@ fun ChannelsWorkspaceScreen(
                                     targetScale = 0.90f
                                 )
                                 .clip(CircleShape)
-                                .background(colors.surface)
-                                .border(1.2.dp, colors.primary.copy(alpha = 0.8f), CircleShape)
+                                .background(if (colors.isDark) Color(0xFF181C28) else colors.surface)
+                                .border(1.dp, if (colors.isDark) Color.White.copy(alpha = 0.15f) else colors.primary.copy(alpha = 0.4f), CircleShape)
                                 .shadow(8.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.35f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.KeyboardArrowDown,
                                 contentDescription = "Scroll to bottom",
-                                tint = colors.primary,
+                                tint = if (colors.isDark) Color.White else colors.primary,
                                 modifier = Modifier.size(24.dp)
                             )
                         }

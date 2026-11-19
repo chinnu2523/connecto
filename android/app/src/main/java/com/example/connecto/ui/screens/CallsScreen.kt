@@ -7,12 +7,18 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.offset
@@ -904,13 +910,38 @@ fun CallsScreen(
                                     count = 5
                                 )
                             } else {
+                                val emptyPulseTransition = rememberInfiniteTransition(label = "emptyPhonePulse")
+                                val emptyPhoneScale by emptyPulseTransition.animateFloat(
+                                    initialValue = 1.0f,
+                                    targetValue = 1.06f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(2000, easing = FastOutSlowInEasing),
+                                        repeatMode = RepeatMode.Reverse
+                                    ),
+                                    label = "pulseScale"
+                                )
+                                var emptyEntranceVisible by remember { mutableStateOf(false) }
+                                LaunchedEffect(Unit) {
+                                    emptyEntranceVisible = true
+                                }
+                                val emptyAlpha by animateFloatAsState(
+                                    targetValue = if (emptyEntranceVisible) 1f else 0f,
+                                    animationSpec = tween(400, easing = FastOutSlowInEasing),
+                                    label = "emptyFadeIn"
+                                )
+
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.graphicsLayer { alpha = emptyAlpha }
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(54.dp)
+                                            .size(56.dp)
+                                            .graphicsLayer {
+                                                scaleX = emptyPhoneScale
+                                                scaleY = emptyPhoneScale
+                                            }
                                             .clip(CircleShape)
                                             .background(if (colors.isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFF1F5F9)),
                                         contentAlignment = Alignment.Center
@@ -919,7 +950,7 @@ fun CallsScreen(
                                             imageVector = Icons.Default.Call,
                                             contentDescription = null,
                                             tint = colors.textSecondary,
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(26.dp)
                                         )
                                     }
                                     val emptyTitle = if (callSearchQuery.isNotBlank()) {
@@ -949,23 +980,6 @@ fun CallsScreen(
                                         fontSize = 12.sp,
                                         color = colors.textSecondary
                                     )
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Button(
-                                        onClick = { showCreateVoiceGroupDialog = true },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = colors.primary,
-                                            contentColor = Color.White
-                                        ),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.GroupAdd,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Group Voice Call", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                    }
                                 }
                             }
                         }
