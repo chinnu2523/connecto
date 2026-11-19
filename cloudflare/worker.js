@@ -240,13 +240,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.7.7",
-        version_name: "v5.7.7",
-        version_code: 184,
-        build: 184,
-        sha256: "928e89b95bef77149a8527245310fc9713ace4206f818e3781230397707ac1fc",
+        version: "5.7.9",
+        version_name: "v5.7.9",
+        version_code: 186,
+        build: 186,
+        sha256: "289b9125b0161a64171c576e4b051286258e3396d1f86df51d57b3a1ca10a4d9",
         filename: "connecto-fun.apk",
-        size_bytes: 38262878,
+        size_bytes: 38298487,
         size_display: "36.5 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -254,6 +254,12 @@ Sitemap: https://connecto.fun/sitemap.xml
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Root Portal Long-Press Focus Overlay (v5.7.9): Eliminated all blur artifacts from message content by extracting the active overlay into a top-level document body portal. Multi-layered composition featuring full-screen dark frosted scrim (rgba(5, 7, 12, 0.72), backdrop-filter: blur(12px)), 100% crisp focused message bubble clone with soft elevation shadow, quick-reaction emoji pill, and contextual action bar (Reply, Copy, Edit, Unsend). Mathematical viewport edge clamping ensures bubbles at screen extremities never get clipped or truncated.",
+          "Push-Down Tray Elastic Pull-to-Refresh (v5.7.9): Replaced overlapping floating spinners with an integrated push-down layout tray. Fluid 60fps micro-spinner with smooth progress arc expansion, 180° orientation snap, and tactile spring return physics. Touch shield prevents accidental item opens during swipe gestures.",
+          "Immersive Photo Lightbox & Cover Banner Viewer (v5.7.9): Minimalist fullscreen media viewer with smooth multi-touch zoom and pan. Stripped cluttered button borders and redundant metadata badges in favor of a single floating top bar (Back arrow, photo title, Share pill, and ✕ close button) with tap-to-toggle HUD auto-hiding.",
+          "Zero-Install Guest Rooms (v5.7.8): Instant ephemeral room creation (connecto.fun/room/{roomCode}) with 1-tap invite link copying and native share sheet triggers. Zero-install browser join requiring only a display name. Real-time Cloudflare Durable Object signaling, peer mesh WebRTC audio, synchronized in-room text chat, and automated 24-hour expiration.",
+          "Secret Vault for Locked Chats (v5.7.8): Biometric fingerprint & Face Unlock guarded chat vault with hardware Keystore AES-256-GCM encryption. Disguise mode masking the vault under a functional Calculator with duress PIN support.",
+          "Hold-to-Send Silent & Whisper Messages (v5.7.8): Long-press send button pop-up offering Normal, Silent (bypasses sound/vibration while delivering notifications), and Whisper (blurred preview with 10-second view-once auto-destruct timer).",
           "60fps Animated Search Engine & Zero-Jitter Filtering (v5.7.7): Seamless focus morph header collapse (220ms ease-out) and spring-animated sliding Cancel button (stiffness 380, damping 30). Active glow border, accent icon tinting, and pop-in clear button with haptic feedback. Two-tier search engine combining instant memoized local filtering with 300ms debounced cloud search for deep message history with 16px inline spinner. Recent search pills row with 1-tap clear, quick category filter chips (All, People, Messages, Channels), and exact substring match highlighting with tinted background. In-chat & workspace channel inline search bar with live match counter, stepper navigation, automatic smooth list scrolling, and 1.2s accent glow pulse around matched messages.",
           "WebRTC Voice Call Architecture & Real TURN Credential Relay (v5.7.6): Stripped complex AudioContext and GainNode wrapping on remote streams to completely prevent Android audio silence and native C++ crashes. Enforced direct native WebRTC playout, configured Cloudflare TURN credentials with TCP/TLS 443 relay, and added live call diagnostics telemetry pill.",
           "Hardware-Backed Persistent Device ID, Backend Session Upsert & Clean UI Deduplication (v5.7.5): Resolved critical session duplication bug where logging in on the same physical phone (e.g., Vivo V2307) created multiple active sessions (4 ACTIVE) on app restarts, token refreshes, or mobile IP changes. Implemented persistent client deviceId combining KeyStore-backed SecureStorageManager and Android ID that stays identical across reboots and network switches. Added device_id column and index on user_sessions in Cloudflare D1. Backend recordUserSession performs an UPSERT on (userId, deviceId) to update IP, location, and timestamps in place instead of creating duplicate records, and automatically prunes stale duplicate records. Added idempotency debounce/mutex on client session fetching to eliminate double-writes on app mount. Polished Session Management UI in ProfileScreen by removing double-nested bordered card wrappers, grouping device metadata into a unified subtitle (Android 15 • Smartphone), and masking long IPv6 addresses.",
@@ -573,7 +579,7 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.5/pdf-studio.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.9.0-b26-obsidian-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.9.1-b27-erase-patch-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -581,8 +587,8 @@ Sitemap: https://connecto.fun/sitemap.xml
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
           res.headers.set("X-Connecto-Package", "com.app.pdfstudio");
           res.headers.set("X-Connecto-App", "PDF Studio");
-          res.headers.set("X-Connecto-Version", "v1.9.0");
-          res.headers.set("X-Connecto-Build", "26");
+          res.headers.set("X-Connecto-Version", "v1.9.1");
+          res.headers.set("X-Connecto-Build", "27");
           return res;
         }
 
@@ -617,8 +623,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
               downloadHeaders.set("X-Connecto-App", "PDF Studio");
-              downloadHeaders.set("X-Connecto-Version", "v1.9.0");
-              downloadHeaders.set("X-Connecto-Build", "26");
+              downloadHeaders.set("X-Connecto-Version", "v1.9.1");
+              downloadHeaders.set("X-Connecto-Build", "27");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -647,19 +653,21 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.9/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.8/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.7.7/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.7.6/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.7-b184-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.7.9-b186-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.7.7");
-          res.headers.set("X-Connecto-Build", "184");
+          res.headers.set("X-Connecto-Version", "v5.7.9");
+          res.headers.set("X-Connecto-Build", "186");
           return res;
         }
 
@@ -695,8 +703,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.7.7");
-              downloadHeaders.set("X-Connecto-Build", "184");
+              downloadHeaders.set("X-Connecto-Version", "v5.7.9");
+              downloadHeaders.set("X-Connecto-Build", "186");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2325,14 +2333,20 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.7.7",
-        version_code: 184,
-        size_bytes: 38262878,
+        version_name: "5.7.9",
+        version_code: 186,
+        size_bytes: 38298487,
         size_formatted: "36.5 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Root Portal Long-Press Focus Overlay (v5.7.9): Eliminated all blur artifacts from message content by extracting the active overlay into a top-level document body portal. Multi-layered composition featuring full-screen dark frosted scrim (rgba(5, 7, 12, 0.72), backdrop-filter: blur(12px)), 100% crisp focused message bubble clone with soft elevation shadow, quick-reaction emoji pill, and contextual action bar (Reply, Copy, Edit, Unsend). Mathematical viewport edge clamping ensures bubbles at screen extremities never get clipped or truncated.",
+          "Push-Down Tray Elastic Pull-to-Refresh (v5.7.9): Replaced overlapping floating spinners with an integrated push-down layout tray. Fluid 60fps micro-spinner with smooth progress arc expansion, 180° orientation snap, and tactile spring return physics. Touch shield prevents accidental item opens during swipe gestures.",
+          "Immersive Photo Lightbox & Cover Banner Viewer (v5.7.9): Minimalist fullscreen media viewer with smooth multi-touch zoom and pan. Stripped cluttered button borders and redundant metadata badges in favor of a single floating top bar (Back arrow, photo title, Share pill, and ✕ close button) with tap-to-toggle HUD auto-hiding.",
+          "Zero-Install Guest Rooms (v5.7.8): Instant ephemeral room creation (connecto.fun/room/{roomCode}) with 1-tap invite link copying and native share sheet triggers. Zero-install browser join requiring only a display name. Real-time Cloudflare Durable Object signaling, peer mesh WebRTC audio, synchronized in-room text chat, and automated 24-hour expiration.",
+          "Secret Vault for Locked Chats (v5.7.8): Biometric fingerprint & Face Unlock guarded chat vault with hardware Keystore AES-256-GCM encryption. Disguise mode masking the vault under a functional Calculator with duress PIN support.",
+          "Hold-to-Send Silent & Whisper Messages (v5.7.8): Long-press send button pop-up offering Normal, Silent (bypasses sound/vibration while delivering notifications), and Whisper (blurred preview with 10-second view-once auto-destruct timer).",
           "60fps Animated Search Engine & Zero-Jitter Filtering (v5.7.7): Seamless focus morph header collapse (220ms ease-out) and spring-animated sliding Cancel button (stiffness 380, damping 30). Active glow border, accent icon tinting, and pop-in clear button with haptic feedback. Two-tier search engine combining instant memoized local filtering with 300ms debounced cloud search for deep message history with 16px inline spinner. Recent search pills row with 1-tap clear, quick category filter chips (All, People, Messages, Channels), and exact substring match highlighting with tinted background. In-chat & workspace channel inline search bar with live match counter, stepper navigation, automatic smooth list scrolling, and 1.2s accent glow pulse around matched messages.",
           "WebRTC Voice Call Architecture & Real TURN Credential Relay (v5.7.6): Stripped complex AudioContext and GainNode wrapping on remote streams to completely prevent Android audio silence and native C++ crashes. Enforced direct native WebRTC playout, configured Cloudflare TURN credentials with TCP/TLS 443 relay, and added live call diagnostics telemetry pill.",
           "Hardware-Backed Persistent Device ID, Backend Session Upsert & Clean UI Deduplication (v5.7.5): Resolved critical session duplication bug where logging in on the same physical phone (e.g., Vivo V2307) created multiple active sessions (4 ACTIVE) on app restarts, token refreshes, or mobile IP changes. Implemented persistent client deviceId combining KeyStore-backed SecureStorageManager and Android ID that stays identical across reboots and network switches. Added device_id column and index on user_sessions in Cloudflare D1. Backend recordUserSession performs an UPSERT on (userId, deviceId) to update IP, location, and timestamps in place instead of creating duplicate records, and automatically prunes stale duplicate records. Added idempotency debounce/mutex on client session fetching to eliminate double-writes on app mount. Polished Session Management UI in ProfileScreen by removing double-nested bordered card wrappers, grouping device metadata into a unified subtitle (Android 15 • Smartphone), and masking long IPv6 addresses.",
@@ -2465,14 +2479,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Full PDF editor & creative image editor with typography matching",
         description: "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         category: "Productivity",
-        version_name: "1.9.0",
-        version_code: 26,
-        size_bytes: 67672244,
+        version_name: "1.9.1",
+        version_code: 27,
+        size_bytes: 67688624,
         size_formatted: "64.5 MB",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
         accent_color: "#EF4444",
         changelog: [
+          "Image Text Replacement & Opaque Background Erase Patch: Enforced strict 3-layer rendering order in both live preview and high-res export canvas (Base image -> 100% Opaque Erase Patch expanded by 3.5px -> Replacement text), completely preventing old OCR letters from peeking underneath; robust full-resolution bitmap border ring background sampling with vertical linear gradient transition when perimeter colors vary; interactive dual-swatch color picker popover in bottom style bar (Text Color & Background Fill with live Eyedropper sampling); clean OCR overlays with ultra-subtle outlines and auto-hiding unselected boxes during editing; floating + Add Text button intelligently hidden while style bar is active; letter spacing safely clamped to prevent text crushing.",
           "My Documents File Management System: Complete high-craft Obsidian file manager on Home screen with zero-clutter adaptive header (hidden controls when empty, muted count pill with 0ms inline search morph and compact filter/sort chips when populated); scannable 16px-radius #13161F document cards with 60fps lossy WebP cached page thumbnails, format badges (PDF, PNG, JPG), bold truncated titles, and single overflow ⋮ action; 1-tap direct editing into PDF Editor or Creative Image Editor; 24px top-radius contextual bottom sheet with safe rename (locked extension badge & path sanitization), 1-tap duplicate, system share, MediaStore Downloads export (Downloads/PDF Studio), and 4-second undo snackbar deletion; fluid long-press multi-select mode with floating bottom action dock for batch Merge PDFs (2+ PDFs), batch To PDF (1+ Images), batch Share, and guarded Batch Delete; background self-healing verification silently purging orphaned thumbnails and leftover temp files.",
           "Photos to PDF Visual Page Grid: Zero-friction entry with immediate native multi-image picker and borderless fallback screen; responsive 2-column WYSIWYG page grid framed in target aspect ratio (Fit Image, A4, Letter); clutter-free card overlays with live page number pill and quick ✕ remove; 60fps fluid drag-to-reorder with tactile haptic tick; quick tap page actions (Rotate 90°, Clean Doc contrast pass, Remove); progressive disclosure Layout Bottom Sheet; bottom dock with + Add pill and Create PDF handoff to Save Sheet.",
           "Merge PDFs Tactile File Stack: Smart source picker supporting quick-pick from My Documents with multi-select checkboxes and native device file browsing; tactile vertical file stack with 6-dot instant drag handle (⋮⋮), crisp first-page thumbnails, single-line truncated titles, and 3-second undo snackbar; optional inline Page Range Picker (All pages or custom comma-separated range with live validation); live summary status line; bottom dock with + Add PDF and Merge PDFs primary action.",
