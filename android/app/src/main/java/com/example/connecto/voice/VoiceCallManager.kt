@@ -459,58 +459,76 @@ object VoiceCallManager {
     }
 
     fun onAppForegrounded() {
-        isAppInForeground = true
-        Log.d(TAG, "onAppForegrounded: Emitting PRESENCE_UPDATE online and starting 25s heartbeats")
-        val user = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
-        if (user.isNotBlank()) {
-            setUserPresence(user, true)
-            try {
-                val presenceJson = JSONObject().apply {
-                    put("type", "presence_update")
-                    put("action", "presence_update")
-                    put("username", user)
-                    put("status", "online")
-                    put("is_online", true)
-                    put("foreground", true)
-                    put("timestamp", System.currentTimeMillis())
+        try {
+            isAppInForeground = true
+            Log.d(TAG, "onAppForegrounded: Emitting PRESENCE_UPDATE online and starting 25s heartbeats")
+            val user = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+            val token = ConnectoApiClient.sessionToken ?: ""
+            if (user.isNotBlank() && user != "user" && user != "guest" && token.isNotBlank()) {
+                setUserPresence(user, true)
+                if (isWsConnected && webSocket != null) {
+                    try {
+                        val presenceJson = JSONObject().apply {
+                            put("type", "presence_update")
+                            put("action", "presence_update")
+                            put("username", user)
+                            put("status", "online")
+                            put("is_online", true)
+                            put("foreground", true)
+                            put("timestamp", System.currentTimeMillis())
+                        }
+                        webSocket?.send(presenceJson.toString())
+                    } catch (e: Throwable) {
+                        Log.e(TAG, "Error sending online presence over WS: ${e.message}")
+                    }
                 }
-                sendWsMessage(presenceJson)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error sending online presence over WS: ${e.message}")
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        ConnectoApiClient.setPresenceOnline(user)
+                    } catch (_: Throwable) {}
+                }
+                startForegroundHeartbeat()
             }
-            scope.launch(Dispatchers.IO) {
-                ConnectoApiClient.setPresenceOnline(user)
-            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "onAppForegrounded error: ${t.message}")
         }
-        startForegroundHeartbeat()
     }
 
     fun onAppBackgrounded() {
-        isAppInForeground = false
-        Log.d(TAG, "onAppBackgrounded: Emitting PRESENCE_UPDATE offline and pausing heartbeats")
-        stopForegroundHeartbeat()
-        val user = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
-        if (user.isNotBlank()) {
-            val now = System.currentTimeMillis()
-            setUserPresence(user, false, now)
-            try {
-                val presenceJson = JSONObject().apply {
-                    put("type", "presence_update")
-                    put("action", "presence_update")
-                    put("username", user)
-                    put("status", "offline")
-                    put("is_online", false)
-                    put("foreground", false)
-                    put("last_seen", now)
-                    put("timestamp", now)
+        try {
+            isAppInForeground = false
+            Log.d(TAG, "onAppBackgrounded: Emitting PRESENCE_UPDATE offline and pausing heartbeats")
+            stopForegroundHeartbeat()
+            val user = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+            val token = ConnectoApiClient.sessionToken ?: ""
+            if (user.isNotBlank() && user != "user" && user != "guest" && token.isNotBlank()) {
+                val now = System.currentTimeMillis()
+                setUserPresence(user, false, now)
+                if (isWsConnected && webSocket != null) {
+                    try {
+                        val presenceJson = JSONObject().apply {
+                            put("type", "presence_update")
+                            put("action", "presence_update")
+                            put("username", user)
+                            put("status", "offline")
+                            put("is_online", false)
+                            put("foreground", false)
+                            put("last_seen", now)
+                            put("timestamp", now)
+                        }
+                        webSocket?.send(presenceJson.toString())
+                    } catch (e: Throwable) {
+                        Log.e(TAG, "Error sending offline presence over WS: ${e.message}")
+                    }
                 }
-                sendWsMessage(presenceJson)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error sending offline presence over WS: ${e.message}")
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        ConnectoApiClient.setPresenceOffline(user)
+                    } catch (_: Throwable) {}
+                }
             }
-            scope.launch(Dispatchers.IO) {
-                ConnectoApiClient.setPresenceOffline(user)
-            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "onAppBackgrounded error: ${t.message}")
         }
     }
 
@@ -574,12 +592,13 @@ object VoiceCallManager {
     /** Send a typing_start event to the server for the given channel. */
     fun sendTypingStart(channelId: String, recipientUsername: String? = null) {
         val clean = channelId.trim().lowercase().removePrefix("#")
-        if (!isWsConnected || clean.isEmpty()) return
         val currentU = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+        val token = ConnectoApiClient.sessionToken ?: ""
+        if (!isWsConnected || webSocket == null || clean.isEmpty() || currentU.isEmpty() || currentU == "user" || currentU == "guest" || token.isEmpty()) return
         val targetU = recipientUsername?.trim()?.lowercase()?.removePrefix("@") ?: ""
         try {
             Log.d(TAG, "sendTypingStart: channel=$clean, recipient=$targetU, sender=$currentU")
-            sendWsMessage(JSONObject().apply {
+            val json = JSONObject().apply {
                 put("type", "typing_start")
                 put("action", "typing:start")
                 put("channel_id", clean)
@@ -593,19 +612,21 @@ object VoiceCallManager {
                     put("recipient", targetU)
                     put("target", targetU)
                 }
-            })
-        } catch (_: Exception) {}
+            }
+            webSocket?.send(json.toString())
+        } catch (_: Throwable) {}
     }
 
     /** Send a typing_stop event to the server for the given channel. */
     fun sendTypingStop(channelId: String, recipientUsername: String? = null) {
         val clean = channelId.trim().lowercase().removePrefix("#")
-        if (!isWsConnected || clean.isEmpty()) return
         val currentU = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+        val token = ConnectoApiClient.sessionToken ?: ""
+        if (!isWsConnected || webSocket == null || clean.isEmpty() || currentU.isEmpty() || currentU == "user" || currentU == "guest" || token.isEmpty()) return
         val targetU = recipientUsername?.trim()?.lowercase()?.removePrefix("@") ?: ""
         try {
             Log.d(TAG, "sendTypingStop: channel=$clean, recipient=$targetU, sender=$currentU")
-            sendWsMessage(JSONObject().apply {
+            val json = JSONObject().apply {
                 put("type", "typing_stop")
                 put("action", "typing:stop")
                 put("channel_id", clean)
@@ -619,8 +640,9 @@ object VoiceCallManager {
                     put("recipient", targetU)
                     put("target", targetU)
                 }
-            })
-        } catch (_: Exception) {}
+            }
+            webSocket?.send(json.toString())
+        } catch (_: Throwable) {}
     }
 
     // WebRTC Engine & Concurrency Controls

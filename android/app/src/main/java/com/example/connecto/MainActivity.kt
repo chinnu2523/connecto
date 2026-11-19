@@ -21,6 +21,10 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,6 +33,7 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -132,58 +137,47 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ConnectoNetworkHelper.installSecurityProvider(this)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            enableEdgeToEdge(
-                statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
-                navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-            )
-        } else {
-            window.statusBarColor = android.graphics.Color.parseColor("#000000")
-            window.navigationBarColor = android.graphics.Color.parseColor("#000000")
-        }
-        com.example.connecto.network.ConnectoApiClient.initSessionFromPrefs(this)
-        com.example.connecto.security.ScreenSecurityManager.init(this)
-        com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(this)
-        com.example.connecto.security.ScreenSecurityManager.registerListeners(this)
-        com.example.connecto.voice.ProximityScreenLockManager.updateActivity(this)
-        // Ensure legacy Connecto Active foreground notification is removed and its channel deleted
-        com.example.connecto.notifications.ConnectoRealtimeService.dismissConnectoActiveNotification(this)
-        // Schedule message purge on background IO thread (not in onOpen which blocks Main thread)
-        com.example.connecto.data.ConnectoDatabaseHelper.getInstance(this).schedulePurgeAsync()
-
-        // Subscribe to OS Process Lifecycle: Immediately updates presence across app minimization, screen locking, or app switching
-        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
-            override fun onStart(owner: LifecycleOwner) {
-                com.example.connecto.voice.VoiceCallManager.onAppForegrounded()
-            }
-            override fun onStop(owner: LifecycleOwner) {
-                com.example.connecto.voice.VoiceCallManager.onAppBackgrounded()
-            }
-        })
-
-        // Configure Coil image caching with memory & disk cache
         try {
-            val imageLoader = coil.ImageLoader.Builder(this)
-                .memoryCache {
-                    coil.memory.MemoryCache.Builder(this)
-                        .maxSizePercent(0.25)
-                        .build()
-                }
-                .diskCache {
-                    coil.disk.DiskCache.Builder()
-                        .directory(cacheDir.resolve("coil_image_cache"))
-                        .maxSizeBytes(50L * 1024 * 1024)
-                        .build()
-                }
-                .crossfade(true)
-                .build()
-            coil.Coil.setImageLoader(imageLoader)
-        } catch (e: Exception) {
-            // ignore
+            ConnectoNetworkHelper.installSecurityProvider(this)
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "installSecurityProvider failed: ${t.message}")
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+                    navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                )
+            } else {
+                window.statusBarColor = android.graphics.Color.parseColor("#000000")
+                window.navigationBarColor = android.graphics.Color.parseColor("#000000")
+            }
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "enableEdgeToEdge failed: ${t.message}")
+        }
+        try {
+            com.example.connecto.network.ConnectoApiClient.initSessionFromPrefs(this)
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "initSessionFromPrefs failed: ${t.message}")
+        }
+        try {
+            com.example.connecto.security.ScreenSecurityManager.init(this)
+            com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(this)
+            com.example.connecto.security.ScreenSecurityManager.registerListeners(this)
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "ScreenSecurityManager failed: ${t.message}")
+        }
+        try {
+            com.example.connecto.voice.ProximityScreenLockManager.updateActivity(this)
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "updateActivity failed: ${t.message}")
+        }
+        try {
+            handleIncomingIntent(intent)
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "handleIncomingIntent failed: ${t.message}")
         }
 
-        handleIncomingIntent(intent)
         setContent {
             ConnectoAppWrapper()
         }
@@ -257,15 +251,23 @@ class MainActivity : FragmentActivity() {
 
     override fun onStart() {
         super.onStart()
-        ConnectoNotificationManager.isAppInForeground = true
-        com.example.connecto.voice.VoiceCallManager.onAppForegrounded()
+        try {
+            ConnectoNotificationManager.isAppInForeground = true
+            com.example.connecto.voice.VoiceCallManager.onAppForegrounded()
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "onStart presence error: ${t.message}")
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        ConnectoNotificationManager.isAppInForeground = true
-        com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(this)
-        com.example.connecto.voice.ProximityScreenLockManager.updateActivity(this)
+        try {
+            ConnectoNotificationManager.isAppInForeground = true
+            com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(this)
+            com.example.connecto.voice.ProximityScreenLockManager.updateActivity(this)
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "onResume error: ${t.message}")
+        }
     }
 
     override fun onPause() {
@@ -274,14 +276,22 @@ class MainActivity : FragmentActivity() {
 
     override fun onStop() {
         super.onStop()
-        ConnectoNotificationManager.isAppInForeground = false
-        com.example.connecto.voice.VoiceCallManager.onAppBackgrounded()
+        try {
+            ConnectoNotificationManager.isAppInForeground = false
+            com.example.connecto.voice.VoiceCallManager.onAppBackgrounded()
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "onStop presence error: ${t.message}")
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        com.example.connecto.security.ScreenSecurityManager.unregisterListeners(this)
-        com.example.connecto.voice.ProximityScreenLockManager.stopMonitoring()
+        try {
+            com.example.connecto.security.ScreenSecurityManager.unregisterListeners(this)
+            com.example.connecto.voice.ProximityScreenLockManager.stopMonitoring()
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "onDestroy error: ${t.message}")
+        }
     }
 }
 
@@ -355,6 +365,129 @@ fun performCompleteSignOut(context: Context, userToSignOut: String?, isAccountDe
 }
 
 @Composable
+fun CrashLogBanner() {
+    val context = LocalContext.current
+    val crashPrefs = remember {
+        try {
+            context.getSharedPreferences("connecto_crash_prefs", Context.MODE_PRIVATE)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+    var crashLog by remember {
+        mutableStateOf(
+            try {
+                crashPrefs?.getString("last_crash_log", null)
+            } catch (_: Throwable) {
+                null
+            }
+        )
+    }
+
+    if (!crashLog.isNullOrBlank()) {
+        val nonNullLog = crashLog!!
+        var showFullDetails by remember { mutableStateOf(false) }
+
+        androidx.compose.material3.Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            color = Color(0xFF2A1010),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE53935).copy(alpha = 0.6f)),
+            tonalElevation = 6.dp
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    androidx.compose.material3.Text(
+                        text = "⚠️ App Crash Recovered",
+                        color = Color(0xFFFF8A80),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    androidx.compose.material3.TextButton(
+                        onClick = { showFullDetails = !showFullDetails },
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        androidx.compose.material3.Text(
+                            text = if (showFullDetails) "Hide" else "Details",
+                            color = Color(0xFFFFCCBC),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                val firstLine = nonNullLog.lines().firstOrNull() ?: nonNullLog
+                androidx.compose.material3.Text(
+                    text = firstLine,
+                    color = Color.White.copy(alpha = 0.88f),
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = if (showFullDetails) 12 else 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                if (showFullDetails) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    androidx.compose.material3.Surface(
+                        color = Color(0xFF140808),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        androidx.compose.material3.Text(
+                            text = nonNullLog,
+                            color = Color(0xFFFFCDD2),
+                            fontSize = 10.sp,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = {
+                            try {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                val clip = android.content.ClipData.newPlainText("Connecto Crash Log", nonNullLog)
+                                clipboard?.setPrimaryClip(clip)
+                                android.widget.Toast.makeText(context, "Crash log copied to clipboard!", android.widget.Toast.LENGTH_SHORT).show()
+                            } catch (t: Throwable) {
+                                android.widget.Toast.makeText(context, "Failed to copy: ${t.message}", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        androidx.compose.material3.Text("Copy Crash Log", fontSize = 11.sp, color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    androidx.compose.material3.Button(
+                        onClick = {
+                            try {
+                                crashPrefs?.edit()?.remove("last_crash_log")?.apply()
+                            } catch (_: Throwable) {}
+                            crashLog = null
+                        },
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        androidx.compose.material3.Text("Dismiss", fontSize = 11.sp, color = Color.White)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun ConnectoAppWrapper() {
     val context = LocalContext.current
     val sessionPrefs = remember { context.getSharedPreferences("connecto_session_prefs", Context.MODE_PRIVATE) }
@@ -374,48 +507,53 @@ fun ConnectoAppWrapper() {
     }
 
     ConnectoTheme(themeMode = currentThemeMode, glassTransparency = glassTransparency) {
-        ConnectoApp(
-            authenticatedUsername = authenticatedUsername,
-            onUsernameChange = { newUsername -> authenticatedUsername = newUsername },
-            currentThemeMode = currentThemeMode,
-            onSelectThemeMode = { newMode ->
-                currentThemeMode = newMode
-                if (newMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) {
-                    val saved = profilePrefs.getFloat("glass_transparency_$authenticatedUsername", -1.0f)
-                    if (saved in 0.0f..1.0f) {
-                        glassTransparency = saved
-                    } else {
-                        glassTransparency = 0.0f
+        Column(modifier = Modifier.fillMaxSize()) {
+            CrashLogBanner()
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                ConnectoApp(
+                    authenticatedUsername = authenticatedUsername,
+                    onUsernameChange = { newUsername -> authenticatedUsername = newUsername },
+                    currentThemeMode = currentThemeMode,
+                    onSelectThemeMode = { newMode ->
+                        currentThemeMode = newMode
+                        if (newMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) {
+                            val saved = profilePrefs.getFloat("glass_transparency_$authenticatedUsername", -1.0f)
+                            if (saved in 0.0f..1.0f) {
+                                glassTransparency = saved
+                            } else {
+                                glassTransparency = 0.0f
+                                profilePrefs.edit()
+                                    .putFloat("glass_transparency_$authenticatedUsername", 0.0f)
+                                    .apply()
+                            }
+                        }
                         profilePrefs.edit()
-                            .putFloat("glass_transparency_$authenticatedUsername", 0.0f)
+                            .putString("theme_mode_$authenticatedUsername", newMode.id)
+                            .putBoolean("dark_theme_$authenticatedUsername", newMode.isDark)
+                            .apply()
+                    },
+                    isDarkTheme = currentThemeMode.isDark,
+                    onToggleTheme = { isDark ->
+                        if (currentThemeMode.isDark != isDark) {
+                            val newMode = if (isDark) com.example.connecto.ui.designsystem.ThemeMode.NOIR else com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
+                            currentThemeMode = newMode
+                            profilePrefs.edit()
+                                .putString("theme_mode_$authenticatedUsername", newMode.id)
+                                .putBoolean("dark_theme_$authenticatedUsername", isDark)
+                                .apply()
+                        }
+                    },
+                    glassTransparency = glassTransparency,
+                    onChangeGlassTransparency = { newLevel ->
+                        val clamped = newLevel.coerceIn(0.0f, 1.0f)
+                        glassTransparency = clamped
+                        profilePrefs.edit()
+                            .putFloat("glass_transparency_$authenticatedUsername", clamped)
                             .apply()
                     }
-                }
-                profilePrefs.edit()
-                    .putString("theme_mode_$authenticatedUsername", newMode.id)
-                    .putBoolean("dark_theme_$authenticatedUsername", newMode.isDark)
-                    .apply()
-            },
-            isDarkTheme = currentThemeMode.isDark,
-            onToggleTheme = { isDark ->
-                if (currentThemeMode.isDark != isDark) {
-                    val newMode = if (isDark) com.example.connecto.ui.designsystem.ThemeMode.NOIR else com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
-                    currentThemeMode = newMode
-                    profilePrefs.edit()
-                        .putString("theme_mode_$authenticatedUsername", newMode.id)
-                        .putBoolean("dark_theme_$authenticatedUsername", isDark)
-                        .apply()
-                }
-            },
-            glassTransparency = glassTransparency,
-            onChangeGlassTransparency = { newLevel ->
-                val clamped = newLevel.coerceIn(0.0f, 1.0f)
-                glassTransparency = clamped
-                profilePrefs.edit()
-                    .putFloat("glass_transparency_$authenticatedUsername", clamped)
-                    .apply()
+                )
             }
-        )
+        }
     }
 }
 
@@ -567,26 +705,88 @@ fun ConnectoApp(
     }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        val isMaint = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            com.example.connecto.network.ConnectoApiClient.isServerInMaintenance()
+        try {
+            val isMaint = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                com.example.connecto.network.ConnectoApiClient.isServerInMaintenance()
+            }
+            if (isMaint) {
+                MainActivity.openMaintenanceScreen()
+            }
+        } catch (_: Throwable) {}
+
+        try {
+            VoiceCallManager.init(context)
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "VoiceCallManager.init failed: ${t.message}")
         }
-        if (isMaint) {
-            MainActivity.openMaintenanceScreen()
+        try {
+            ConnectoNotificationManager.init(context)
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "ConnectoNotificationManager.init failed: ${t.message}")
         }
-        VoiceCallManager.init(context)
-        ConnectoNotificationManager.init(context)
+
+        // Defer background service cleanup & database purge off-startup
+        try {
+            com.example.connecto.notifications.ConnectoRealtimeService.dismissConnectoActiveNotification(context)
+        } catch (_: Throwable) {}
+        try {
+            com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context).schedulePurgeAsync()
+        } catch (_: Throwable) {}
+
+        // Defer ProcessLifecycleOwner observer registration until after UI mount
+        try {
+            androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.addObserver(object : androidx.lifecycle.DefaultLifecycleObserver {
+                override fun onStart(owner: androidx.lifecycle.LifecycleOwner) {
+                    try {
+                        com.example.connecto.voice.VoiceCallManager.onAppForegrounded()
+                    } catch (t: Throwable) {
+                        android.util.Log.e("MainActivity", "ProcessLifecycle onStart error: ${t.message}")
+                    }
+                }
+                override fun onStop(owner: androidx.lifecycle.LifecycleOwner) {
+                    try {
+                        com.example.connecto.voice.VoiceCallManager.onAppBackgrounded()
+                    } catch (t: Throwable) {
+                        android.util.Log.e("MainActivity", "ProcessLifecycle onStop error: ${t.message}")
+                    }
+                }
+            })
+        } catch (t: Throwable) {
+            android.util.Log.e("MainActivity", "ProcessLifecycleObserver registration failed: ${t.message}")
+        }
+
+        // Configure Coil image caching with memory & disk cache
+        try {
+            val imageLoader = coil.ImageLoader.Builder(context)
+                .memoryCache {
+                    coil.memory.MemoryCache.Builder(context)
+                        .maxSizePercent(0.25)
+                        .build()
+                }
+                .diskCache {
+                    coil.disk.DiskCache.Builder()
+                        .directory(context.cacheDir.resolve("coil_image_cache"))
+                        .maxSizeBytes(50L * 1024 * 1024)
+                        .build()
+                }
+                .crossfade(true)
+                .build()
+            coil.Coil.setImageLoader(imageLoader)
+        } catch (_: Throwable) {}
 
         // Only prompt notification permission for a new user on their very first download/launch
-        val permissionPrefs = context.getSharedPreferences("connecto_permissions", Context.MODE_PRIVATE)
-        val hasPromptedFirstDownloadNotif = permissionPrefs.getBoolean("has_prompted_first_download_notification", false)
-        if (!hasPromptedFirstDownloadNotif) {
-            permissionPrefs.edit().putBoolean("has_prompted_first_download_notification", true).apply()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        try {
+            val permissionPrefs = context.getSharedPreferences("connecto_permissions", Context.MODE_PRIVATE)
+            val hasPromptedFirstDownloadNotif = permissionPrefs.getBoolean("has_prompted_first_download_notification", false)
+            if (!hasPromptedFirstDownloadNotif) {
+                permissionPrefs.edit().putBoolean("has_prompted_first_download_notification", true).apply()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
                 }
             }
-        }
+        } catch (_: Throwable) {}
     }
 
     // Fetch initial profile & avatar from production backend and ensure real-time WS + service are active

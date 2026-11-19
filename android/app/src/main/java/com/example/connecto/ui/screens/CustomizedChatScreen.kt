@@ -1,6 +1,7 @@
 package com.example.connecto.ui.screens
 
 import android.content.Context
+import kotlinx.coroutines.isActive
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -757,60 +758,68 @@ fun formatDynamicLastSeen(
     lastSeenStr: String? = null,
     tickTrigger: Long = 0L
 ): String? {
-    val ts = timestampMillis ?: try {
-        if (!lastSeenStr.isNullOrBlank()) {
-            val s = lastSeenStr.trim()
-            val cleanStr = if (s.contains(".")) s.substringBefore(".") else s.removeSuffix("Z")
-            val format = if (cleanStr.contains("T")) {
-                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
-                    timeZone = TimeZone.getTimeZone("UTC")
+    return try {
+        val ts = timestampMillis ?: try {
+            if (!lastSeenStr.isNullOrBlank()) {
+                val s = lastSeenStr.trim()
+                val cleanStr = if (s.contains(".")) s.substringBefore(".") else s.removeSuffix("Z")
+                val format = if (cleanStr.contains("T")) {
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+                        timeZone = TimeZone.getTimeZone("UTC")
+                    }
+                } else {
+                    SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).apply {
+                        timeZone = TimeZone.getTimeZone("UTC")
+                    }
                 }
-            } else {
-                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).apply {
-                    timeZone = TimeZone.getTimeZone("UTC")
-                }
-            }
-            format.parse(cleanStr)?.time
-        } else null
-    } catch (_: Exception) {
-        null
-    }
-
-    if (ts == null || ts <= 0L) return null
-
-    val now = System.currentTimeMillis()
-    val diffMs = now - ts
-    if (diffMs < 0L || diffMs < 60_000L) {
-        return "Last seen just now"
-    }
-    val diffMin = diffMs / 60_000L
-    if (diffMin < 60L) {
-        return "Last seen ${diffMin}m ago"
-    }
-
-    val calNow = Calendar.getInstance()
-    val calSeen = Calendar.getInstance().apply { timeInMillis = ts }
-
-    val isSameDay = calNow.get(Calendar.YEAR) == calSeen.get(Calendar.YEAR) &&
-            calNow.get(Calendar.DAY_OF_YEAR) == calSeen.get(Calendar.DAY_OF_YEAR)
-
-    calNow.add(Calendar.DAY_OF_YEAR, -1)
-    val isYesterday = calNow.get(Calendar.YEAR) == calSeen.get(Calendar.YEAR) &&
-            calNow.get(Calendar.DAY_OF_YEAR) == calSeen.get(Calendar.DAY_OF_YEAR)
-
-    val timeFormat = SimpleDateFormat("h:mm a", Locale.US)
-    return when {
-        isSameDay -> "Last seen today at ${timeFormat.format(Date(ts))}"
-        isYesterday -> "Last seen yesterday at ${timeFormat.format(Date(ts))}"
-        else -> {
-            val olderFormat = SimpleDateFormat("MMM d", Locale.US)
-            "Last seen ${olderFormat.format(Date(ts))}"
+                format.parse(cleanStr)?.time
+            } else null
+        } catch (_: Throwable) {
+            null
         }
+
+        if (ts == null || ts <= 0L) return null
+
+        val now = System.currentTimeMillis()
+        val diffMs = now - ts
+        if (diffMs < 0L || diffMs < 60_000L) {
+            return "Last seen just now"
+        }
+        val diffMin = diffMs / 60_000L
+        if (diffMin < 60L) {
+            return "Last seen ${diffMin}m ago"
+        }
+
+        val calNow = Calendar.getInstance()
+        val calSeen = Calendar.getInstance().apply { timeInMillis = ts }
+
+        val isSameDay = calNow.get(Calendar.YEAR) == calSeen.get(Calendar.YEAR) &&
+                calNow.get(Calendar.DAY_OF_YEAR) == calSeen.get(Calendar.DAY_OF_YEAR)
+
+        calNow.add(Calendar.DAY_OF_YEAR, -1)
+        val isYesterday = calNow.get(Calendar.YEAR) == calSeen.get(Calendar.YEAR) &&
+                calNow.get(Calendar.DAY_OF_YEAR) == calSeen.get(Calendar.DAY_OF_YEAR)
+
+        val timeFormat = SimpleDateFormat("h:mm a", Locale.US)
+        when {
+            isSameDay -> "Last seen today at ${timeFormat.format(Date(ts))}"
+            isYesterday -> "Last seen yesterday at ${timeFormat.format(Date(ts))}"
+            else -> {
+                val olderFormat = SimpleDateFormat("MMM d", Locale.US)
+                "Last seen ${olderFormat.format(Date(ts))}"
+            }
+        }
+    } catch (_: Throwable) {
+        null
     }
 }
 
 fun formatLastSeenRelative(timestampMillis: Long?, lastSeenStr: String? = null): String {
-    return formatDynamicLastSeen(timestampMillis, lastSeenStr) ?: "Offline • Direct Chat"
+    return try {
+        formatDynamicLastSeen(timestampMillis, lastSeenStr) ?: "Direct Chat"
+    } catch (_: Throwable) {
+        "Direct Chat"
+    }
 }
 
 fun evaluateIsUserOnline(
@@ -918,7 +927,7 @@ fun CustomizedChatScreen(
 
     var lastSeenTicker by remember { mutableStateOf(0L) }
     LaunchedEffect(selectedFriend?.id) {
-        while (true) {
+        while (isActive) {
             kotlinx.coroutines.delay(30_000L)
             lastSeenTicker = System.currentTimeMillis()
         }
@@ -2207,6 +2216,12 @@ fun CustomizedChatScreen(
                 } catch (_: Exception) {}
             }
             kotlinx.coroutines.delay(4000)
+            isFriendTyping = false
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
             isFriendTyping = false
         }
     }
