@@ -167,6 +167,10 @@ import com.example.connecto.data.WallpaperTransform
 import com.example.connecto.ui.components.WallpaperCustomizerDialog
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
+import com.example.connecto.ui.components.ConnectoLongPressFocusOverlay
 import androidx.compose.material.icons.filled.Tune
 import android.content.BroadcastReceiver
 import android.content.Intent
@@ -2017,6 +2021,7 @@ fun CustomizedChatScreen(
 
     // Message Context Action States (Pin, Edit, Delete via Contextual Header 3-Dots Menu)
     var selectedMessageForAction by remember { mutableStateOf<CustomMessageItem?>(null) }
+    val messageBoundsMap = remember { mutableStateMapOf<String, Rect>() }
     var showMoreOptionsMenu by remember { mutableStateOf(false) }
     var editingMessage by remember { mutableStateOf<CustomMessageItem?>(null) }
     var highlightedMessageId by remember { mutableStateOf<String?>(null) }
@@ -4536,7 +4541,15 @@ fun CustomizedChatScreen(
             .background(if (!isLight) Color(0xFF0A0B0E) else MaterialTheme.colorScheme.background)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (selectedMessageForAction != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                        Modifier.blur(8.dp)
+                    } else {
+                        Modifier
+                    }
+                )
         ) {
             // ========== TOP HEADER ==========
             if (isFriendProfileOpen && selectedFriend?.isGroup == false) {
@@ -6751,6 +6764,9 @@ fun CustomizedChatScreen(
                                                     isHighlighted = msg.id == highlightedMessageId,
                                                     recipientAvatarUrl = selectedFriend?.avatarUrl,
                                                     recipientName = selectedFriend?.name ?: "Friend",
+                                                    onBubblePositioned = { rect ->
+                                                        messageBoundsMap[msg.id] = rect
+                                                    },
                                                     onMessageClick = {
                                                         if (selectedMessageForAction != null) {
                                                             selectedMessageForAction = if (selectedMessageForAction?.id == msg.id) null else msg
@@ -6890,28 +6906,6 @@ fun CustomizedChatScreen(
                                 }
                                 } // end DisableSelection
                                 }
-                            }
-
-                            // Long-Press Backdrop Dimming: Translucent dark backdrop overlay behind selected message & floating menus
-                            androidx.compose.animation.AnimatedVisibility(
-                                visible = selectedMessageForAction != null,
-                                enter = fadeIn(animationSpec = tween(180)),
-                                exit = fadeOut(animationSpec = tween(150)),
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .zIndex(5f)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.55f))
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) {
-                                            selectedMessageForAction = null
-                                        }
-                                )
                             }
 
                             // Floating "Scroll to Bottom" FAB (Bottom-Right corner: right 16px, 12px above chips/input dock)
@@ -7697,6 +7691,167 @@ fun CustomizedChatScreen(
                 } // end when (screenState)
             }
         }
+
+        // Full-Screen Root Portal Modal Layer (zIndex: 999) for Long-Press Message Focus
+        val activeSelectedMsg = selectedMessageForAction
+        ConnectoLongPressFocusOverlay(
+            visible = activeSelectedMsg != null,
+            bubbleBounds = activeSelectedMsg?.let { messageBoundsMap[it.id] },
+            isMe = activeSelectedMsg?.isMe == true,
+            isLight = isLight,
+            onDismiss = { selectedMessageForAction = null },
+            onReact = { emoji ->
+                activeSelectedMsg?.let { targetMsg ->
+                    val currentUid = (ConnectoApiClient.currentUserId ?: currentUsername).trim().lowercase()
+                    val currentUname = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@").lowercase()
+                    val prevMap = targetMsg.reactions
+                    val newMap = prevMap.toMutableMap()
+                    val userList = (newMap[emoji] ?: emptyList()).toMutableList()
+                    val hasReacted = userList.any {
+                        val cu = it.trim().removePrefix("@").lowercase()
+                        cu == currentUname || (currentUid.isNotBlank() && cu == currentUid)
+                    }
+                    if (hasReacted) {
+                        userList.removeAll {
+                            val cu = it.trim().removePrefix("@").lowercase()
+                            cu == currentUname || (currentUid.isNotBlank() && cu == currentUid)
+                        }
+                    } else {
+                        userList.add(if (currentUid.isNotBlank()) currentUid else currentUname)
+                    }
+                    if (userList.isEmpty()) {
+                        newMap.remove(emoji)
+                    } else {
+                        newMap[emoji] = userList
+                    }
+                    val primaryReaction = newMap.keys.firstOrNull()
+
+                    // OPTIMISTIC UPDATE: Instant 0ms Compose state update
+                    friendMessages = friendMessages.map { m ->
+                        if (m.id == targetMsg.id) m.copy(reactions = newMap, reaction = primaryReaction) else m
+                    }
+                    selectedMessageForAction = null
+
+                    val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) (selectedFriend?.id ?: "") else getCanonicalChatId(selectedFriend))
+                    val recipientU = selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.name?.removePrefix("@")
+                    VoiceCallManager.sendReactionToggled(
+                        messageId = targetMsg.id,
+                        emoji = emoji,
+                        userId = if (currentUid.isNotBlank()) currentUid else currentUname,
+                        channelId = targetChan.ifBlank { null },
+                        recipientUsername = recipientU
+                    )
+
+                    coroutineScope.launch(Dispatchers.IO) {
+                        try {
+                            dbHelper.updateMessageReaction(targetMsg.id, primaryReaction)
+                        } catch (_: Exception) {}
+                    }
+                    coroutineScope.launch {
+                        try {
+                            ConnectoApiClient.reactToMessage(
+                                messageId = targetMsg.id,
+                                emoji = emoji,
+                                channelId = targetChan.ifBlank { null }
+                            )
+                        } catch (_: Exception) {}
+                    }
+                }
+            },
+            onOpenFullEmojiSheet = {
+                showFullEmojiDialogForMessage = activeSelectedMsg
+                selectedMessageForAction = null
+            },
+            actions = {
+                val clipboard = LocalClipboardManager.current
+                if (activeSelectedMsg != null) {
+                    ActionMenuItem(
+                        icon = Icons.AutoMirrored.Filled.Reply,
+                        label = "Reply",
+                        color = if (isLight) Color(0xFF0F172A) else Color.White,
+                        onClick = {
+                            editingMessage = null
+                            replyingTo = activeSelectedMsg
+                            selectedMessageForAction = null
+                            try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
+                        }
+                    )
+                    ActionMenuItem(
+                        icon = Icons.Default.ContentCopy,
+                        label = "Copy",
+                        color = if (isLight) Color(0xFF0F172A) else Color.White,
+                        onClick = {
+                            clipboard.setText(AnnotatedString(activeSelectedMsg.content))
+                            Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                            selectedMessageForAction = null
+                        }
+                    )
+                    if (activeSelectedMsg.isMe && !activeSelectedMsg.isRead) {
+                        ActionMenuItem(
+                            icon = Icons.Default.Edit,
+                            label = "Edit",
+                            color = if (isLight) Color(0xFF0F172A) else Color.White,
+                            onClick = {
+                                replyingTo = null
+                                editingMessage = activeSelectedMsg
+                                typedMessage = activeSelectedMsg.content
+                                selectedMessageForAction = null
+                                try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
+                            }
+                        )
+                    }
+                    if (activeSelectedMsg.isMe) {
+                        ActionMenuItem(
+                            icon = Icons.Default.Delete,
+                            label = "Unsend",
+                            color = Color(0xFFEF4444),
+                            onClick = {
+                                val msgId = activeSelectedMsg.id
+                                val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) (selectedFriend?.id ?: "") else getCanonicalChatId(selectedFriend))
+                                friendMessages = friendMessages.filterNot { it.id == msgId }
+                                selectedMessageForAction = null
+
+                                val deletedSet = friendPrefs.getStringSet("deleted_for_me_$myUsername", emptySet())?.toMutableSet() ?: mutableSetOf()
+                                deletedSet.add(msgId)
+                                friendPrefs.edit().putStringSet("deleted_for_me_$myUsername", deletedSet).apply()
+
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    try { dbHelper.deleteMessage(msgId) } catch (_: Exception) {}
+                                }
+                                coroutineScope.launch {
+                                    try {
+                                        ConnectoApiClient.deleteMessage(msgId, targetChan.ifBlank { null })
+                                        ConnectoApiClient.deleteMessageForMe(msgId, myUsername)
+                                    } catch (_: Exception) {}
+                                }
+                                Toast.makeText(context, "Message unsent", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    }
+                }
+            },
+            bubbleContent = {
+                if (activeSelectedMsg != null) {
+                    CustomChatBubble(
+                        message = activeSelectedMsg,
+                        ownBg = ownBubbleBg,
+                        ownText = ownBubbleText,
+                        friendBg = friendBubbleBg,
+                        friendBorder = friendBubbleBorder,
+                        friendText = friendBubbleText,
+                        isSelected = false,
+                        showAvatar = false,
+                        showSenderName = false,
+                        isLatestRead = false,
+                        isHighlighted = false,
+                        recipientAvatarUrl = selectedFriend?.avatarUrl,
+                        recipientName = selectedFriend?.name ?: "Friend",
+                        onMessageClick = { selectedMessageForAction = null },
+                        onMessageLongPress = {}
+                    )
+                }
+            }
+        )
     }
 
 }
@@ -7756,6 +7911,7 @@ fun CustomChatBubble(
     onUnsendClick: (() -> Unit)? = null,
     onQuotedMessageClick: ((String) -> Unit)? = null,
     onOpenFullEmojiSheet: ((CustomMessageItem) -> Unit)? = null,
+    onBubblePositioned: ((Rect) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
@@ -7822,84 +7978,6 @@ fun CustomChatBubble(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
                     modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
                 )
-            }
-
-            // ========== TOP FLOATING PILL (ABOVE BUBBLE) ==========
-            AnimatedVisibility(
-                visible = isSelected,
-                enter = scaleIn(animationSpec = spring(dampingRatio = 0.65f, stiffness = 420f), initialScale = 0.7f) + fadeIn(animationSpec = tween(140)),
-                exit = scaleOut(targetScale = 0.7f) + fadeOut(animationSpec = tween(120))
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .padding(bottom = 6.dp)
-                        .height(46.dp)
-                        .shadow(8.dp, RoundedCornerShape(24.dp))
-                        .clip(RoundedCornerShape(24.dp)),
-                    color = if (isLight) Color(0xFFFFFFFF) else Color(0xFF181B24),
-                    shape = RoundedCornerShape(24.dp),
-                    border = BorderStroke(1.dp, if (isLight) Color(0x14000000) else Color(0x1FFFFFFF))
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp)
-                            .fillMaxHeight(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        val quickEmojis = listOf("❤️", "🔥", "😂", "👍", "😮", "😢")
-                        quickEmojis.forEachIndexed { idx, emoji ->
-                            var visible by remember { mutableStateOf(false) }
-                            LaunchedEffect(Unit) {
-                                delay(idx * 28L)
-                                visible = true
-                            }
-                            val scale by animateFloatAsState(
-                                targetValue = if (visible) 1f else 0.4f,
-                                animationSpec = spring(dampingRatio = 0.6f, stiffness = 450f),
-                                label = "popScale"
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .graphicsLayer {
-                                        scaleX = scale
-                                        scaleY = scale
-                                    }
-                                    .clip(CircleShape)
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null
-                                    ) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        onReact?.invoke(message, emoji)
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(text = emoji, fontSize = 17.sp)
-                            }
-                        }
-
-                        // Trailing '+' icon button to open full emoji sheet
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(if (isLight) Color(0x0D000000) else Color(0x1FFFFFFF))
-                                .clickable {
-                                    onOpenFullEmojiSheet?.invoke(message)
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "All reactions",
-                                tint = if (isLight) Color(0xFF475569) else Color(0xFFCBD5E1),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                }
             }
 
             val isGlassTheme = ConnectoTheme.isGlass
@@ -7985,20 +8063,19 @@ fun CustomChatBubble(
                     )
             }
 
-            val selectionBorder = if (isSelected) {
-                Modifier
-                    .border(2.dp, MaterialTheme.colorScheme.primary, bubbleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), bubbleShape)
-            } else Modifier
-
             val pulseModifier = if (pulseAlpha > 0f) {
                 Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = pulseAlpha), bubbleShape)
             } else Modifier
 
             Box(
                 modifier = bubbleModifier
-                    .then(selectionBorder)
                     .then(pulseModifier)
+                    .graphicsLayer {
+                        if (isSelected) alpha = 0f
+                    }
+                    .onGloballyPositioned { coords ->
+                        onBubblePositioned?.invoke(coords.boundsInRoot())
+                    }
                     .pointerInput(message.id) {
                         detectTapGestures(
                             onTap = {
@@ -8193,58 +8270,6 @@ fun CustomChatBubble(
                                     )
                                 }
                             }
-                        }
-                    }
-                }
-            }
-
-            // ========== BOTTOM ACTION MENU (BELOW BUBBLE) ==========
-            AnimatedVisibility(
-                visible = isSelected,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .padding(top = 4.dp)
-                        .shadow(8.dp, RoundedCornerShape(14.dp))
-                        .clip(RoundedCornerShape(14.dp)),
-                    color = if (isLight) Color(0xFFFFFFFF) else Color(0xFF181B24),
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, if (isLight) Color(0x14000000) else Color(0x1FFFFFFF))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        ActionMenuItem(
-                            icon = Icons.AutoMirrored.Filled.Reply,
-                            label = "Reply",
-                            color = if (isLight) Color(0xFF0F172A) else Color.White,
-                            onClick = { onReplyClick?.invoke() }
-                        )
-                        ActionMenuItem(
-                            icon = Icons.Default.ContentCopy,
-                            label = "Copy",
-                            color = if (isLight) Color(0xFF0F172A) else Color.White,
-                            onClick = { onCopyClick?.invoke() }
-                        )
-                        if (message.isMe && !message.isRead) {
-                            ActionMenuItem(
-                                icon = Icons.Default.Edit,
-                                label = "Edit",
-                                color = if (isLight) Color(0xFF0F172A) else Color.White,
-                                onClick = { onEditClick?.invoke() }
-                            )
-                        }
-                        if (message.isMe) {
-                            ActionMenuItem(
-                                icon = Icons.Default.Delete,
-                                label = "Unsend",
-                                color = Color(0xFFEF4444),
-                                onClick = { onUnsendClick?.invoke() }
-                            )
                         }
                     }
                 }

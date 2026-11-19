@@ -17,6 +17,11 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
+import com.example.connecto.ui.components.ConnectoLongPressFocusOverlay
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
@@ -335,6 +340,7 @@ fun ChannelsWorkspaceScreen(
     var messageForAction by remember { mutableStateOf<MessageDto?>(null) }
     var showMessageActionDialog by remember { mutableStateOf(false) }
     var selectedMessageForAction by remember { mutableStateOf<MessageDto?>(null) }
+    val channelMessageBoundsMap = remember { mutableStateMapOf<String, Rect>() }
     var showMoreOptionsMenu by remember { mutableStateOf(false) }
     var editingMessage by remember { mutableStateOf<MessageDto?>(null) }
 
@@ -971,178 +977,18 @@ fun ChannelsWorkspaceScreen(
                 )
         ) {
             Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // ================= STANDARDIZED TOP HEADER BAR / SELECTION HEADER =================
-                val activeSelMsg = selectedMessageForAction
-                if (activeSelMsg != null) {
-                    val selMsg = activeSelMsg
-                    val isMyMsg = remember(selMsg, currentUsername) {
-                        val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
-                        val myDisplay = (ConnectoApiClient.currentUserDisplayName ?: "").trim().lowercase().removePrefix("@")
-                        val myUserId = (ConnectoApiClient.currentUserId ?: "").trim().lowercase()
-                        val authorClean = selMsg.authorId.trim().lowercase().removePrefix("@")
-                        val authorNameClean = selMsg.authorName.trim().lowercase().removePrefix("@")
-                        (myUser.isNotBlank() && (authorClean == myUser || authorNameClean == myUser)) ||
-                        (myDisplay.isNotBlank() && (authorClean == myDisplay || authorNameClean == myDisplay)) ||
-                        (myUserId.isNotBlank() && (authorClean == myUserId || authorNameClean == myUserId || selMsg.authorId.equals(myUserId, ignoreCase = true)))
-                    }
-                    val isPinned = pinnedMessageForChannel?.messageId == selMsg.id
-
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding(),
-                        color = if (colors.isDark) Color(0xFF13151B) else colors.surface,
-                        tonalElevation = 4.dp
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp)
-                                .padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(
-                                onClick = { selectedMessageForAction = null }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Close Selection",
-                                    tint = colors.textPrimary
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "1 selected",
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textPrimary
-                            )
-                            Spacer(modifier = Modifier.weight(1f))
-
-                            // Right side 3-dots button
-                            Box {
-                                IconButton(
-                                    onClick = { showMoreOptionsMenu = true }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.MoreVert,
-                                        contentDescription = "Message Options",
-                                        tint = colors.textPrimary
-                                    )
-                                }
-
-                                DropdownMenu(
-                                    expanded = showMoreOptionsMenu,
-                                    onDismissRequest = { showMoreOptionsMenu = false },
-                                    modifier = Modifier.background(if (colors.isDark) Color(0xFF1E2029) else Color.White)
-                                ) {
-                                    // 1. Pin / Unpin
-                                    DropdownMenuItem(
-                                        text = { Text(if (isPinned) "Unpin" else "Pin", color = colors.textPrimary) },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = Icons.Default.PushPin,
-                                                contentDescription = null,
-                                                tint = colors.primary
-                                            )
-                                        },
-                                        onClick = {
-                                            showMoreOptionsMenu = false
-                                            if (isGuest) {
-                                                selectedMessageForAction = null
-                                                Toast.makeText(context, "Sign in to pin messages for other users", Toast.LENGTH_SHORT).show()
-                                                return@DropdownMenuItem
-                                            }
-                                            val cleanCh = activeChip.id.trim().lowercase().removePrefix("#")
-                                            if (isPinned) {
-                                                pinnedMessageForChannel = null
-                                                sharedPrefs.edit()
-                                                    .remove("pinned_msg_ch_$cleanCh")
-                                                    .remove("pinned_content_ch_$cleanCh")
-                                                    .remove("pinned_author_ch_$cleanCh")
-                                                    .apply()
-                                                coroutineScope.launch { ConnectoApiClient.unpinMessage(cleanCh) }
-                                            } else {
-                                                pinnedMessageForChannel = PinnedMessageDto(
-                                                    messageId = selMsg.id,
-                                                    channelId = cleanCh,
-                                                    authorName = selMsg.authorName.ifBlank { selMsg.authorId },
-                                                    content = selMsg.content,
-                                                    pinnedBy = currentUsername,
-                                                    pinnedAt = System.currentTimeMillis().toString()
-                                                )
-                                                sharedPrefs.edit()
-                                                    .putString("pinned_msg_ch_$cleanCh", selMsg.id)
-                                                    .putString("pinned_content_ch_$cleanCh", selMsg.content)
-                                                    .putString("pinned_author_ch_$cleanCh", selMsg.authorName.ifBlank { selMsg.authorId })
-                                                    .apply()
-                                                coroutineScope.launch { ConnectoApiClient.pinMessage(cleanCh, selMsg.id, currentUsername) }
-                                            }
-                                            selectedMessageForAction = null
-                                        }
-                                    )
-
-                                    // 2. Edit (only for own message)
-                                    if (isMyMsg) {
-                                        DropdownMenuItem(
-                                            text = { Text("Edit", color = colors.textPrimary) },
-                                            leadingIcon = {
-                                                Icon(
-                                                    imageVector = Icons.Default.Edit,
-                                                    contentDescription = null,
-                                                    tint = colors.primary
-                                                )
-                                            },
-                                            onClick = {
-                                                showMoreOptionsMenu = false
-                                                editingMessage = selMsg
-                                                typedMessage = selMsg.content
-                                                selectedMessageForAction = null
-                                            }
-                                        )
-                                    }
-
-                                    // 3. Delete (only for own message)
-                                    if (isMyMsg) {
-                                        DropdownMenuItem(
-                                            text = { Text("Delete", color = Color(0xFFEF4444)) },
-                                            leadingIcon = {
-                                                Icon(
-                                                    imageVector = Icons.Default.Delete,
-                                                    contentDescription = null,
-                                                    tint = Color(0xFFEF4444)
-                                                )
-                                            },
-                                            onClick = {
-                                                showMoreOptionsMenu = false
-                                                val msgId = selMsg.id
-                                                val cleanCh = activeChip.id.trim().lowercase().removePrefix("#")
-                                                messages.removeAll { it.id == msgId }
-                                                if (pinnedMessageForChannel?.messageId == msgId) {
-                                                    pinnedMessageForChannel = null
-                                                    sharedPrefs.edit()
-                                                        .remove("pinned_msg_ch_$cleanCh")
-                                                        .remove("pinned_content_ch_$cleanCh")
-                                                        .remove("pinned_author_ch_$cleanCh")
-                                                        .apply()
-                                                }
-                                                coroutineScope.launch(Dispatchers.IO) {
-                                                    dbHelper.deleteMessage(msgId)
-                                                    ConnectoApiClient.deleteMessage(msgId, cleanCh)
-                                                }
-                                                selectedMessageForAction = null
-                                            }
-                                        )
-                                    }
-                                }
-                            }
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (selectedMessageForAction != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                            Modifier.blur(8.dp)
+                        } else {
+                            Modifier
                         }
-                    }
-                } else {
-                    // ================= DEDICATED CHANNEL WORKSPACE NAVIGATION BAR =================
-                    Surface(
+                    )
+            ) {
+                // ================= DEDICATED CHANNEL WORKSPACE NAVIGATION BAR =================
+                Surface(
                         modifier = Modifier.fillMaxWidth().statusBarsPadding(),
                         color = if (colors.isLiquidGlass) {
                             val alpha = colors.glassAlpha
@@ -1465,7 +1311,6 @@ fun ChannelsWorkspaceScreen(
                             )
                         }
                     }
-                }
 
                 // ================= CHANNEL INFO DIALOG =================
                 if (showChannelInfoDialog) {
@@ -2058,6 +1903,9 @@ fun ChannelsWorkspaceScreen(
                                                 },
                                                 isSelected = selectedMessageForAction?.id == msg.id,
                                                 isHighlighted = msg.id == highlightedMessageId,
+                                                onBubblePositioned = { rect ->
+                                                    channelMessageBoundsMap[msg.id] = rect
+                                                },
                                                 onReply = {
                                                     replyingTo = msg
                                                     selectedMessageForAction = null
@@ -2703,6 +2551,195 @@ fun ChannelsWorkspaceScreen(
             }
 
         }
+
+        // Full-Screen Root Portal Modal Layer (zIndex: 999) for Long-Press Message Focus
+        val activeSelMsg = selectedMessageForAction
+        val isMySelectedMsg = remember(activeSelMsg, currentUsername) {
+            val sel = activeSelMsg
+            if (sel == null) false else {
+                val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
+                val myDisplay = (ConnectoApiClient.currentUserDisplayName ?: "").trim().lowercase().removePrefix("@")
+                val myUserId = (ConnectoApiClient.currentUserId ?: "").trim().lowercase()
+                val authorClean = sel.authorId.trim().lowercase().removePrefix("@")
+                val authorNameClean = sel.authorName.trim().lowercase().removePrefix("@")
+                (myUser.isNotBlank() && (authorClean == myUser || authorNameClean == myUser)) ||
+                (myDisplay.isNotBlank() && (authorClean == myDisplay || authorNameClean == myDisplay)) ||
+                (myUserId.isNotBlank() && (authorClean == myUserId || authorNameClean == myUserId || sel.authorId.equals(myUserId, ignoreCase = true)))
+            }
+        }
+        val isSelectedPinned = pinnedMessageForChannel?.messageId == activeSelMsg?.id
+
+        ConnectoLongPressFocusOverlay(
+            visible = activeSelMsg != null,
+            bubbleBounds = activeSelMsg?.let { channelMessageBoundsMap[it.id] },
+            isMe = isMySelectedMsg,
+            isLight = !colors.isDark,
+            onDismiss = { selectedMessageForAction = null },
+            onReact = { emoji ->
+                activeSelMsg?.let { msg ->
+                    val myUid = (ConnectoApiClient.currentUserId ?: currentUsername).trim().lowercase()
+                    val myUname = currentUsername.trim().lowercase()
+                    val curMap = (channelReactions[msg.id] ?: emptyMap()).toMutableMap()
+                    val uList = (curMap[emoji] ?: emptyList()).toMutableList()
+                    val hadReacted = uList.any {
+                        val cu = it.trim().lowercase()
+                        cu == myUname || (myUid.isNotBlank() && cu == myUid)
+                    }
+                    if (hadReacted) {
+                        uList.removeAll {
+                            val cu = it.trim().lowercase()
+                            cu == myUname || (myUid.isNotBlank() && cu == myUid)
+                        }
+                    } else {
+                        uList.add(if (myUid.isNotBlank()) myUid else myUname)
+                    }
+                    if (uList.isEmpty()) {
+                        curMap.remove(emoji)
+                    } else {
+                        curMap[emoji] = uList
+                    }
+                    channelReactions[msg.id] = curMap
+                    selectedMessageForAction = null
+
+                    val cleanCh = cleanSelectedChannel
+                    VoiceCallManager.sendReactionToggled(
+                        messageId = msg.id,
+                        emoji = emoji,
+                        userId = if (myUid.isNotBlank()) myUid else myUname,
+                        channelId = cleanCh
+                    )
+                    coroutineScope.launch {
+                        try {
+                            ConnectoApiClient.reactToMessage(
+                                messageId = msg.id,
+                                emoji = emoji,
+                                channelId = cleanCh
+                            )
+                        } catch (_: Exception) {}
+                    }
+                }
+            },
+            onOpenFullEmojiSheet = {
+                showFullEmojiDialogForMessage = activeSelMsg
+                selectedMessageForAction = null
+            },
+            actions = {
+                val clipboard = LocalClipboardManager.current
+                if (activeSelMsg != null) {
+                    ActionMenuItem(
+                        icon = Icons.AutoMirrored.Filled.Reply,
+                        label = "Reply",
+                        color = if (!colors.isDark) Color(0xFF0F172A) else Color.White,
+                        onClick = {
+                            replyingTo = activeSelMsg
+                            selectedMessageForAction = null
+                            try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
+                        }
+                    )
+                    ActionMenuItem(
+                        icon = Icons.Default.ContentCopy,
+                        label = "Copy",
+                        color = if (!colors.isDark) Color(0xFF0F172A) else Color.White,
+                        onClick = {
+                            clipboard.setText(AnnotatedString(activeSelMsg.content))
+                            Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                            selectedMessageForAction = null
+                        }
+                    )
+                    if (isMySelectedMsg) {
+                        ActionMenuItem(
+                            icon = Icons.Default.Edit,
+                            label = "Edit",
+                            color = if (!colors.isDark) Color(0xFF0F172A) else Color.White,
+                            onClick = {
+                                editingMessage = activeSelMsg
+                                typedMessage = activeSelMsg.content
+                                selectedMessageForAction = null
+                                try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
+                            }
+                        )
+                    }
+                    ActionMenuItem(
+                        icon = Icons.Default.PushPin,
+                        label = if (isSelectedPinned) "Unpin" else "Pin",
+                        color = if (!colors.isDark) Color(0xFF0F172A) else Color.White,
+                        onClick = {
+                            if (isGuest) {
+                                selectedMessageForAction = null
+                                Toast.makeText(context, "Sign in to pin messages for other users", Toast.LENGTH_SHORT).show()
+                                return@ActionMenuItem
+                            }
+                            val cleanCh = activeChip.id.trim().lowercase().removePrefix("#")
+                            if (isSelectedPinned) {
+                                pinnedMessageForChannel = null
+                                sharedPrefs.edit()
+                                    .remove("pinned_msg_ch_$cleanCh")
+                                    .remove("pinned_content_ch_$cleanCh")
+                                    .remove("pinned_author_ch_$cleanCh")
+                                    .apply()
+                                coroutineScope.launch { ConnectoApiClient.unpinMessage(cleanCh) }
+                            } else {
+                                pinnedMessageForChannel = PinnedMessageDto(
+                                    messageId = activeSelMsg.id,
+                                    channelId = cleanCh,
+                                    authorName = activeSelMsg.authorName.ifBlank { activeSelMsg.authorId },
+                                    content = activeSelMsg.content,
+                                    pinnedBy = currentUsername,
+                                    pinnedAt = System.currentTimeMillis().toString()
+                                )
+                                sharedPrefs.edit()
+                                    .putString("pinned_msg_ch_$cleanCh", activeSelMsg.id)
+                                    .putString("pinned_content_ch_$cleanCh", activeSelMsg.content)
+                                    .putString("pinned_author_ch_$cleanCh", activeSelMsg.authorName.ifBlank { activeSelMsg.authorId })
+                                    .apply()
+                                coroutineScope.launch { ConnectoApiClient.pinMessage(cleanCh, activeSelMsg.id, currentUsername) }
+                            }
+                            selectedMessageForAction = null
+                        }
+                    )
+                    if (isMySelectedMsg) {
+                        ActionMenuItem(
+                            icon = Icons.Default.Delete,
+                            label = "Unsend",
+                            color = Color(0xFFEF4444),
+                            onClick = {
+                                val msgId = activeSelMsg.id
+                                val cleanCh = activeChip.id.trim().lowercase().removePrefix("#")
+                                messages.removeAll { it.id == msgId }
+                                if (pinnedMessageForChannel?.messageId == msgId) {
+                                    pinnedMessageForChannel = null
+                                    sharedPrefs.edit()
+                                        .remove("pinned_msg_ch_$cleanCh")
+                                        .remove("pinned_content_ch_$cleanCh")
+                                        .remove("pinned_author_ch_$cleanCh")
+                                        .apply()
+                                }
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    dbHelper.deleteMessage(msgId)
+                                    ConnectoApiClient.deleteMessage(msgId, cleanCh)
+                                }
+                                selectedMessageForAction = null
+                                Toast.makeText(context, "Message deleted", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    }
+                }
+            },
+            bubbleContent = {
+                if (activeSelMsg != null) {
+                    ChannelMessageCard(
+                        message = activeSelMsg,
+                        isMe = isMySelectedMsg,
+                        gradientColors = gradientColors,
+                        reactionsMap = channelReactions[activeSelMsg.id] ?: emptyMap(),
+                        onToggleReaction = {},
+                        isSelected = false,
+                        onMessageClick = { selectedMessageForAction = null },
+                        onMessageLongPress = {}
+                    )
+                }
+            }
+        )
     }
 }
 
@@ -2726,7 +2763,8 @@ private fun ChannelMessageCard(
     onQuotedMessageClick: ((String) -> Unit)? = null,
     onOpenFullEmojiSheet: ((MessageDto) -> Unit)? = null,
     onMessageClick: (() -> Unit)? = null,
-    onMessageLongPress: (MessageDto) -> Unit = {}
+    onMessageLongPress: (MessageDto) -> Unit = {},
+    onBubblePositioned: ((Rect) -> Unit)? = null
 ) {
     val colors = LocalConnectoColors.current
     val haptic = LocalHapticFeedback.current
@@ -2872,84 +2910,6 @@ private fun ChannelMessageCard(
                     Spacer(modifier = Modifier.height(4.dp))
                 }
 
-                // ========== TOP FLOATING PILL (ABOVE BUBBLE) ==========
-                AnimatedVisibility(
-                    visible = isSelected,
-                    enter = scaleIn(animationSpec = spring(dampingRatio = 0.65f, stiffness = 420f), initialScale = 0.7f) + fadeIn(animationSpec = tween(140)),
-                    exit = scaleOut(targetScale = 0.7f) + fadeOut(animationSpec = tween(120))
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .padding(bottom = 6.dp)
-                            .height(46.dp)
-                            .shadow(8.dp, RoundedCornerShape(24.dp))
-                            .clip(RoundedCornerShape(24.dp)),
-                        color = if (isLight) Color(0xFFFFFFFF) else Color(0xFF181B24),
-                        shape = RoundedCornerShape(24.dp),
-                        border = BorderStroke(1.dp, if (isLight) Color(0x14000000) else Color(0x1FFFFFFF))
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(horizontal = 8.dp)
-                                .fillMaxHeight(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            val quickEmojis = listOf("❤️", "🔥", "😂", "👍", "😮", "😢")
-                            quickEmojis.forEachIndexed { idx, emoji ->
-                                var visible by remember { mutableStateOf(false) }
-                                LaunchedEffect(Unit) {
-                                    delay(idx * 28L)
-                                    visible = true
-                                }
-                                val scale by animateFloatAsState(
-                                    targetValue = if (visible) 1f else 0.4f,
-                                    animationSpec = spring(dampingRatio = 0.6f, stiffness = 450f),
-                                    label = "popScale"
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .graphicsLayer {
-                                            scaleX = scale
-                                            scaleY = scale
-                                        }
-                                        .clip(CircleShape)
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            onToggleReaction(emoji)
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = emoji, fontSize = 17.sp)
-                                }
-                            }
-
-                            // Trailing '+' icon button to open full emoji sheet
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isLight) Color(0x0D000000) else Color(0x1FFFFFFF))
-                                    .clickable {
-                                        onOpenFullEmojiSheet?.invoke(message)
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "All reactions",
-                                    tint = if (isLight) Color(0xFF475569) else Color(0xFFCBD5E1),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
                 val bubbleShape = if (isMe) {
                     RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 4.dp)
                 } else {
@@ -3007,20 +2967,19 @@ private fun ChannelMessageCard(
                         )
                 }
 
-                val selectionBorder = if (isSelected) {
-                    Modifier
-                        .border(2.dp, colors.primary, bubbleShape)
-                        .background(colors.primary.copy(alpha = 0.22f), bubbleShape)
-                } else Modifier
-
                 val pulseModifier = if (pulseAlpha > 0f) {
                     Modifier.background(colors.primary.copy(alpha = pulseAlpha), bubbleShape)
                 } else Modifier
 
                 Box(
                     modifier = bubbleModifier
-                        .then(selectionBorder)
                         .then(pulseModifier)
+                        .graphicsLayer {
+                            if (isSelected) alpha = 0f
+                        }
+                        .onGloballyPositioned { coords ->
+                            onBubblePositioned?.invoke(coords.boundsInRoot())
+                        }
                         .pointerInput(message.id, isSelected) {
                             detectTapGestures(
                                 onTap = {
@@ -3186,50 +3145,6 @@ private fun ChannelMessageCard(
                                         )
                                     }
                                 }
-                            }
-                        }
-                    }
-                }
-
-                // ========== BOTTOM ACTION MENU (BELOW BUBBLE) ==========
-                AnimatedVisibility(
-                    visible = isSelected,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .padding(top = 4.dp)
-                            .shadow(8.dp, RoundedCornerShape(14.dp))
-                            .clip(RoundedCornerShape(14.dp)),
-                        color = if (isLight) Color(0xFFFFFFFF) else Color(0xFF181B24),
-                        shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.dp, if (isLight) Color(0x14000000) else Color(0x1FFFFFFF))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            ActionMenuItem(
-                                icon = Icons.AutoMirrored.Filled.Reply,
-                                label = "Reply",
-                                color = if (isLight) Color(0xFF0F172A) else Color.White,
-                                onClick = { onReply?.invoke() }
-                            )
-                            ActionMenuItem(
-                                icon = Icons.Default.ContentCopy,
-                                label = "Copy",
-                                color = if (isLight) Color(0xFF0F172A) else Color.White,
-                                onClick = { onCopy?.invoke() }
-                            )
-                            if (isMe) {
-                                ActionMenuItem(
-                                    icon = Icons.Default.Delete,
-                                    label = "Unsend",
-                                    color = Color(0xFFEF4444),
-                                    onClick = { onUnsend?.invoke() }
-                                )
                             }
                         }
                     }
