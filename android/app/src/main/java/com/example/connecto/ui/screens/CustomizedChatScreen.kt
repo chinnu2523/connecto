@@ -1,6 +1,7 @@
 package com.example.connecto.ui.screens
 
 import android.content.Context
+import kotlinx.coroutines.async
 import kotlinx.coroutines.isActive
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -4774,15 +4775,7 @@ fun CustomizedChatScreen(
             .background(if (!isLight) Color(0xFF0A0B0E) else MaterialTheme.colorScheme.background)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(
-                    if (selectedMessageForAction != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                        Modifier.blur(8.dp)
-                    } else {
-                        Modifier
-                    }
-                )
+            modifier = Modifier.fillMaxSize()
         ) {
             // ========== TOP HEADER ==========
             if (isFriendProfileOpen && selectedFriend?.isGroup == false) {
@@ -5592,12 +5585,20 @@ fun CustomizedChatScreen(
                         onRefresh = {
                             isRefreshingFriends = true
                             coroutineScope.launch {
+                                val startTime = System.currentTimeMillis()
                                 try {
-                                    kotlinx.coroutines.withTimeoutOrNull(6000L) {
-                                        syncAcceptedFriends()
+                                    kotlinx.coroutines.withTimeoutOrNull(2000L) {
+                                        kotlinx.coroutines.coroutineScope {
+                                            val d1 = async { syncAcceptedFriends() }
+                                            d1.await()
+                                        }
                                     }
                                 } catch (_: Exception) {
                                 } finally {
+                                    val elapsed = System.currentTimeMillis() - startTime
+                                    if (elapsed < 350L) {
+                                        kotlinx.coroutines.delay(350L - elapsed)
+                                    }
                                     isRefreshingFriends = false
                                 }
                             }

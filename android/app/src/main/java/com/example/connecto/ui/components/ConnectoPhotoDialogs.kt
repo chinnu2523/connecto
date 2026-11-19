@@ -16,14 +16,18 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -89,6 +93,7 @@ import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -118,9 +123,10 @@ enum class BannerAspectRatio(val label: String, val ratio: Float) {
 }
 
 /**
- * Ultra-aesthetic Modern Fullscreen Lightbox to inspect Cover Photos or Avatars.
- * Features glassmorphic top header, ambient glow, double-tap zoom, pinch & pan,
- * and a floating dock with zoom controls and quick change button.
+ * Immersive Minimal Lightbox to inspect Cover Photos or Avatars.
+ * Features deep #05060A backdrop, edge-to-edge transparent top bar,
+ * frameless media preview, native pinch/pan/double-tap gestures, swipe-down dismiss,
+ * floating zoom pill, and spacious bottom action dock.
  */
 @Composable
 fun PhotoLightboxDialog(
@@ -143,6 +149,20 @@ fun PhotoLightboxDialog(
     ) {
         var zoomScale by remember { mutableFloatStateOf(1.0f) }
         var panOffset by remember { mutableStateOf(Offset.Zero) }
+        var dismissDragY by remember { mutableFloatStateOf(0f) }
+        var showRemoveConfirmDialog by remember { mutableStateOf(false) }
+
+        var lastZoomInteractionTime by remember { mutableStateOf(0L) }
+        var showZoomIndicator by remember { mutableStateOf(false) }
+
+        LaunchedEffect(lastZoomInteractionTime) {
+            if (lastZoomInteractionTime > 0L) {
+                showZoomIndicator = true
+                kotlinx.coroutines.delay(800L)
+                showZoomIndicator = false
+            }
+        }
+
         val context = androidx.compose.ui.platform.LocalContext.current
         val lightboxImageRequest = remember(imageUrl, context) {
             if (imageUrl.isNullOrBlank() || com.example.connecto.ui.designsystem.isCoverPreset(imageUrl)) null
@@ -157,133 +177,74 @@ fun PhotoLightboxDialog(
             }
         }
 
+        val backdropAlpha = (1f - (dismissDragY / 500f)).coerceIn(0.25f, 1f)
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF07080C).copy(alpha = 0.96f))
+                .background(Color(0xFF05060A).copy(alpha = backdropAlpha))
         ) {
-            // Ambient Radial Glow behind image
+            // Ambient subtle glow behind media preview
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                Color(0xFF6C5CE7).copy(alpha = 0.16f),
-                                Color(0xFF1E1B4B).copy(alpha = 0.08f),
+                                Color(0xFF6366F1).copy(alpha = 0.12f * backdropAlpha),
+                                Color(0xFF0F172A).copy(alpha = 0.06f * backdropAlpha),
                                 Color.Transparent
                             )
                         )
                     )
             )
 
-            // Top Glassmorphic Navigation Header
+            // Top Bar: Clean, edge-to-edge transparent top bar over #05060A
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
-                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                    .statusBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(12.dp, RoundedCornerShape(22.dp))
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(Color(0xFF12141F).copy(alpha = 0.88f))
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.horizontalGradient(
-                                listOf(
-                                    Color(0xFF6C5CE7).copy(alpha = 0.5f),
-                                    Color(0xFFA29BFE).copy(alpha = 0.2f),
-                                    Color.White.copy(alpha = 0.1f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(22.dp)
-                        )
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    Text(
+                        text = title,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    // 40px x 40px circular translucent close button
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.12f))
+                            .clickable(onClick = onDismiss),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF6C5CE7).copy(alpha = 0.2f))
-                                .border(1.dp, Color(0xFF6C5CE7).copy(alpha = 0.4f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = if (isBanner) Icons.Default.Landscape else Icons.Default.AccountCircle,
-                                contentDescription = null,
-                                tint = Color(0xFFA29BFE),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = title,
-                                color = Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = if (isBanner) "Cover Photo • High Resolution" else "Profile Picture • High Resolution",
-                                color = Color.White.copy(alpha = 0.55f),
-                                fontSize = 11.sp
-                            )
-                        }
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Zoom Indicator Badge
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White.copy(alpha = 0.08f))
-                                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "${(zoomScale * 100).toInt()}%",
-                                color = Color(0xFFA29BFE),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-
-                        // Close Button
-                        IconButton(
-                            onClick = onDismiss,
-                            modifier = Modifier
-                                .size(34.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.12f))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
             }
 
-            // Center Viewport: Double tap to zoom, pinch & pan
+            // Center Viewport: Native Mobile Gestures
+            // Double-tap (1.0x <-> 2.5x), pinch-to-zoom (1.0x to 4.0x), drag-panning while zoomed,
+            // swipe-down-to-dismiss (proportional background fade)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 12.dp, vertical = 84.dp)
+                    .padding(top = 72.dp, bottom = 96.dp)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onDoubleTap = {
@@ -291,50 +252,71 @@ fun PhotoLightboxDialog(
                                     zoomScale = 1.0f
                                     panOffset = Offset.Zero
                                 } else {
-                                    zoomScale = 2.2f
+                                    zoomScale = 2.5f
                                 }
+                                lastZoomInteractionTime = System.currentTimeMillis()
                             }
                         )
                     }
                     .pointerInput(Unit) {
                         detectTransformGestures { _, pan, zoom, _ ->
-                            zoomScale = (zoomScale * zoom).coerceIn(0.7f, 5.0f)
-                            panOffset += pan
+                            val newZoom = (zoomScale * zoom).coerceIn(1.0f, 4.0f)
+                            if (newZoom != zoomScale) {
+                                zoomScale = newZoom
+                                lastZoomInteractionTime = System.currentTimeMillis()
+                            }
+                            if (zoomScale > 1.05f) {
+                                panOffset += pan
+                            } else {
+                                panOffset = Offset.Zero
+                            }
+                        }
+                    }
+                    .pointerInput(zoomScale) {
+                        if (zoomScale <= 1.05f) {
+                            detectDragGestures(
+                                onDragEnd = {
+                                    if (dismissDragY > 120f) {
+                                        onDismiss()
+                                    } else {
+                                        dismissDragY = 0f
+                                    }
+                                },
+                                onDragCancel = {
+                                    dismissDragY = 0f
+                                },
+                                onDrag = { change: PointerInputChange, dragAmount: Offset ->
+                                    change.consume()
+                                    if (dragAmount.y > 0 || dismissDragY > 0) {
+                                        dismissDragY = (dismissDragY + dragAmount.y).coerceAtLeast(0f)
+                                    }
+                                }
+                            )
                         }
                     },
                 contentAlignment = Alignment.Center
             ) {
                 val isPreset = com.example.connecto.ui.designsystem.isCoverPreset(imageUrl)
                 val presetObj = com.example.connecto.ui.designsystem.getCoverPreset(imageUrl)
+
+                val mediaTransformModifier = Modifier.graphicsLayer {
+                    scaleX = zoomScale
+                    scaleY = zoomScale
+                    translationX = panOffset.x
+                    translationY = if (zoomScale > 1.05f) panOffset.y else dismissDragY
+                }
+
                 if (isPreset && presetObj != null) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(if (isBanner) 0.96f else 0.85f)
-                            .height(if (isBanner) 240.dp else 320.dp)
-                            .graphicsLayer {
-                                scaleX = zoomScale
-                                scaleY = zoomScale
-                                translationX = panOffset.x
-                                translationY = panOffset.y
-                            }
-                            .shadow(
-                                elevation = 20.dp,
-                                shape = if (!isBanner) CircleShape else RoundedCornerShape(20.dp),
-                                spotColor = Color(0xFF6C5CE7).copy(alpha = 0.5f)
-                            )
-                            .clip(if (!isBanner) CircleShape else RoundedCornerShape(20.dp))
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .aspectRatio(16f / 9f)
+                            .then(mediaTransformModifier)
+                            .shadow(20.dp, RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.5f))
+                            .clip(RoundedCornerShape(16.dp))
                             .background(presetObj.brush)
-                            .border(
-                                width = 2.dp,
-                                brush = Brush.linearGradient(
-                                    listOf(
-                                        Color(0xFF6C5CE7),
-                                        Color(0xFFA29BFE),
-                                        Color(0xFF4834DF)
-                                    )
-                                ),
-                                shape = if (!isBanner) CircleShape else RoundedCornerShape(20.dp)
-                            ),
+                            .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(16.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
@@ -359,46 +341,47 @@ fun PhotoLightboxDialog(
                         }
                     }
                 } else if (lightboxImageRequest != null) {
-                    AsyncImage(
-                        model = lightboxImageRequest,
-                        contentDescription = title,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .fillMaxWidth(if (isBanner) 0.96f else 0.85f)
-                            .then(
-                                if (isBanner) Modifier.heightIn(max = 520.dp) else Modifier.size(320.dp)
-                            )
-                            .graphicsLayer {
-                                scaleX = zoomScale
-                                scaleY = zoomScale
-                                translationX = panOffset.x
-                                translationY = panOffset.y
-                            }
-                            .shadow(
-                                elevation = 20.dp,
-                                shape = if (!isBanner) CircleShape else RoundedCornerShape(20.dp),
-                                spotColor = Color(0xFF6C5CE7).copy(alpha = 0.5f)
-                            )
-                            .clip(if (!isBanner) CircleShape else RoundedCornerShape(20.dp))
-                            .border(
-                                width = 2.dp,
-                                brush = Brush.linearGradient(
-                                    listOf(
-                                        Color(0xFF6C5CE7),
-                                        Color(0xFFA29BFE),
-                                        Color(0xFF4834DF)
-                                    )
-                                ),
-                                shape = if (!isBanner) CircleShape else RoundedCornerShape(20.dp)
-                            )
-                    )
+                    if (isBanner) {
+                        // Background Cover: 16px horizontal margin, 16:9 aspect ratio, 16px radius, ContentScale.Crop filling 100%
+                        AsyncImage(
+                            model = lightboxImageRequest,
+                            contentDescription = title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .aspectRatio(16f / 9f)
+                                .then(mediaTransformModifier)
+                                .shadow(20.dp, RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.5f))
+                                .clip(RoundedCornerShape(16.dp))
+                                .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(16.dp))
+                        )
+                    } else {
+                        // Profile Photo: centered at 82% screen width as a crisp 1:1 circle with 1px rgba(255,255,255,0.14) hairline
+                        AsyncImage(
+                            model = lightboxImageRequest,
+                            contentDescription = title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth(0.82f)
+                                .aspectRatio(1f)
+                                .then(mediaTransformModifier)
+                                .shadow(24.dp, CircleShape, spotColor = Color(0x336366F1), ambientColor = Color(0x22000000))
+                                .clip(CircleShape)
+                                .border(1.dp, Color.White.copy(alpha = 0.14f), CircleShape)
+                        )
+                    }
                 } else {
+                    // Fallback placeholder circle
                     Box(
                         modifier = Modifier
-                            .size(240.dp)
+                            .fillMaxWidth(0.82f)
+                            .aspectRatio(1f)
+                            .then(mediaTransformModifier)
+                            .shadow(24.dp, CircleShape, spotColor = Color(0x336366F1))
                             .clip(CircleShape)
                             .background(Color(0xFF1E212B))
-                            .border(2.dp, Color(0xFF6C5CE7), CircleShape),
+                            .border(1.dp, Color.White.copy(alpha = 0.14f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -411,148 +394,154 @@ fun PhotoLightboxDialog(
                 }
             }
 
-            // Bottom Floating Action Dock
-            Box(
+            // Minimal Floating Zoom Indicator Pill (e.g. 180%) near bottom, fading out 800ms after release
+            AnimatedVisibility(
+                visible = showZoomIndicator,
+                enter = fadeIn(androidx.compose.animation.core.tween(150)),
+                exit = fadeOut(androidx.compose.animation.core.tween(300)),
                 modifier = Modifier
-                    .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .padding(horizontal = 20.dp, vertical = 24.dp),
-                contentAlignment = Alignment.Center
+                    .padding(bottom = 96.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .shadow(16.dp, RoundedCornerShape(26.dp))
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(Color(0xFF131520).copy(alpha = 0.92f))
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.horizontalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.15f),
-                                    Color(0xFF6C5CE7).copy(alpha = 0.4f),
-                                    Color.White.copy(alpha = 0.15f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(26.dp)
-                        )
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFF12141F).copy(alpha = 0.85f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
                 ) {
-                    // Zoom Out
-                    IconButton(
-                        onClick = {
-                            zoomScale = (zoomScale - 0.25f).coerceAtLeast(0.7f)
-                        },
-                        modifier = Modifier.size(36.dp)
+                    Text(
+                        text = "${(zoomScale * 100).toInt()}%",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
+            // Spacious Bottom Action Bar: Clean floating pill dock (height: 56px, 12px gaps, nowrap full labels)
+            if (onChangePhoto != null || onRemovePhoto != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ZoomOut,
-                            contentDescription = "Zoom Out",
-                            tint = Color.White.copy(alpha = 0.85f),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-
-                    // Reset Zoom
-                    TextButton(
-                        onClick = {
-                            zoomScale = 1.0f
-                            panOffset = Offset.Zero
-                        },
-                        modifier = Modifier.height(34.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Reset",
-                            tint = Color(0xFFA29BFE),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "100%",
-                            color = Color(0xFFA29BFE),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-
-                    // Zoom In
-                    IconButton(
-                        onClick = {
-                            zoomScale = (zoomScale + 0.25f).coerceAtMost(5.0f)
-                        },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ZoomIn,
-                            contentDescription = "Zoom In",
-                            tint = Color.White.copy(alpha = 0.85f),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-
-                    if (onChangePhoto != null) {
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .height(22.dp)
-                                .background(Color.White.copy(alpha = 0.15f))
-                        )
-
-                        Button(
-                            onClick = {
-                                onDismiss()
-                                onChangePhoto()
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF6C5CE7),
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(18.dp),
-                            modifier = Modifier.height(36.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CameraAlt,
-                                contentDescription = "Change",
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (isBanner) "Change" else "Change",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            )
+                        // Secondary Destructive Button: "Remove" (whenever onRemovePhoto is provided)
+                        if (onRemovePhoto != null) {
+                            Button(
+                                onClick = { showRemoveConfirmDialog = true },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0x29EF4444),
+                                    contentColor = Color(0xFFF87171)
+                                ),
+                                border = BorderStroke(1.dp, Color(0x40EF4444)),
+                                shape = RoundedCornerShape(28.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(56.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Remove",
+                                    tint = Color(0xFFF87171),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Remove",
+                                    color = Color(0xFFF87171),
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 15.sp,
+                                    maxLines = 1
+                                )
+                            }
                         }
-                    }
 
-                    if (onRemovePhoto != null) {
-                        Button(
-                            onClick = {
-                                onDismiss()
-                                onRemovePhoto()
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFDC2626).copy(alpha = 0.85f),
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(18.dp),
-                            modifier = Modifier.height(36.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Remove",
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Remove",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            )
+                        // Primary Button: "Change Photo" (accent fill #6366F1, camera icon, full text)
+                        if (onChangePhoto != null) {
+                            Button(
+                                onClick = {
+                                    onDismiss()
+                                    onChangePhoto()
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF6366F1),
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(28.dp),
+                                modifier = Modifier
+                                    .weight(if (onRemovePhoto != null) 1.25f else 1f)
+                                    .height(56.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CameraAlt,
+                                    contentDescription = "Change",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (isBanner) "Change Cover" else "Change Photo",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 15.sp,
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
                 }
+            }
+
+            // Quick Confirmation Dialog before deleting
+            if (showRemoveConfirmDialog) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { showRemoveConfirmDialog = false },
+                    title = {
+                        Text(
+                            text = if (isBanner) "Remove Cover Photo?" else "Remove Profile Photo?",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = if (isBanner) {
+                                "Your cover photo will be reverted to the default banner."
+                            } else {
+                                "Your profile photo will be removed and revert to your initial."
+                            },
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                    },
+                    containerColor = Color(0xFF141724),
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showRemoveConfirmDialog = false
+                                onDismiss()
+                                onRemovePhoto?.invoke()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
+                        ) {
+                            Text("Remove", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showRemoveConfirmDialog = false }
+                        ) {
+                            Text("Cancel", color = Color.White.copy(alpha = 0.7f))
+                        }
+                    }
+                )
             }
         }
     }

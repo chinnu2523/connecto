@@ -838,13 +838,22 @@ fun HomeChatScreen(
                 onRefresh = {
                     isRefreshing = true
                     coroutineScope.launch {
+                        val startTime = System.currentTimeMillis()
                         try {
-                            kotlinx.coroutines.withTimeoutOrNull(6000L) {
-                                refreshDashboard()
-                                AppUpdateManager.checkForUpdates()
+                            kotlinx.coroutines.withTimeoutOrNull(2000L) {
+                                kotlinx.coroutines.coroutineScope {
+                                    val d1 = async { refreshDashboard() }
+                                    val d2 = async { AppUpdateManager.checkForUpdates() }
+                                    d1.await()
+                                    d2.await()
+                                }
                             }
                         } catch (_: Exception) {
                         } finally {
+                            val elapsed = System.currentTimeMillis() - startTime
+                            if (elapsed < 350L) {
+                                kotlinx.coroutines.delay(350L - elapsed)
+                            }
                             isRefreshing = false
                         }
                     }

@@ -976,6 +976,27 @@ fun ProfileScreen(
         }
     }
 
+    fun removeProfilePhoto() {
+        profilePhotoUri = null
+        prefs.edit().remove("photo_uri_$username").apply()
+        val localAvatar = java.io.File(context.filesDir, "avatar_${username.lowercase()}.webp")
+        if (localAvatar.exists()) {
+            try { localAvatar.delete() } catch (_: Exception) {}
+        }
+        coroutineScope.launch {
+            try {
+                ConnectoApiClient.updateProfile(
+                    username = currentUsernameState,
+                    avatarUrl = "",
+                    displayName = displayNameInput,
+                    fullName = fullNameInput,
+                    bio = bioInput,
+                    isStealth = stealthModeEnabled
+                )
+            } catch (_: Exception) {}
+        }
+    }
+
     val gradientColors = getDynamicAccentGradientColors()
     val contentOnGradient = getContentColorOnAccentGradient()
 
@@ -6050,6 +6071,11 @@ fun ProfileScreen(
                 {
                     showLightbox = false
                     removeCoverPhoto()
+                }
+            } else if (!isLightboxBanner && !profilePhotoUri.isNullOrBlank()) {
+                {
+                    showLightbox = false
+                    removeProfilePhoto()
                 }
             } else null,
             onDismiss = { showLightbox = false }

@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -90,8 +91,13 @@ fun ConnectoDragToRefresh(
     // Key Physical Metrics
     val thresholdDp = 68.dp
     val maxTravelDp = 96.dp
+    val maxContentTravelDp = 64.dp
+    val restingTrayDp = 54.dp
+
     val thresholdPx = with(density) { thresholdDp.toPx() }
     val maxTravelPx = with(density) { maxTravelDp.toPx() }
+    val maxContentTravelPx = with(density) { maxContentTravelDp.toPx() }
+    val restingContentTranslationPx = with(density) { restingTrayDp.toPx() }
     val restingPx = with(density) { 16.dp.toPx() }
     val hiddenPx = with(density) { (-48).dp.toPx() }
 
@@ -125,7 +131,10 @@ fun ConnectoDragToRefresh(
         if (!isRefreshing) {
             if (pullDistance.value > 0f || isUserInitiatedRefresh) {
                 isRetracting = true
-                // Retract badge: scale 1.0 -> 0.5, fade out, retract behind header over 200ms ease-in
+                try {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                } catch (_: Exception) {}
+                // Retract badge & content push-down tray over 200ms spring/ease-in
                 scope.launch {
                     badgeExitScale.animateTo(0.5f, animationSpec = tween(200, easing = FastOutLinearInEasing))
                 }
@@ -158,12 +167,15 @@ fun ConnectoDragToRefresh(
         }
     }
 
-    // Safety Watchdog: Guard against stuck refreshing state if network drops or hangs
+    // Safety Watchdog: Strict 2000ms max timeout prevents UI freezing if network hangs
     LaunchedEffect(isRefreshing) {
         if (isRefreshing) {
-            delay(6000L)
+            delay(2000L)
             if (isRefreshing && isUserInitiatedRefresh) {
                 isRetracting = true
+                try {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                } catch (_: Exception) {}
                 scope.launch {
                     badgeExitScale.animateTo(0.5f, animationSpec = tween(200, easing = FastOutLinearInEasing))
                 }
@@ -287,26 +299,42 @@ fun ConnectoDragToRefresh(
         }
     }
 
+    // Dynamic push-down tray travel (max 64px travel)
+    val contentOffsetY = if (isRefreshing) {
+        restingContentTranslationPx
+    } else {
+        (pullDistance.value * (maxContentTravelPx / maxTravelPx)).coerceIn(0f, maxContentTravelPx)
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
     ) {
-        // 1. Content layer: Strictly sits at natural position with NO layout shift or black gap
-        Box(modifier = Modifier.fillMaxSize()) {
+        // 1. Content layer: Smoothly translated downward via collapsible push-down tray (max 64px)
+        // so the spinner emerges in clean empty space without colliding with any tabs or status text
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    translationY = contentOffsetY
+                }
+        ) {
             content()
         }
 
-        // 2. Custom Floating Refresh Indicator Overlay
+        // 2. Custom Floating Refresh Indicator Overlay (Centered in Push-Down Tray Space)
         val showBadge = pullDistance.value > 1f || isRefreshing || isRetracting
         if (showBadge) {
             val progress = (pullDistance.value / thresholdPx).coerceIn(0f, 1f)
 
-            // Slides out from behind top header: translateY from -48px to +24px (resting at 16px when active)
+            // Centered in clean push-down tray space without overlapping tabs or text
+            val centeredTrayY = ((contentOffsetY - with(density) { 38.dp.toPx() }) / 2f)
             val badgeTranslateY = if (isRefreshing) {
-                16.dp
+                centeredTrayY.coerceAtLeast(with(density) { 8.dp.toPx() })
             } else {
-                (-48).dp + 72.dp * progress
+                val startY = with(density) { (-32).dp.toPx() }
+                (startY + (centeredTrayY - startY) * progress).coerceAtLeast(with(density) { 4.dp.toPx() })
             }
 
             // Drag-driven rotation (0deg -> 270deg) or continuous 360deg loop during active refresh
@@ -319,7 +347,7 @@ fun ConnectoDragToRefresh(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .offset { IntOffset(0, with(density) { badgeTranslateY.toPx().roundToInt() }) }
+                    .offset { IntOffset(0, badgeTranslateY.roundToInt()) }
                     .zIndex(20f)
                     .scale(if (isRetracting) badgeExitScale.value else 1f)
                     .alpha(if (isRetracting) badgeExitAlpha.value else badgeAlpha)

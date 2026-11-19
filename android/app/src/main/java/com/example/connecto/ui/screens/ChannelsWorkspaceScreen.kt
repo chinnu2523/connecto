@@ -1027,15 +1027,7 @@ fun ChannelsWorkspaceScreen(
                 )
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(
-                        if (selectedMessageForAction != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                            Modifier.blur(8.dp)
-                        } else {
-                            Modifier
-                        }
-                    )
+                modifier = Modifier.fillMaxSize()
             ) {
                 // ================= DEDICATED CHANNEL WORKSPACE NAVIGATION BAR =================
                 Surface(

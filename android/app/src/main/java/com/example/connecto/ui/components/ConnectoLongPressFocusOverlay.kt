@@ -54,19 +54,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 /**
- * Full-screen root portal / modal layer (zIndex: 999) for Long-Press Message Focus.
+ * Full-screen root portal / modal layer (zIndex: 9999) for Long-Press Message Focus.
  *
  * Stacking Order:
- * - Full-screen container at zIndex: 999 covers chat header, messages, quick chips, and input dock.
- * - Layer 1 (zIndex: 1): Translucent blurred backdrop (rgba(0, 0, 0, 0.72)).
- * - Layer 2 (zIndex: 2): Crisp, un-dimmed elevated layer of the selected message bubble (scale 1.0 -> 1.03,
- *   soft drop shadow 0 12px 32px rgba(0,0,0,0.6), NO harsh border outline), top emoji reaction pill,
- *   and bottom action menu (#1C202E Dark / #FFFFFF Light, 1px solid rgba(255,255,255,0.1) border, 100% opacity).
+ * - Root-level Popup (outside chat container stacking context, zIndex: 9999).
+ * - Layer 1 (zIndex: 1): Dark frosted scrim (rgba(5, 7, 12, 0.72)).
+ * - Layer 2 (zIndex: 2): Crisp, un-dimmed elevated layer of the selected message bubble
+ *   (scale 1.0 -> 1.03, soft elevation shadow 0 16px 40px rgba(0,0,0,0.65), zero blur, 100% opacity),
+ *   top emoji reaction pill, and bottom action menu with viewport edge clamping.
  */
 @Composable
 fun ConnectoLongPressFocusOverlay(
@@ -80,6 +82,8 @@ fun ConnectoLongPressFocusOverlay(
     actions: @Composable RowScope.() -> Unit,
     bubbleContent: @Composable () -> Unit
 ) {
+    if (!visible) return
+
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
@@ -89,33 +93,31 @@ fun ConnectoLongPressFocusOverlay(
 
     // Spring scale animation (scale: 1.0 -> 1.03 over 180ms when held, reverses in 150ms on dismiss)
     val scaleAnim by animateFloatAsState(
-        targetValue = if (visible) 1.03f else 1.0f,
-        animationSpec = if (visible) {
-            spring(dampingRatio = 0.72f, stiffness = 380f)
-        } else {
-            tween(durationMillis = 150, easing = FastOutLinearInEasing)
-        },
+        targetValue = 1.03f,
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = 380f),
         label = "elevatedBubbleScale"
     )
 
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(animationSpec = tween(durationMillis = 180, easing = LinearEasing)),
-        exit = fadeOut(animationSpec = tween(durationMillis = 150, easing = FastOutLinearInEasing)),
-        modifier = Modifier
-            .fillMaxSize()
-            .zIndex(999f)
+    Popup(
+        properties = PopupProperties(
+            focusable = true,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        ),
+        onDismissRequest = onDismiss
     ) {
         Box(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(9999f)
         ) {
-            // ================= LAYER 1 (zIndex: 1): TRANSLUCENT BLURRED BACKDROP =================
-            // Background: rgba(0, 0, 0, 0.72). Tapping anywhere on the scrim smoothly dismisses (150ms).
+            // ================= LAYER 1 (zIndex: 1): DARK FROSTED SCRIM =================
+            // Background: rgba(5, 7, 12, 0.72). Tapping anywhere on the scrim smoothly dismisses.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .zIndex(1f)
-                    .background(Color(0xB8000000)) // rgba(0, 0, 0, 0.72)
+                    .background(Color(0xB805070C)) // rgba(5, 7, 12, 0.72)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -125,7 +127,7 @@ fun ConnectoLongPressFocusOverlay(
             )
 
             // ================= LAYER 2 (zIndex: 2): CRISP UN-DIMMED ELEVATED LAYER =================
-            val menuWidthPx = with(density) { 276.dp.toPx() }
+            val menuWidthPx = with(density) { 280.dp.toPx() }
             val horizontalPaddingPx = with(density) { 16.dp.toPx() }
 
             val bubbleWidth = bubbleBounds?.width ?: with(density) { 240.dp.toPx() }
@@ -148,16 +150,18 @@ fun ConnectoLongPressFocusOverlay(
 
             val topPillHeightPx = with(density) { 54.dp.toPx() }
             val bottomMenuHeightPx = with(density) { 56.dp.toPx() }
-            val minTopPx = with(density) { 64.dp.toPx() }
-            val maxBottomPx = screenHeightPx - with(density) { 48.dp.toPx() }
+            val minTopPx = with(density) { 72.dp.toPx() }
+            val maxBottomPx = screenHeightPx - with(density) { 76.dp.toPx() }
 
+            val totalEstimatedHeightPx = topPillHeightPx + bubbleHeight + bottomMenuHeightPx + with(density) { 16.dp.toPx() }
+
+            // Viewport Edge Clamping: ensure top emoji pill and bottom action bar are never pushed off-screen
             val rawContainerY = if (bubbleBounds != null) {
                 bubbleBounds.top - topPillHeightPx
             } else {
-                (screenHeightPx - bubbleHeight - topPillHeightPx - bottomMenuHeightPx) / 2f
+                (screenHeightPx - totalEstimatedHeightPx) / 2f
             }
 
-            val totalEstimatedHeightPx = topPillHeightPx + bubbleHeight + bottomMenuHeightPx
             val containerY = rawContainerY.coerceIn(
                 minTopPx,
                 (maxBottomPx - totalEstimatedHeightPx).coerceAtLeast(minTopPx)
@@ -186,12 +190,11 @@ fun ConnectoLongPressFocusOverlay(
                     horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
                 ) {
                     // 1. TOP EMOJI REACTION PILL
-                    // Crisp surface (#1C202E Dark / #FFFFFF Light), 1px solid rgba(255,255,255,0.1) border, 100% opacity
                     Surface(
                         modifier = Modifier
                             .padding(bottom = 6.dp)
                             .height(46.dp)
-                            .shadow(8.dp, RoundedCornerShape(24.dp))
+                            .shadow(12.dp, RoundedCornerShape(24.dp), spotColor = Color.Black.copy(alpha = 0.5f))
                             .clip(RoundedCornerShape(24.dp)),
                         color = if (isLight) Color(0xFFFFFFFF) else Color(0xFF1C202E),
                         shape = RoundedCornerShape(24.dp),
@@ -258,8 +261,7 @@ fun ConnectoLongPressFocusOverlay(
                         }
                     }
 
-                    // 2. FOCUSED MESSAGE BUBBLE (ELEVATED & CRISP)
-                    // Drop shadow: 0 12px 32px rgba(0,0,0,0.6). NO harsh border outline.
+                    // 2. FOCUSED MESSAGE BUBBLE (CRISP ELEVATED CLONE - ZERO BLUR, 100% OPACITY)
                     Box(
                         modifier = Modifier
                             .shadow(
@@ -269,19 +271,18 @@ fun ConnectoLongPressFocusOverlay(
                                 } else {
                                     RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 4.dp)
                                 },
-                                spotColor = Color.Black.copy(alpha = 0.60f),
+                                spotColor = Color.Black.copy(alpha = 0.65f),
                                 ambientColor = Color.Black.copy(alpha = 0.40f)
                             )
                     ) {
                         bubbleContent()
                     }
 
-                    // 3. BOTTOM ACTION MENU (REPLY / COPY / UNSEND)
-                    // Crisp surface (#1C202E Dark / #FFFFFF Light), 1px solid rgba(255,255,255,0.1) border, 100% opacity
+                    // 3. BOTTOM ACTION MENU (REPLY / COPY / EDIT / UNSEND)
                     Surface(
                         modifier = Modifier
                             .padding(top = 6.dp)
-                            .shadow(8.dp, RoundedCornerShape(14.dp))
+                            .shadow(12.dp, RoundedCornerShape(14.dp), spotColor = Color.Black.copy(alpha = 0.5f))
                             .clip(RoundedCornerShape(14.dp)),
                         color = if (isLight) Color(0xFFFFFFFF) else Color(0xFF1C202E),
                         shape = RoundedCornerShape(14.dp),
