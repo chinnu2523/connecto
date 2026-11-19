@@ -839,11 +839,12 @@ fun HomeChatScreen(
                     isRefreshing = true
                     coroutineScope.launch {
                         try {
-                            refreshDashboard()
-                            AppUpdateManager.checkForUpdates()
+                            kotlinx.coroutines.withTimeoutOrNull(6000L) {
+                                refreshDashboard()
+                                AppUpdateManager.checkForUpdates()
+                            }
                         } catch (_: Exception) {
                         } finally {
-                            kotlinx.coroutines.delay(400)
                             isRefreshing = false
                         }
                     }

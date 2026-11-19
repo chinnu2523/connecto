@@ -1107,11 +1107,12 @@ fun ProfileScreen(
                             isRefreshingProfile = true
                             coroutineScope.launch {
                                 try {
-                                    refreshUserSessions()
-                                    ConnectoApiClient.getProfile(username)
+                                    kotlinx.coroutines.withTimeoutOrNull(6000L) {
+                                        refreshUserSessions()
+                                        ConnectoApiClient.getProfile(username)
+                                    }
                                 } catch (_: Exception) {
                                 } finally {
-                                    kotlinx.coroutines.delay(400)
                                     isRefreshingProfile = false
                                 }
                             }

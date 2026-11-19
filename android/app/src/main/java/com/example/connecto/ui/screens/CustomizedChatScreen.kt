@@ -5170,10 +5170,11 @@ fun CustomizedChatScreen(
                             isRefreshingFriends = true
                             coroutineScope.launch {
                                 try {
-                                    syncAcceptedFriends()
+                                    kotlinx.coroutines.withTimeoutOrNull(6000L) {
+                                        syncAcceptedFriends()
+                                    }
                                 } catch (_: Exception) {
                                 } finally {
-                                    kotlinx.coroutines.delay(400)
                                     isRefreshingFriends = false
                                 }
                             }

@@ -824,10 +824,11 @@ fun CallsScreen(
                     isRefreshingCalls = true
                     coroutineScope.launch {
                         try {
-                            refreshCallLogs()
+                            kotlinx.coroutines.withTimeoutOrNull(6000L) {
+                                refreshCallLogs()
+                            }
                         } catch (_: Exception) {
                         } finally {
-                            kotlinx.coroutines.delay(400)
                             isRefreshingCalls = false
                         }
                     }
