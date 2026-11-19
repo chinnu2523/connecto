@@ -2474,9 +2474,15 @@ object ConnectoApiClient {
                             replyToId = replyToId,
                             replyToContent = replyToContent,
                             replyToAuthor = replyToAuthor,
-                            isRead = if (obj.has("is_read")) obj.optBoolean("is_read") else null,
-                            isSilent = obj.optBoolean("is_silent", false),
-                            isWhisper = obj.optBoolean("is_whisper", false)
+                            isRead = when {
+                                obj.has("is_read") -> obj.optBoolean("is_read")
+                                obj.has("isRead") -> obj.optBoolean("isRead")
+                                obj.has("read_at") && !obj.isNull("read_at") -> true
+                                obj.has("readAt") && !obj.isNull("readAt") -> true
+                                else -> null
+                            },
+                            isSilent = obj.optBoolean("is_silent", obj.optBoolean("isSilent", false)),
+                            isWhisper = obj.optBoolean("is_whisper", obj.optBoolean("isWhisper", false))
                         )
                     )
                 }

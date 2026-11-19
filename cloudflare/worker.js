@@ -2333,14 +2333,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.2",
-        version_code: 189,
-        size_bytes: 38454164,
+        version_name: "5.8.3",
+        version_code: 190,
+        size_bytes: 38454905,
         size_formatted: "36.7 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Clean-Slate Direct Chat Scaffold Rebuild & Message Loading Pipeline (v5.8.3): Fully rebuilt the Personal Direct Chat screen on Jetpack Compose using a dedicated 3-slot Scaffold (pinned header in topBar, pinned composer in bottomBar with navigationBarsPadding and imePadding, and bounded center viewport) eliminating composer float-up bug. Implemented Obsidian shimmer skeleton message feed during loading, calm empty state with starter chips, and Obsidian error recovery card with retry trigger. Web direct chat layout locked to bounded viewport height (100dvh). Cloudflare D1 message query hardened with defensive attribute projection and sanitized cleared_at checks.",
           "Direct Chat Decoupling, Layout Integrity & Android 15 Edge-to-Edge Safe Areas (v5.8.2): Decoupled 'Delete Chat' from Friendship & Search using Cloudflare D1 per-user conversation state (hiddenFromInbox, clearedAt) so deleted conversations are cleanly hidden from inbox without deleting friendship rows or hiding contacts from Search, + New Chat, or Calls picker; auto-unhides on sending/receiving new messages. Fixed Personal Direct Chat layout collapse by anchoring 100% viewport container height, 56px fixed header with statusBarsPadding, and weighted scrollable message feed pinning input composer to the screen bottom. Restricted quick-reply chips to empty chat states with right padding. Fixed Android 15 edge-to-edge safe-area insets globally across Call Ringtone picker, Message Notifications & Sounds, Friend Profile, and Settings subpages with statusBarsPadding and bottom navigation bar insets so stock ringtones ('Jovi Lifestyle') and wallpaper presets ('Emerald Matrix') scroll cleanly above the gesture pill. Harmonized 'Pick From Gallery' button to Obsidian #6366F1 styling and cleanly clipped conversation row progress bar to 16dp rounded corner radius.",
           "Custom Message Notification Sounds & Tactile Vibration Patterns (v5.8.1): Android 15 (API 35) compliant notification system featuring curated audio chimes (Connecto Chime, Minimal Pop, Glass Harp, Cosmic Ping, Digital Watch) with FileProvider SystemUI grants, and tactile vibration patterns (Single Pulse, Double Tap, Heartbeat, Escalating, Rapid Buzz, SOS) alongside a custom 60fps pulse-pad recorder. Added per-contact sound and vibration overrides with priority fallback, real-time audio playback preview with auto-stop, and central management list for non-vaulted contacts. Integrated WebRTC Voice Call audio fixes: eliminated post-pickup silence via pre-warmed Cloudflare TURN credentials and non-blocking Trickle ICE, resolved audio latency via WebRTC playout buffers, prevented RtpSender disposal crashes on call accept, and added Obsidian custom call ringtone picker with per-contact ringtone overrides. Upgraded Direct Messages with instant local Delete for seen messages, 3-second floating Undo countdown toast pill, protected Unsend confirmation modal, and multi-select chat message deletion.",
           "Root Portal Long-Press Focus Overlay (v5.7.9): Eliminated all blur artifacts from message content by extracting the active overlay into a top-level document body portal. Multi-layered composition featuring full-screen dark frosted scrim (rgba(5, 7, 12, 0.72), backdrop-filter: blur(12px)), 100% crisp focused message bubble clone with soft elevation shadow, quick-reaction emoji pill, and contextual action bar (Reply, Copy, Edit, Unsend). Mathematical viewport edge clamping ensures bubbles at screen extremities never get clipped or truncated.",
@@ -6438,6 +6439,10 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         const placeholders = channelCandidates.map(() => "?").join(", ");
         let querySql = `
           SELECT m.id, m.channel_id, m.content, m.attachments, m.created_at,
+                 m.reply_to_id, m.reply_to_content, m.reply_to_author,
+                 COALESCE(m.is_silent, 0) as is_silent,
+                 COALESCE(m.is_whisper, 0) as is_whisper,
+                 m.read_at,
                  COALESCE(u.username, m.sender_id, 'shinobi') as author_name,
                  COALESCE(u.display_name, u.username, m.sender_id, 'Shinobi') as author_display_name,
                  COALESCE(u.avatar_url, '👾') as author_avatar,
@@ -6458,7 +6463,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           try {
             const ucsPlaceholders = channelCandidates.map(() => "?").join(", ");
             const ucsRow = await env.DB.prepare(
-              `SELECT cleared_at FROM user_conversation_state WHERE (user_id = ? OR lower(user_id) = ?) AND conversation_id IN (${ucsPlaceholders}) AND cleared_at IS NOT NULL ORDER BY cleared_at DESC LIMIT 1`
+              `SELECT cleared_at FROM user_conversation_state WHERE (user_id = ? OR lower(user_id) = ?) AND conversation_id IN (${ucsPlaceholders}) AND cleared_at IS NOT NULL AND cleared_at != '' AND cleared_at != 'null' ORDER BY cleared_at DESC LIMIT 1`
             ).bind(caller.id || reqUser, reqUser, ...channelCandidates).first();
             if (ucsRow && ucsRow.cleared_at) {
               querySql += ` AND m.created_at > ? `;
@@ -6502,8 +6507,20 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             timestamp: r.created_at,
             type: "text",
             reactions: {},
-            reply_to_id: att.reply_to_id || r.reply_to_id || null,
-            reply_to_content: att.reply_to_content || r.reply_to_content || null,
+            reply_to_id: r.reply_to_id || att.reply_to_id || null,
+            replyToId: r.reply_to_id || att.reply_to_id || null,
+            reply_to_content: r.reply_to_content || att.reply_to_content || null,
+            replyToContent: r.reply_to_content || att.reply_to_content || null,
+            reply_to_author: r.reply_to_author || att.reply_to_author || null,
+            replyToAuthor: r.reply_to_author || att.reply_to_author || null,
+            is_silent: r.is_silent === 1 || att.is_silent === true || false,
+            isSilent: r.is_silent === 1 || att.is_silent === true || false,
+            is_whisper: r.is_whisper === 1 || att.is_whisper === true || false,
+            isWhisper: r.is_whisper === 1 || att.is_whisper === true || false,
+            read_at: r.read_at || null,
+            readAt: r.read_at || null,
+            is_read: r.read_at != null,
+            isRead: r.read_at != null,
           };
         });
         } catch (d1Err) {

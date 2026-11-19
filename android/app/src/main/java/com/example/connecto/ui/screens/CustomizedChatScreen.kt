@@ -169,6 +169,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.material3.Scaffold
 import androidx.fragment.app.FragmentActivity
 import android.content.ContextWrapper
 import com.example.connecto.security.BiometricAuthManager
@@ -939,6 +941,9 @@ fun CustomizedChatScreen(
     var isInputFocused by remember { mutableStateOf(false) }
     var isFriendTyping by remember { mutableStateOf(false) }
     var isLoadingMessages by remember { mutableStateOf(false) }
+    var messageLoadingError by remember { mutableStateOf<String?>(null) }
+    var messageLoadingErrorCode by remember { mutableStateOf<String?>(null) }
+    var messageRetryTrigger by remember { mutableIntStateOf(0) }
     val messageDrafts = remember { mutableStateMapOf<String, String>() }
     var replyingTo by remember { mutableStateOf<CustomMessageItem?>(null) }
 
@@ -3029,11 +3034,13 @@ fun CustomizedChatScreen(
     var hasServerScrolledForFriend by remember { mutableStateOf(false) }
 
     // DM Channel Setup and Live Polling Loop
-    LaunchedEffect(selectedFriend?.id) {
+    LaunchedEffect(selectedFriend?.id, messageRetryTrigger) {
         val friend = selectedFriend
         onDirectChatStateChanged(friend != null)
         VoiceCallManager.activeChatRoomOrFriend = friend?.handle?.removePrefix("@")?.lowercase()
 
+            messageLoadingError = null
+            messageLoadingErrorCode = null
         if (friend != null) {
             val friendId = friend.id
             typedMessage = messageDrafts[friend.id] ?: ""
@@ -3234,6 +3241,8 @@ fun CustomizedChatScreen(
                         }
                         if (msgRes.isSuccess) {
                             val dtoList = msgRes.getOrThrow()
+                            messageLoadingError = null
+                            messageLoadingErrorCode = null
                             val unexpiredList = dtoList.distinctBy { it.id }
                             isLoadingMessages = false
                             if (unexpiredList.isNotEmpty()) {
@@ -3411,11 +3420,20 @@ fun CustomizedChatScreen(
                             }
                         } else {
                             isLoadingMessages = false
+                            if (friendMessages.isEmpty()) {
+                                val ex = msgRes.exceptionOrNull()
+                                messageLoadingError = ex?.message ?: "Unable to load messages from server"
+                                messageLoadingErrorCode = "ERR_LOAD_FAILED"
+                            }
                         }
                     }
                 } catch (e: Exception) {
                     // Ignore transient network errors and ensure loading shimmer is dismissed
                     isLoadingMessages = false
+                    if (friendMessages.isEmpty()) {
+                        messageLoadingError = e.message ?: "Connection error"
+                        messageLoadingErrorCode = "ERR_NETWORK"
+                    }
                 }
                 delay(1500)
             }
@@ -3423,6 +3441,8 @@ fun CustomizedChatScreen(
             friendMessages = emptyList()
             activeDmChannelId = null
             isLoadingMessages = false
+            messageLoadingError = null
+            messageLoadingErrorCode = null
         }
     }
 
@@ -4973,13 +4993,197 @@ fun CustomizedChatScreen(
             .fillMaxSize()
             .background(if (!isLight) Color(0xFF0A0B0E) else MaterialTheme.colorScheme.background)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // ========== TOP HEADER ==========
-            if (isFriendProfileOpen && selectedFriend?.isGroup == false) {
-                // Friend Profile screen renders its own full-screen custom top header
-            } else if (selectedFriend != null) {
+        when {
+            isFriendProfileOpen && selectedFriend?.isGroup == false -> {
+                        // ================= 3. DEDICATED FULL-SCREEN FRIEND PROFILE TAB =================
+                        selectedFriend?.let { friendObj ->
+                            val friendClean = friendObj.handle.removePrefix("@").trim().lowercase()
+                            // Strict validation: profData must belong to friendObj!
+                            val profData = selectedFriendProfileData?.takeIf {
+                                it.username.lowercase() == friendClean ||
+                                (it.id.isNotBlank() && it.id == friendObj.id)
+                            } ?: friendProfilesCache[friendClean]
+                            val friendHandleClean = friendObj.handle.removePrefix("@")
+                            val fId = friendObj.id
+                            val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
+                            val isGroupAdmin = if (friendObj.isGroup) friendObj.isUserAdmin(myUser) else true
+
+                            FriendProfileScreen(
+                                friend = friendObj,
+                                profData = profData,
+                                isLoading = isLoadingFriendProfile && profData == null,
+                                isChatLocked = isChatLocked,
+                                isChatMuted = isChatMuted,
+                                chatWallpaperId = chatWallpaperId,
+                                customWallpaperUri = customWallpaperUri,
+                                wallpaperTransform = wallpaperTransform,
+                                onOpenWallpaperCustomizer = {
+                                    if (friendObj.isGroup && !isGroupAdmin) {
+                                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        showWallpaperCustomizerDialog = true
+                                    }
+                                },
+                                subPage = friendProfileSubPage,
+                                onNavigateSubPage = { page -> friendProfileSubPage = page },
+                                onBack = {
+                                    if (friendProfileSubPage != null) {
+                                        friendProfileSubPage = null
+                                    } else if (openedProfileFromChatList) {
+                                        isFriendProfileOpen = false
+                                        openedProfileFromChatList = false
+                                        selectedFriend = null
+                                        selectedFriendProfileData = null
+                                        onDirectChatStateChanged(false)
+                                    } else {
+                                        isFriendProfileOpen = false
+                                        selectedFriendProfileData = null
+                                    }
+                                },
+                                onToggleChatLock = { checked ->
+                                    val activity = context.findFragmentActivity()
+                                    val userPrefix = myUser
+                                    if (checked) {
+                                        if (activity != null && (BiometricAuthManager.isBiometricEnrolled(activity) || BiometricAuthManager.isDeviceSecure(activity))) {
+                                            BiometricAuthManager.authenticate(
+                                                activity = activity,
+                                                title = "Lock Chat with @$friendHandleClean",
+                                                subtitle = "Verify biometric or device credential to enable chat lock",
+                                                onSuccess = {
+                                                    isChatLocked = true
+                                                    friendPrefs.edit()
+                                                        .putBoolean("${userPrefix}_chat_locked_$fId", true)
+                                                        .putBoolean("${userPrefix}_chat_locked_$friendHandleClean", true)
+                                                        .apply()
+                                                    if (!unlockedLockedFriends.contains(fId)) {
+                                                        unlockedLockedFriends.add(fId)
+                                                    }
+                                                    Toast.makeText(context, "Chat locked for @$friendHandleClean", Toast.LENGTH_SHORT).show()
+                                                },
+                                                onError = { _, err ->
+                                                    Toast.makeText(context, "Authentication required: $err", Toast.LENGTH_SHORT).show()
+                                                }
+                                            )
+                                        } else {
+                                            isChatLocked = true
+                                            friendPrefs.edit()
+                                                .putBoolean("${userPrefix}_chat_locked_$fId", true)
+                                                .putBoolean("${userPrefix}_chat_locked_$friendHandleClean", true)
+                                                .apply()
+                                            if (!unlockedLockedFriends.contains(fId)) {
+                                                unlockedLockedFriends.add(fId)
+                                            }
+                                            Toast.makeText(context, "Chat locked for @$friendHandleClean", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } else {
+                                        if (activity != null && (BiometricAuthManager.isBiometricEnrolled(activity) || BiometricAuthManager.isDeviceSecure(activity))) {
+                                            BiometricAuthManager.authenticate(
+                                                activity = activity,
+                                                title = "Unlock Chat with @$friendHandleClean",
+                                                subtitle = "Verify identity to remove chat lock protection",
+                                                onSuccess = {
+                                                    isChatLocked = false
+                                                    friendPrefs.edit()
+                                                        .remove("${userPrefix}_chat_locked_$fId")
+                                                        .remove("${userPrefix}_chat_locked_$friendHandleClean")
+                                                        .remove("chat_locked_$fId")
+                                                        .apply()
+                                                    Toast.makeText(context, "Chat lock removed for @$friendHandleClean", Toast.LENGTH_SHORT).show()
+                                                },
+                                                onError = { _, err ->
+                                                    Toast.makeText(context, "Authentication required to disable lock: $err", Toast.LENGTH_SHORT).show()
+                                                }
+                                            )
+                                        } else {
+                                            isChatLocked = false
+                                            friendPrefs.edit()
+                                                .remove("${userPrefix}_chat_locked_$fId")
+                                                .remove("${userPrefix}_chat_locked_$friendHandleClean")
+                                                .remove("chat_locked_$fId")
+                                                .apply()
+                                            Toast.makeText(context, "Chat lock removed for @$friendHandleClean", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                onToggleChatMute = { checked ->
+                                    isChatMuted = checked
+                                    val currentMuted = notifPrefs.getStringSet("muted_channels", emptySet())?.toMutableSet() ?: mutableSetOf()
+                                    if (checked) {
+                                        currentMuted.add(friendHandleClean.lowercase())
+                                        currentMuted.add(fId.lowercase())
+                                        Toast.makeText(context, "Muted notifications from @$friendHandleClean", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        currentMuted.removeAll { it.lowercase() == friendHandleClean.lowercase() || it.lowercase() == fId.lowercase() }
+                                        Toast.makeText(context, "Unmuted notifications from @$friendHandleClean", Toast.LENGTH_SHORT).show()
+                                    }
+                                    notifPrefs.edit().putStringSet("muted_channels", currentMuted).apply()
+                                },
+                                onSelectWallpaper = { wpId ->
+                                    if (friendObj.isGroup && !isGroupAdmin) {
+                                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                        return@FriendProfileScreen
+                                    }
+                                    chatWallpaperId = wpId
+                                    customWallpaperUri = null
+                                    WallpaperSyncManager.applyAndSyncWallpaper(
+                                        context = context,
+                                        myUsername = myUser,
+                                        friend = friendObj,
+                                        conversationId = null,
+                                        wallpaperId = wpId,
+                                        customUri = null,
+                                        transform = WallpaperTransform(),
+                                        isGlobal = false
+                                    )
+                                },
+                                onPickCustomWallpaper = {
+                                    if (friendObj.isGroup && !isGroupAdmin) {
+                                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                        return@FriendProfileScreen
+                                    }
+                                    wallpaperPickerLauncher.launch("image/*")
+                                },
+                                onRemoveCustomWallpaper = {
+                                    if (friendObj.isGroup && !isGroupAdmin) {
+                                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                        return@FriendProfileScreen
+                                    }
+                                    chatWallpaperId = "default"
+                                    customWallpaperUri = null
+                                    wallpaperTransform = WallpaperTransform()
+                                    WallpaperSyncManager.resetAndSyncWallpaper(
+                                        context = context,
+                                        myUsername = myUser,
+                                        friend = friendObj,
+                                        conversationId = null,
+                                        isGlobal = false
+                                    )
+                                },
+                                onUnfriend = {
+                                    showUnfriendConfirmDialog = true
+                                },
+                                onInitiateVoiceCall = {
+                                    initiateVoiceCallWithFriend(friendObj)
+                                },
+                                onOpenDirectChat = {
+                                    isFriendProfileOpen = false
+                                    openedProfileFromChatList = false
+                                },
+                                onViewPhoto = {
+                                    showPhotoLightbox = true
+                                },
+                                isAdmin = isGroupAdmin
+                            )
+                        }
+            }
+            selectedFriend != null -> {
+                // ================= DEDICATED DIRECT CHAT 3-SLOT SCAFFOLD =================
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    containerColor = if (!isLight) Color(0xFF0A0B0E) else MaterialTheme.colorScheme.background,
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                    topBar = {
+                        Column(modifier = Modifier.fillMaxWidth()) {
                 // 1:1 Direct Chat Header with Call Buttons & Friend Profile Info Trigger
                 val headerBg = if (isLiquidGlassTheme) {
                     val alpha = ConnectoTheme.glassAlpha
@@ -5558,7 +5762,1941 @@ fun CustomizedChatScreen(
                         }
                     }
                 }
-            } else {
+                        }
+                    },
+                    bottomBar = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .navigationBarsPadding()
+                                .imePadding()
+                        ) {
+                        val selFriendForInput = selectedFriend
+                        val isAcceptedFriend = selFriendForInput == null || selFriendForInput.isGroup || friendsList.any {
+                            it.id == selFriendForInput.id ||
+                            it.handle.removePrefix("@").equals(selFriendForInput.handle.removePrefix("@"), ignoreCase = true)
+                        }
+
+                        if (selFriendForInput != null && !isAcceptedFriend) {
+                            val targetHandle = selFriendForInput.handle.removePrefix("@")
+                            var isSendingReq by remember { mutableStateOf(false) }
+                            var reqSentLocally by remember { mutableStateOf(false) }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
+                                    .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.4f), RoundedCornerShape(18.dp))
+                                    .padding(14.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFFEF4444).copy(alpha = 0.15f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Lock,
+                                                contentDescription = "Locked",
+                                                tint = Color(0xFFF87171),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = "Direct Messaging Restricted",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFFF87171)
+                                            )
+                                            Text(
+                                                text = if (reqSentLocally) "Friend request sent. Waiting for @$targetHandle to accept."
+                                                       else "You must be accepted friends to send messages.",
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    if (reqSentLocally) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+                                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                        ) {
+                                            Text("Pending", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        }
+                                    } else {
+                                        Button(
+                                            onClick = {
+                                                if (!isSendingReq) {
+                                                    isSendingReq = true
+                                                    coroutineScope.launch {
+                                                        try {
+                                                            val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
+                                                            val res = ConnectoApiClient.sendFriendRequest(targetHandle, myUsernameOverride = effUser)
+                                                            if (res.isSuccess) {
+                                                                reqSentLocally = true
+                                                                Toast.makeText(context, "Friend request sent to @$targetHandle", Toast.LENGTH_SHORT).show()
+                                                            } else {
+                                                                Toast.makeText(context, "Could not send request: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        } finally {
+                                                            isSendingReq = false
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Text("Add Friend", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (isMultiSelectMode) {
+                            // Bottom Action Dock: Replace the message input bar smoothly with a clean #12151E bulk action dock containing evenly spaced icon + label buttons
+                            val clipboard = LocalClipboardManager.current
+                            val selectedMsgs = remember(selectedMultiMessageIds.size, friendMessages) {
+                                friendMessages.filter { selectedMultiMessageIds.contains(it.id) }.sortedBy { it.timestampMillis }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(Color(0xFF12151E))
+                                    .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(18.dp))
+                                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // 1. Copy Button
+                                    val isCopyEnabled = selectedMsgs.isNotEmpty()
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable(enabled = isCopyEnabled) {
+                                                val distinctSenders = selectedMsgs.map { it.senderName }.distinct()
+                                                val formattedText = if (distinctSenders.size > 1) {
+                                                    selectedMsgs.joinToString("\n") { "[${it.senderName}]: ${it.content}" }
+                                                } else {
+                                                    selectedMsgs.joinToString("\n") { it.content }
+                                                }
+                                                clipboard.setText(AnnotatedString(formattedText))
+                                                Toast.makeText(context, "Copied ${selectedMsgs.size} messages", Toast.LENGTH_SHORT).show()
+                                                isMultiSelectMode = false
+                                                selectedMultiMessageIds.clear()
+                                            }
+                                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ContentCopy,
+                                            contentDescription = "Copy",
+                                            tint = if (isCopyEnabled) Color.White else Color(0xFF64748B),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Copy",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (isCopyEnabled) Color.White else Color(0xFF64748B)
+                                        )
+                                    }
+
+                                    // 2. Forward Button
+                                    val isForwardEnabled = selectedMsgs.isNotEmpty()
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable(enabled = isForwardEnabled) {
+                                                showForwardSheet = true
+                                            }
+                                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.Reply,
+                                            contentDescription = "Forward",
+                                            tint = if (isForwardEnabled) Color.White else Color(0xFF64748B),
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .graphicsLayer { scaleX = -1f }
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Forward",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (isForwardEnabled) Color.White else Color(0xFF64748B)
+                                        )
+                                    }
+
+                                    // 3. Delete Button
+                                    val isDeleteEnabled = selectedMsgs.isNotEmpty()
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable(enabled = isDeleteEnabled) {
+                                                showDeleteConfirmDialog = true
+                                            }
+                                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete",
+                                            tint = if (isDeleteEnabled) Color(0xFFEF4444) else Color(0xFF64748B),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Delete",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (isDeleteEnabled) Color(0xFFEF4444) else Color(0xFF64748B)
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onGloballyPositioned { coords ->
+                                        chatInputBarHeightPx = coords.size.height
+                                    }
+                            ) {
+                                // Compact Swipe-to-Reply active preview bar (48px height)
+                            AnimatedVisibility(
+                                visible = replyingTo != null,
+                                enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(tween(180)) + expandVertically(),
+                                exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut(tween(150)) + shrinkVertically()
+                            ) {
+                                val replyTarget = replyingTo
+                                if (replyTarget != null) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(48.dp)
+                                            .padding(horizontal = 16.dp, vertical = 2.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isLiquidGlassTheme) {
+                                                    val alpha = ConnectoTheme.glassAlpha
+                                                    if (alpha <= 0.005f) Color.Transparent
+                                                    else Color.White.copy(alpha = (alpha * 0.25f).coerceIn(0.01f, 0.35f))
+                                                }
+                                                else if (isPureBlack) Color(0x1AFFFFFF)
+                                                else if (isLight) Color(0xFFF1F5F9)
+                                                else Color(0xFF161922)
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (isLight) Color(0x14000000) else Color(0x1FFFFFFF),
+                                                RoundedCornerShape(12.dp)
+                                            )
+                                            .padding(horizontal = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .width(3.dp)
+                                                .height(28.dp)
+                                                .clip(RoundedCornerShape(2.dp))
+                                                .background(MaterialTheme.colorScheme.primary)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Text(
+                                                text = if (replyTarget.isMe) "Replying to yourself" else "Replying to ${replyTarget.senderName}",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = cleanMessageContentForDisplay(replyTarget.content, "Replying to message"),
+                                                fontSize = 13.sp,
+                                                color = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .clickable { replyingTo = null },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Cancel reply",
+                                                tint = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Active Editing Message Banner (48px height)
+                            AnimatedVisibility(
+                                visible = editingMessage != null,
+                                enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(tween(180)) + expandVertically(),
+                                exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut(tween(150)) + shrinkVertically()
+                            ) {
+                                editingMessage?.let { editTarget ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(48.dp)
+                                            .padding(horizontal = 16.dp, vertical = 2.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isLight) Color(0xFFF1F5F9) else Color(0xFF161922)
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (isLight) Color(0x14000000) else Color(0x1FFFFFFF),
+                                                RoundedCornerShape(12.dp)
+                                            )
+                                            .padding(horizontal = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .width(3.dp)
+                                                .height(28.dp)
+                                                .clip(RoundedCornerShape(2.dp))
+                                                .background(MaterialTheme.colorScheme.primary)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Text(
+                                                text = "Editing message",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = cleanMessageContentForDisplay(editTarget.content, "Editing message"),
+                                                fontSize = 13.sp,
+                                                color = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .clickable {
+                                                    editingMessage = null
+                                                    typedMessage = ""
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Cancel edit",
+                                                tint = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.Bottom
+                            ) {
+                            // Text Field Box (Multi-line Expandable)
+                            val inputContainerBg = if (isLiquidGlassTheme) {
+                                val alpha = ConnectoTheme.glassAlpha
+                                if (alpha <= 0.005f) Color.Transparent
+                                else Color.White.copy(alpha = (alpha * 0.28f).coerceIn(0.01f, 0.40f))
+                            } else if (isPureBlack) {
+                                Color(0x1AFFFFFF)
+                            } else if (isLight) {
+                                Color(0xFFFFFFFF)
+                            } else {
+                                Color(0xFF161922)
+                            }
+
+                            val inputContainerBorder = if (isLight) {
+                                if (isInputFocused) MaterialTheme.colorScheme.primary else Color(0xFFE2E8F0)
+                            } else {
+                                if (isInputFocused) Color(0x33FFFFFF) else Color(0x0FFFFFFF)
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = 46.dp, max = 120.dp)
+                                    .clip(RoundedCornerShape(22.dp))
+                                    .background(inputContainerBg)
+                                    .border(
+                                        width = 1.dp,
+                                        color = inputContainerBorder,
+                                        shape = RoundedCornerShape(22.dp)
+                                    )
+                                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                BasicTextField(
+                                    value = typedMessage,
+                                    onValueChange = { typedMessage = it },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .focusRequester(messageInputFocusRequester)
+                                        .onFocusChanged { isInputFocused = it.isFocused },
+                                    textStyle = TextStyle(
+                                        color = if (isLight) Color(0xFF0F172A) else Color.White,
+                                        fontSize = 14.sp,
+                                        lineHeight = 20.sp
+                                    ),
+                                    cursorBrush = SolidColor(if (isLight) Color(0xFF0F172A) else MaterialTheme.colorScheme.primary),
+                                    maxLines = 4,
+                                    decorationBox = { inner ->
+                                        if (typedMessage.isEmpty()) {
+                                            Text(
+                                                text = "Type message for " + (selectedFriend?.name ?: "friend") + "...",
+                                                color = if (isLight) Color(0xFF94A3B8) else Color(0xFF717686),
+                                                fontSize = 13.sp
+                                            )
+                                        }
+                                        inner()
+                                    }
+                                )
+
+                                Spacer(modifier = Modifier.width(6.dp))
+
+                                // Emoji Toggle Button
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .clickable {
+                                            if (!showEmojiPicker) {
+                                                focusManager.clearFocus()
+                                            }
+                                            showEmojiPicker = !showEmojiPicker
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.SentimentSatisfiedAlt,
+                                        contentDescription = "Emoji picker",
+                                        tint = if (showEmojiPicker) MaterialTheme.colorScheme.primary else (if (isLight) Color(0xFF64748B) else Color(0xFF8E929F)),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            // Dynamic Send Action Button with Hold-to-Send Silent & Whisper support
+                            var showHoldToSendMenu by remember { mutableStateOf(false) }
+                            val onSendMessage: (Boolean, Boolean) -> Unit = { isSilent, isWhisper ->
+                                val targetToEdit = editingMessage
+                                if (targetToEdit != null) {
+                                    val editTarget = targetToEdit
+                                    val newContent = typedMessage.trim()
+                                    if (newContent.isNotBlank()) {
+                                        val targetId = editTarget.id
+                                        friendMessages = friendMessages.map { if (it.id == targetId) it.copy(content = newContent) else it }
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            dbHelper.updateMessageContent(targetId, newContent)
+                                        }
+                                        val currentFriend = selectedFriend
+                                        val canonicalChatId = getCanonicalChatId(currentFriend)
+                                        val targetChan = activeDmChannelId ?: (if (currentFriend?.isGroup == true) currentFriend.id else canonicalChatId)
+                                        coroutineScope.launch {
+                                            ConnectoApiClient.editMessage(targetId, newContent, targetChan.ifBlank { null })
+                                        }
+                                    }
+                                    editingMessage = null
+                                    typedMessage = ""
+                                } else if (selectedFriend != null && !isAcceptedFriend) {
+                                    Toast.makeText(context, "Direct messaging is restricted to accepted friends.", Toast.LENGTH_SHORT).show()
+                                } else if (typedMessage.isNotBlank()) {
+                                    val userMsg = typedMessage.trim()
+                                    typedMessage = ""
+                                    selectedFriend?.let { curF ->
+                                        messageDrafts.remove(curF.id)
+                                        if (curF.id in deletedChatIds) {
+                                            deletedChatIds = deletedChatIds - curF.id
+                                            friendPrefs.edit()
+                                                .putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds)
+                                                .remove("${userPrefix}_cleared_at_${curF.id}")
+                                                .apply()
+                                            val canonicalChatId = getCanonicalChatId(curF)
+                                            coroutineScope.launch {
+                                                ConnectoApiClient.restoreConversation(canonicalChatId)
+                                            }
+                                        }
+                                    }
+                                    showEmojiPicker = false
+
+                                    val typingRecipient = selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.name ?: selectedFriend?.id
+                                    val typingTarget = activeDmChannelId ?: typingRecipient
+                                    if (typingTarget != null) {
+                                        VoiceCallManager.sendTypingStop(typingTarget, typingRecipient)
+                                    }
+
+                                    val myName = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@")
+                                    val tempId = "opt-${UUID.randomUUID()}"
+                                    val currentReply = replyingTo
+                                    replyingTo = null // Clear reply banner immediately
+
+                                    val isCurGroup = selectedFriend?.isGroup == true
+                                    val isRecipientOnline = selectedFriend?.isOnline == true
+                                    val initialDelivered = if (isCurGroup) true else isRecipientOnline
+                                    val nowMillis = System.currentTimeMillis()
+
+                                    val localItem = CustomMessageItem(
+                                        id = tempId,
+                                        senderName = myName,
+                                        initial = userInitial,
+                                        content = userMsg,
+                                        time = "Just now",
+                                        isMe = true,
+                                        isDelivered = initialDelivered,
+                                        isRead = false,
+                                        avatarUrl = ConnectoApiClient.currentUserAvatarUrl,
+                                        replyToId = currentReply?.id,
+                                        replyToContent = currentReply?.content,
+                                        replyToAuthor = currentReply?.senderName,
+                                        isEncrypted = false,
+                                        timestampMillis = nowMillis,
+                                        isSilent = isSilent,
+                                        isWhisper = isWhisper
+                                    )
+                                    val updatedList = (friendMessages + localItem).sortedBy { it.timestampMillis }
+                                    friendMessages = updatedList
+                                    isLoadingMessages = false
+
+                                    // Display preview text: for whispers, show 'Sent a whisper' in DM list
+                                    val previewText = if (isWhisper) "🫧 Sent a whisper" else userMsg
+
+                                    // Move current friend/group to index 0 of conversations list with latest message and timestamp
+                                    selectedFriend?.let { friend ->
+                                        val fIdx = friendsList.indexOfFirst {
+                                            it.id == friend.id || it.handle.removePrefix("@").equals(friend.handle.removePrefix("@"), ignoreCase = true)
+                                        }
+                                        if (fIdx != -1) {
+                                            val updated = friendsList[fIdx].copy(
+                                                lastMessage = previewText,
+                                                timeAgo = "Just now",
+                                                unreadCount = 0,
+                                                lastMessageTimestamp = nowMillis
+                                            )
+                                            friendsList.removeAt(fIdx)
+                                            friendsList.add(0, updated)
+                                            val cleanHandle = updated.handle.removePrefix("@").trim().lowercase()
+                                            readPrefs.edit()
+                                                .putString("last_msg_${updated.id}", previewText)
+                                                .putString("last_msg_${cleanHandle}", previewText)
+                                                .putString("last_time_${updated.id}", "Just now")
+                                                .putString("last_time_${cleanHandle}", "Just now")
+                                                .putLong("last_timestamp_${updated.id}", nowMillis)
+                                                .putLong("last_timestamp_${cleanHandle}", nowMillis)
+                                                .apply()
+                                            coroutineScope.launch(Dispatchers.IO) {
+                                                try {
+                                                    dbHelper.updateFriendLastMessageAndUnread(updated.id, previewText, "Just now", 0, nowMillis)
+                                                } catch (_: Exception) {}
+                                            }
+                                            notifyUnreadChanged()
+                                        } else {
+                                            val gIdx = userGroupsList.indexOfFirst { it.id == friend.id }
+                                            if (gIdx != -1) {
+                                                val updated = userGroupsList[gIdx].copy(
+                                                    lastMessage = previewText,
+                                                    timeAgo = "Just now",
+                                                    unreadCount = 0,
+                                                    lastMessageTimestamp = nowMillis
+                                                )
+                                                userGroupsList.removeAt(gIdx)
+                                                userGroupsList.add(0, updated)
+                                                readPrefs.edit()
+                                                    .putString("last_msg_${updated.id}", previewText)
+                                                    .putString("last_time_${updated.id}", "Just now")
+                                                    .putInt("unread_${updated.id}", 0)
+                                                    .putLong("last_timestamp_${updated.id}", nowMillis)
+                                                    .apply()
+                                                coroutineScope.launch(Dispatchers.IO) {
+                                                    try {
+                                                        dbHelper.updateGroupLastMessageAndUnread(updated.id, previewText, "Just now", 0, nowMillis)
+                                                    } catch (_: Exception) {}
+                                                }
+                                                notifyUnreadChanged()
+                                            }
+                                        }
+                                    }
+
+                                    // Instantly scroll to the bottom on sending message - zero lag, zero page load
+                                    coroutineScope.launch {
+                                        try { listState.scrollToItem(updatedList.size) } catch (_: Exception) {}
+                                    }
+
+                                    coroutineScope.launch {
+                                        try {
+                                            val friend = selectedFriend ?: return@launch
+                                            val isGrp = friend.isGroup
+                                            val cleanTarget = friend.handle.removePrefix("@").trim()
+                                            val myUser = myName.lowercase()
+                                            val canonicalName = if (isGrp) friend.id else "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
+
+                                            // Persist optimistic message immediately to local SQLite database so it never disappears across screens
+                                            withContext(Dispatchers.IO) {
+                                                val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date())
+                                                val optDto = MessageDto(
+                                                    id = tempId,
+                                                    channelId = if (isGrp) friend.id else canonicalName,
+                                                    authorId = myName,
+                                                    authorName = myName,
+                                                    content = userMsg,
+                                                    createdAt = nowIso,
+                                                    authorAvatar = ConnectoApiClient.currentUserAvatarUrl,
+                                                    replyToId = currentReply?.id,
+                                                    replyToContent = currentReply?.content,
+                                                    replyToAuthor = currentReply?.senderName,
+                                                    isSilent = isSilent,
+                                                    isWhisper = isWhisper
+                                                )
+                                                dbHelper.saveMessage(optDto)
+                                                dbHelper.saveMessages(if (isGrp) friend.id else canonicalName, listOf(optDto))
+                                            }
+
+                                            val targetChannelId = if (isGrp) {
+                                                activeDmChannelId ?: friend.id
+                                            } else {
+                                                activeDmChannelId ?: ConnectoApiClient.channelCache[canonicalName.lowercase()] ?: canonicalName
+                                            }
+
+                                            val sendRes = ConnectoApiClient.sendMessage(
+                                                channelId = targetChannelId,
+                                                content = userMsg,
+                                                replyToId = currentReply?.id,
+                                                replyToContent = currentReply?.content,
+                                                replyToAuthor = currentReply?.senderName,
+                                                isSilent = isSilent,
+                                                isWhisper = isWhisper
+                                            )
+                                            if (sendRes.isSuccess) {
+                                                val sentDto = sendRes.getOrThrow()
+                                                withContext(Dispatchers.IO) {
+                                                    dbHelper.deleteMessage(tempId)
+                                                    dbHelper.saveMessage(sentDto)
+                                                    if (isGrp) {
+                                                        dbHelper.saveMessages(targetChannelId, listOf(sentDto))
+                                                    } else {
+                                                        dbHelper.saveMessages(canonicalName, listOf(sentDto))
+                                                        if (targetChannelId.isNotBlank() && targetChannelId != canonicalName) {
+                                                            dbHelper.saveMessages(targetChannelId, listOf(sentDto))
+                                                        }
+                                                    }
+                                                }
+                                                val sentMillis = parseMessageTimestamp(sentDto.createdAt)
+                                                val realItem = CustomMessageItem(
+                                                    id = sentDto.id,
+                                                    senderName = sentDto.authorName,
+                                                    initial = userInitial,
+                                                    content = userMsg,
+                                                    time = formatIsoTime(sentDto.createdAt),
+                                                    isMe = true,
+                                                    isDelivered = if (isGrp) true else (selectedFriend?.isOnline == true || initialDelivered),
+                                                    isRead = false,
+                                                    avatarUrl = ConnectoApiClient.currentUserAvatarUrl,
+                                                    replyToId = sentDto.replyToId ?: currentReply?.id,
+                                                    replyToContent = sentDto.replyToContent ?: currentReply?.content,
+                                                    replyToAuthor = sentDto.replyToAuthor ?: currentReply?.senderName,
+                                                    isEncrypted = false,
+                                                    timestampMillis = if (sentMillis > 0) sentMillis else nowMillis,
+                                                    isSilent = sentDto.isSilent,
+                                                    isWhisper = sentDto.isWhisper
+                                                )
+                                                val curList = friendMessages.toMutableList()
+                                                val optIdx = curList.indexOfFirst { it.id == tempId }
+                                                if (optIdx != -1) {
+                                                    curList[optIdx] = realItem.copy(
+                                                        reaction = curList[optIdx].reaction ?: realItem.reaction,
+                                                        isDelivered = curList[optIdx].isDelivered || realItem.isDelivered
+                                                    )
+                                                } else if (curList.none { it.id == realItem.id }) {
+                                                    curList.add(realItem)
+                                                }
+                                                friendMessages = deduplicateCustomMessages(curList)
+                                                coroutineScope.launch {
+                                                    try { listState.animateScrollToItem(friendMessages.size) } catch (_: Exception) {}
+                                                }
+                                            } else {
+                                                // Server delivery failed: keep local message in friendMessages with delivery failure indicator
+                                                val curList = friendMessages.toMutableList()
+                                                val optIdx = curList.indexOfFirst { it.id == tempId }
+                                                if (optIdx != -1) {
+                                                    curList[optIdx] = curList[optIdx].copy(isDelivered = false)
+                                                    friendMessages = curList.sortedBy { it.timestampMillis }
+                                                }
+                                            }
+                                        } catch (e: Exception) {
+                                            // Local message remains visible in friendMessages with isDelivered = false
+                                            val curList = friendMessages.toMutableList()
+                                            val optIdx = curList.indexOfFirst { it.id == tempId }
+                                            if (optIdx != -1) {
+                                                curList[optIdx] = curList[optIdx].copy(isDelivered = false)
+                                                friendMessages = curList.sortedBy { it.timestampMillis }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier.wrapContentSize(),
+                                contentAlignment = Alignment.BottomEnd
+                            ) {
+                                val haptic = LocalHapticFeedback.current
+                                if (showHoldToSendMenu) {
+                                    val pillScale by animateFloatAsState(
+                                        targetValue = if (showHoldToSendMenu) 1f else 0.85f,
+                                        animationSpec = spring(stiffness = 380f, dampingRatio = 0.75f),
+                                        label = "holdPillScale"
+                                    )
+                                    val pillAlpha by animateFloatAsState(
+                                        targetValue = if (showHoldToSendMenu) 1f else 0f,
+                                        animationSpec = tween(160, easing = EaseOutCubic),
+                                        label = "holdPillAlpha"
+                                    )
+
+                                    androidx.compose.ui.window.Popup(
+                                        alignment = Alignment.TopEnd,
+                                        offset = androidx.compose.ui.unit.IntOffset(0, -220),
+                                        onDismissRequest = { showHoldToSendMenu = false }
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(18.dp),
+                                            color = Color(0xFF181C28),
+                                            shadowElevation = 10.dp,
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x1AFFFFFF)),
+                                            modifier = Modifier
+                                                .graphicsLayer {
+                                                    scaleX = pillScale
+                                                    scaleY = pillScale
+                                                    alpha = pillAlpha
+                                                }
+                                                .padding(bottom = 8.dp)
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(6.dp),
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                // Option 1: Send Silently
+                                                Row(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .clickable {
+                                                            try {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                            } catch (_: Exception) {}
+                                                            showHoldToSendMenu = false
+                                                            onSendMessage(true, false)
+                                                        }
+                                                        .padding(horizontal = 14.dp, vertical = 9.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                                ) {
+                                                    Text(text = "🔕", fontSize = 16.sp)
+                                                    Text(
+                                                        text = "Send Silently",
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = Color.White
+                                                    )
+                                                }
+
+                                                // Option 2: Send as Whisper
+                                                Row(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .clickable {
+                                                            try {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                            } catch (_: Exception) {}
+                                                            showHoldToSendMenu = false
+                                                            onSendMessage(false, true)
+                                                        }
+                                                        .padding(horizontal = 14.dp, vertical = 9.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                                ) {
+                                                    Text(text = "🫧", fontSize = 16.sp)
+                                                    Text(
+                                                        text = "Send as Whisper",
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = Color.White
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(46.dp)
+                                        .graphicsLayer {
+                                            scaleX = sendButtonScale
+                                            scaleY = sendButtonScale
+                                        }
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (typedMessage.isNotBlank()) {
+                                                if (isPureBlack || isLiquidGlassTheme) Brush.linearGradient(listOf(Color.White, Color(0xFFE4E4E7)))
+                                                else if (isGlassTheme) Brush.linearGradient(listOf(Color(0xFF38BDF8), Color(0xFF0284C7)))
+                                                else Brush.linearGradient(gradientColors)
+                                            } else {
+                                                if (isPureBlack || isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x26FFFFFF), Color(0x14FFFFFF)))
+                                                else if (isGlassTheme) Brush.verticalGradient(listOf(Color(0xD91E293B), Color(0xB3111827)))
+                                                else Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
+                                            }
+                                        )
+                                        .border(
+                                            width = if (isLiquidGlassTheme || isGlassTheme || isPureBlack) 1.2.dp else 1.dp,
+                                            brush = if (isPureBlack || isLiquidGlassTheme) {
+                                                Brush.linearGradient(
+                                                    listOf(
+                                                        if (typedMessage.isNotBlank()) Color.White else Color(0x66FFFFFF),
+                                                        if (typedMessage.isNotBlank()) Color(0x80FFFFFF) else Color(0x26FFFFFF)
+                                                    )
+                                                )
+                                            } else if (isGlassTheme) {
+                                                Brush.linearGradient(
+                                                    listOf(
+                                                        if (typedMessage.isNotBlank()) Color(0xFFE0F2FE) else Color(0x6638BDF8),
+                                                        if (typedMessage.isNotBlank()) Color(0x8038BDF8) else Color(0x2038BDF8)
+                                                    )
+                                                )
+                                            } else {
+                                                SolidColor(if (typedMessage.isNotBlank()) Color.Transparent else MaterialTheme.colorScheme.outline)
+                                            },
+                                            shape = CircleShape
+                                        )
+                                        .pointerInput(typedMessage) {
+                                            detectTapGestures(
+                                                onTap = {
+                                                    if (typedMessage.isNotBlank()) {
+                                                        onSendMessage(false, false)
+                                                    }
+                                                },
+                                                onLongPress = {
+                                                    if (typedMessage.isNotBlank()) {
+                                                        try {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        } catch (_: Exception) {}
+                                                        showHoldToSendMenu = true
+                                                    }
+                                                }
+                                            )
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = "Send",
+                                        tint = if (typedMessage.isNotBlank()) {
+                                            if (isPureBlack) Color.Black else contentOnGradient
+                                        } else {
+                                            if (isPureBlack || isLiquidGlassTheme) Color(0x66FFFFFF)
+                                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                        },
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+                        } // end Bottom Chat Input Area Column
+                    } // end Main Messages Column
+                        }
+                    }
+                ) { innerPadding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(
+                                top = innerPadding.calculateTopPadding(),
+                                bottom = innerPadding.calculateBottomPadding()
+                            )
+                    ) {
+                        val canScrollDown by remember {
+                            derivedStateOf { listState.canScrollForward }
+                        }
+
+                        // Layer 0: Wallpaper Background Layer
+                        // Wallpaper Background Layer: Custom Photo or Preset Gradient Brush with 300ms Crossfade
+                        Crossfade(
+                            targetState = Triple(chatWallpaperId, customWallpaperUri, wallpaperTransform),
+                            animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic),
+                            label = "chatWallpaperCrossfade"
+                        ) { (currentId, currentUri, currentTransform) ->
+                            if (currentId == "custom" && !currentUri.isNullOrBlank()) {
+                                val resolvedContentScale = when (currentTransform.contentScaleMode) {
+                                    "fit" -> ContentScale.Fit
+                                    "fill_bounds" -> ContentScale.FillBounds
+                                    "inside" -> ContentScale.Inside
+                                    else -> ContentScale.Crop
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clipToBounds()
+                                ) {
+                                    val customWallpaperModel = remember(currentUri) {
+                                        if (currentUri.startsWith("file://")) {
+                                            java.io.File(currentUri.removePrefix("file://"))
+                                        } else if (currentUri.startsWith("/")) {
+                                            java.io.File(currentUri)
+                                        } else {
+                                            android.net.Uri.parse(currentUri)
+                                        }
+                                    }
+
+                                    AsyncImage(
+                                        model = customWallpaperModel,
+                                        contentDescription = null,
+                                        contentScale = resolvedContentScale,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer {
+                                                scaleX = currentTransform.scale
+                                                scaleY = currentTransform.scale
+                                                translationX = currentTransform.offsetX
+                                                translationY = currentTransform.offsetY
+                                            }
+                                            .then(
+                                                if (currentTransform.blur > 0f) Modifier.blur(currentTransform.blur.dp) else Modifier
+                                            )
+                                    )
+                                    // Legibility Scrim Overlay so chat bubbles and text remain crisp
+                                    val scrimAlpha = (currentTransform.dim * 0.5f).coerceIn(0f, 0.45f)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(
+                                                if (isLight) Color.White.copy(alpha = scrimAlpha * 0.7f)
+                                                else Color.Black.copy(alpha = scrimAlpha)
+                                            )
+                                    )
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clipToBounds()
+                                ) {
+                                    val activeWp = remember(currentId) {
+                                        if (currentId != "default") {
+                                            AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == currentId } ?: AVAILABLE_CHAT_WALLPAPERS.first()
+                                        } else if (isLiquidGlassTheme || isGlassTheme) {
+                                            AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == "liquid_water" } ?: AVAILABLE_CHAT_WALLPAPERS.first()
+                                        } else {
+                                            AVAILABLE_CHAT_WALLPAPERS.first()
+                                        }
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer {
+                                                scaleX = currentTransform.scale
+                                                scaleY = currentTransform.scale
+                                                translationX = currentTransform.offsetX
+                                                translationY = currentTransform.offsetY
+                                            }
+                                            .then(
+                                                if (currentTransform.blur > 0f) Modifier.blur(currentTransform.blur.dp) else Modifier
+                                            )
+                                            .then(
+                                                if (currentId != "default") {
+                                                    if (currentId == "oled") {
+                                                        Modifier.background(Color(0xFF000000))
+                                                    } else {
+                                                        Modifier.background(
+                                                            brush = if (isLight) activeWp.lightBrush else activeWp.darkBrush
+                                                        )
+                                                    }
+                                                } else {
+                                                    if (isLiquidGlassTheme) {
+                                                        Modifier.liquidGlassCanvasMesh()
+                                                    } else if (isGlassTheme) {
+                                                        Modifier.glassCanvasMesh()
+                                                    } else if (isPureBlack) {
+                                                        Modifier.background(Color(0xFF000000))
+                                                    } else {
+                                                        Modifier.background(
+                                                            brush = if (isLight) activeWp.lightBrush else activeWp.darkBrush
+                                                        )
+                                                    }
+                                                }
+                                            )
+                                    )
+                                    if (currentId != "default" && currentId != "oled") {
+                                        val scrimAlpha = (currentTransform.dim * 0.35f).coerceIn(0f, 0.4f)
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(
+                                                    if (isLight) Color.White.copy(alpha = scrimAlpha * 0.5f)
+                                                    else Color.Black.copy(alpha = scrimAlpha)
+                                                )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Layer 1: Pinned Banner + Content
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // Pinned Message Banner at top of chat
+                            AnimatedVisibility(
+                                visible = pinnedMessageForChat != null,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                val pinned = pinnedMessageForChat
+                                if (pinned != null) {
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .clickable {
+                                                val targetIdx = friendMessages.indexOfFirst { it.id == pinned.messageId }
+                                                if (targetIdx != -1) {
+                                                    coroutineScope.launch {
+                                                        listState.animateScrollToItem(targetIdx)
+                                                    }
+                                                }
+                                            },
+                                        color = if (isLiquidGlassTheme || isGlassTheme) {
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+                                        } else if (isPureBlack) {
+                                            Color(0xFF18181B)
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        },
+                                        shape = RoundedCornerShape(14.dp),
+                                        tonalElevation = 2.dp,
+                                        shadowElevation = 2.dp
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.PushPin,
+                                                    contentDescription = "Pinned",
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        text = "PINNED MESSAGE",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontSize = 10.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            letterSpacing = 0.8.sp
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                    if (pinned.authorName.isNotBlank()) {
+                                                        Text(
+                                                            text = " • ${pinned.authorName}",
+                                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                                fontSize = 10.sp,
+                                                                fontWeight = FontWeight.Medium
+                                                            ),
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    }
+                                                }
+                                                Text(
+                                                    text = cleanMessageContentForDisplay(pinned.content, "Pinned message"),
+                                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(28.dp)
+                                                    .clip(CircleShape)
+                                                    .clickable {
+                                                        val currentFriend = selectedFriend
+                                                        val canonicalChatId = getCanonicalChatId(currentFriend)
+                                                        val activeChan = activeDmChannelId ?: (if (currentFriend?.isGroup == true) currentFriend.id else canonicalChatId)
+                                                        pinnedMessageForChat = null
+                                                        if (currentFriend != null) {
+                                                            val unpinKey = if (currentFriend.isGroup) currentFriend.id else canonicalChatId.lowercase()
+                                                            friendPrefs.edit()
+                                                                .remove("pinned_msg_${unpinKey}")
+                                                                .remove("pinned_content_${unpinKey}")
+                                                                .remove("pinned_author_${unpinKey}")
+                                                                .remove("pinned_msg_${currentFriend.id}")
+                                                                .remove("pinned_content_${currentFriend.id}")
+                                                                .remove("pinned_author_${currentFriend.id}")
+                                                                .apply()
+                                                        }
+                                                        if (activeChan.isNotBlank()) {
+                                                            coroutineScope.launch {
+                                                                ConnectoApiClient.unpinMessage(activeChan)
+                                                            }
+                                                        }
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "Unpin",
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f, fill = true)
+                                    .fillMaxWidth()
+                            ) {
+                                val showMessagesSkeleton = isLoadingMessages && friendMessages.isEmpty()
+                                val hasLoadError = messageLoadingError != null && friendMessages.isEmpty()
+
+                                if (showMessagesSkeleton) {
+                                    ShimmerMessageFeed(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 4.dp, vertical = 8.dp),
+                                        isDark = !isLight
+                                    )
+                                } else if (hasLoadError) {
+                                    // Calm Obsidian Error Card
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 24.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Card(
+                                            shape = RoundedCornerShape(16.dp),
+                                            colors = CardDefaults.cardColors(containerColor = Color(0xFF181C28)),
+                                            border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f)),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 16.dp)
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(20.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(48.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFFEF4444).copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Warning,
+                                                        contentDescription = "Error",
+                                                        tint = Color(0xFFEF4444),
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                                Text(
+                                                    text = "Couldn't load messages",
+                                                    fontSize = 15.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White
+                                                )
+                                                Text(
+                                                    text = messageLoadingError ?: "Network or server connection issue",
+                                                    fontSize = 12.sp,
+                                                    color = Color(0xFF94A3B8),
+                                                    textAlign = TextAlign.Center
+                                                )
+                                                if (messageLoadingErrorCode != null) {
+                                                    Text(
+                                                        text = "Code: $messageLoadingErrorCode",
+                                                        fontSize = 10.5.sp,
+                                                        color = Color(0xFF64748B)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Button(
+                                                    onClick = {
+                                                        messageLoadingError = null
+                                                        messageLoadingErrorCode = null
+                                                        isLoadingMessages = true
+                                                        messageRetryTrigger++
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+                                                ) {
+                                                    Text("Retry", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else if (friendMessages.isEmpty()) {
+                                    // Calm Empty State with starter chips
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 24.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(64.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Brush.linearGradient(gradientColors)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.SportsEsports,
+                                                    contentDescription = null,
+                                                    tint = contentOnGradient,
+                                                    modifier = Modifier.size(32.dp)
+                                                )
+                                            }
+                                            Text(
+                                                text = "Say hello to " + (selectedFriend?.name ?: "Friend") + "!",
+                                                fontSize = 17.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                textAlign = TextAlign.Center
+                                            )
+                                            Text(
+                                                text = "You are connected! Send a message or pick a starter below to start chatting.",
+                                                fontSize = 13.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                textAlign = TextAlign.Center,
+                                                lineHeight = 18.sp,
+                                                modifier = Modifier.padding(horizontal = 20.dp)
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            val starterChips = listOf("👋 Hey there!", "🎮 Want to play?", "☕ What's up?", "🔥 Let's connect!")
+                                            LazyRow(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                contentPadding = PaddingValues(horizontal = 4.dp)
+                                            ) {
+                                                items(starterChips) { chipText ->
+                                                    val chipBg = if (isLight) Color(0xFFF1F5F9) else Color(0xFF161922)
+                                                    val chipBorder = if (isLight) Color(0xFFE2E8F0) else Color(0x1FFFFFFF)
+                                                    val chipTextColor = if (isLight) Color(0xFF0F172A) else Color(0xFFE4E4E7)
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(14.dp))
+                                                            .background(chipBg)
+                                                            .border(1.dp, chipBorder, RoundedCornerShape(14.dp))
+                                                            .clickable {
+                                                                typedMessage = chipText
+                                                            }
+                                                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = chipText,
+                                                            fontSize = 12.5.sp,
+                                                            fontWeight = FontWeight.Medium,
+                                                            color = chipTextColor
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                DisableSelection {
+                                val deduplicatedMessages = remember(friendMessages) {
+                                    friendMessages.distinctBy { it.id.removePrefix("notif_ws_").removePrefix("notif_") }
+                                }
+                                val latestReadMessageId = remember(deduplicatedMessages) {
+                                    deduplicatedMessages.filter { it.isMe && it.isRead }.lastOrNull()?.id
+                                }
+                                LazyColumn(
+                                    state = listState,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                                    contentPadding = PaddingValues(top = 12.dp, bottom = 12.dp)
+                                ) {
+                                    // Security Vault Encryption Chip
+                                    item(key = "encryption_chip") {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))
+                                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                                            ) {
+                                                Text(
+                                                    text = "🔒 End-to-End Encrypted",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    itemsIndexed(
+                                        deduplicatedMessages,
+                                        key = { _, msg -> msg.id },
+                                        contentType = { _, msg -> if (msg.content.startsWith("🎨 ") && msg.content.contains("wallpaper")) "system_pill" else if (msg.isMe) "own" else "friend" }
+                                    ) { index, msg ->
+                                        // Shared Wallpaper System Pill
+                                        if (msg.content.startsWith("🎨 ") && msg.content.contains("wallpaper")) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 8.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(16.dp),
+                                                    color = if (isLight) Color(0xE6F1F5F9) else Color(0xCC1E2433),
+                                                    tonalElevation = 2.dp,
+                                                    shadowElevation = 1.dp,
+                                                    border = BorderStroke(1.dp, if (isLight) Color(0x20000000) else Color(0x30FFFFFF))
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = msg.content,
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Medium,
+                                                            color = if (isLight) Color(0xFF334155) else Color(0xFFCBD5E1)
+                                                        )
+                                                        Text(
+                                                            text = "Reset",
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier
+                                                                .clip(RoundedCornerShape(4.dp))
+                                                                .clickable {
+                                                                    coroutineScope.launch {
+                                                                        try {
+                                                                            val convId = currentChatKey.ifBlank {
+                                                                                selectedFriend?.let {
+                                                                                    if (it.isGroup) "group-${it.id}" else "dm-${listOf(myUsername.lowercase(), it.name.lowercase()).sorted().joinToString("-")}"
+                                                                                } ?: "global"
+                                                                            }
+
+                                                                            WallpaperSyncManager.resetAndSyncWallpaper(
+                                                                                context = context,
+                                                                                myUsername = myUsername,
+                                                                                friend = selectedFriend,
+                                                                                conversationId = convId,
+                                                                                isGlobal = false,
+                                                                                isShared = true
+                                                                            )
+                                                                            WallpaperResolver.clearSharedWallpaper(convId, friendPrefs)
+                                                                            val (defId, defUri) = WallpaperResolver.resolveForConversation(convId, selectedFriend, myUsername, friendPrefs, context.filesDir)
+                                                                            chatWallpaperId = defId
+                                                                            customWallpaperUri = defUri
+                                                                            wallpaperTransform = WallpaperResolver.resolveTransformForConversation(convId, selectedFriend, myUsername, friendPrefs)
+                                                                            Toast.makeText(context, "Wallpaper reset to default", Toast.LENGTH_SHORT).show()
+                                                                        } catch (e: Exception) {
+                                                                            e.printStackTrace()
+                                                                        }
+                                                                    }
+                                                                }
+                                                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            return@itemsIndexed
+                                        }
+
+                                        val prevMsg = deduplicatedMessages.getOrNull(index - 1)
+                                        val nextMsg = deduplicatedMessages.getOrNull(index + 1)
+                                        val isSameUserAsPrev = prevMsg != null && prevMsg.isMe == msg.isMe &&
+                                            (if (msg.isMe) true else prevMsg.senderName.equals(msg.senderName, ignoreCase = true)) &&
+                                            kotlin.math.abs(msg.timestampMillis - prevMsg.timestampMillis) < 3 * 60 * 1000L
+                                        val isSameUserAsNext = nextMsg != null && nextMsg.isMe == msg.isMe &&
+                                            (if (msg.isMe) true else nextMsg.senderName.equals(msg.senderName, ignoreCase = true)) &&
+                                            kotlin.math.abs(nextMsg.timestampMillis - msg.timestampMillis) < 3 * 60 * 1000L
+
+                                        val isDirectChat = selectedFriend?.isGroup != true
+                                        val showSenderName = !isDirectChat && !isSameUserAsPrev
+                                        val showAvatar = !isSameUserAsNext
+
+                                        var dragOffsetX by remember(msg.id) { mutableStateOf(0f) }
+                                        var hasTriggeredHaptic by remember(msg.id) { mutableStateOf(false) }
+                                        val animatedDragOffset by animateFloatAsState(
+                                            targetValue = dragOffsetX,
+                                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+                                            label = "dragOffset"
+                                        )
+                                        val hapticFeedback = LocalHapticFeedback.current
+                                        val clipboardManager = LocalClipboardManager.current
+                                        val isSelectedMsg = selectedMessageForAction?.id == msg.id
+
+                                        val isRecentMsg = remember(msg.id) {
+                                            val diff = System.currentTimeMillis() - msg.timestampMillis
+                                            diff in 0..4000L
+                                        }
+                                        val popInAnim = remember { Animatable(if (isRecentMsg) 0f else 1f) }
+                                        LaunchedEffect(msg.id) {
+                                            if (isRecentMsg && popInAnim.value < 1f) {
+                                                popInAnim.animateTo(
+                                                    targetValue = 1f,
+                                                    animationSpec = tween(durationMillis = 180, easing = EaseOutCubic)
+                                                )
+                                            }
+                                        }
+                                        val msgBubbleScale = if (isRecentMsg) 0.94f + 0.06f * popInAnim.value else 1f
+                                        val msgBubbleTranslateY = if (isRecentMsg) 14f * (1f - popInAnim.value) else 0f
+
+                                        val isMsgSelected = isMultiSelectMode && selectedMultiMessageIds.contains(msg.id)
+                                        var totalDeltaX by remember(msg.id) { mutableStateOf(0f) }
+                                        var totalDeltaY by remember(msg.id) { mutableStateOf(0f) }
+                                        var isSwipingRight by remember(msg.id) { mutableStateOf(false) }
+
+                                        val dragModifier = if (!isMultiSelectMode) {
+                                            Modifier.pointerInput(msg.id) {
+                                                detectDragGestures(
+                                                    onDragStart = {
+                                                        totalDeltaX = 0f
+                                                        totalDeltaY = 0f
+                                                        isSwipingRight = false
+                                                    },
+                                                    onDragEnd = {
+                                                        if (dragOffsetX >= 52f) {
+                                                            editingMessage = null
+                                                            replyingTo = msg
+                                                            try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
+                                                        }
+                                                        dragOffsetX = 0f
+                                                        hasTriggeredHaptic = false
+                                                        isSwipingRight = false
+                                                    },
+                                                    onDragCancel = {
+                                                        dragOffsetX = 0f
+                                                        hasTriggeredHaptic = false
+                                                        isSwipingRight = false
+                                                    },
+                                                    onDrag = { change, dragAmount ->
+                                                        if (!isSwipingRight) {
+                                                            totalDeltaX += dragAmount.x
+                                                            totalDeltaY += dragAmount.y
+                                                            // Only lock into horizontal swipe when deltaX > 12px AND deltaX > Math.abs(deltaY) * 1.5
+                                                            if (totalDeltaX > 12f && totalDeltaX > kotlin.math.abs(totalDeltaY) * 1.5f) {
+                                                                isSwipingRight = true
+                                                                change.consume()
+                                                            }
+                                                        } else {
+                                                            change.consume()
+                                                            // Strict Single-Direction Swipe (Swipe Right --> ONLY) for ALL messages
+                                                            if (dragAmount.x > 0f || dragOffsetX > 0f) {
+                                                                val resistance = (1f - (dragOffsetX / 90f).coerceIn(0f, 0.85f))
+                                                                val nextOffset = dragOffsetX + dragAmount.x * 0.45f * resistance
+                                                                dragOffsetX = nextOffset.coerceIn(0f, 68f)
+                                                            }
+                                                            if (dragOffsetX >= 52f && !hasTriggeredHaptic) {
+                                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                hasTriggeredHaptic = true
+                                                            } else if (dragOffsetX < 52f) {
+                                                                hasTriggeredHaptic = false
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        } else {
+                                            Modifier.clickable {
+                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                if (selectedMultiMessageIds.contains(msg.id)) {
+                                                    selectedMultiMessageIds.remove(msg.id)
+                                                    if (selectedMultiMessageIds.isEmpty()) {
+                                                        isMultiSelectMode = false
+                                                    }
+                                                } else {
+                                                    selectedMultiMessageIds.add(msg.id)
+                                                }
+                                            }
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .animateItem()
+                                                .background(if (isMsgSelected) Color(0x246366F1) else Color.Transparent)
+                                                .zIndex(if (isSelectedMsg) 10f else 0f)
+                                                .graphicsLayer {
+                                                    scaleX = msgBubbleScale
+                                                    scaleY = msgBubbleScale
+                                                    translationY = msgBubbleTranslateY.dp.toPx()
+                                                    if (isRecentMsg) {
+                                                        alpha = 0.4f + 0.6f * popInAnim.value
+                                                    }
+                                                }
+                                                .padding(top = if (isSameUserAsPrev) 3.dp else 10.dp)
+                                                .then(dragModifier)
+                                        ) {
+                                            // High-contrast 32px x 32px dark circular badge (#1E2333, 1px solid rgba(255,255,255,0.14)) with white reply icon (↩)
+                                            val dragDist = animatedDragOffset.coerceAtLeast(0f)
+                                            if (dragDist > 3f) {
+                                                val isActivated = dragDist >= 52f
+                                                val progress = (dragDist / 52f).coerceIn(0f, 1f)
+                                                val badgeScale = if (isActivated) 1.12f else (0.55f + 0.45f * progress)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .align(Alignment.CenterStart)
+                                                        .padding(start = 12.dp)
+                                                        .size(32.dp)
+                                                        .graphicsLayer {
+                                                            alpha = progress
+                                                            scaleX = badgeScale
+                                                            scaleY = badgeScale
+                                                        }
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                            if (isActivated) Color(0xFF6366F1)
+                                                            else Color(0xFF1E2333)
+                                                        )
+                                                        .border(
+                                                            1.dp,
+                                                            if (isActivated) Color(0xFF6366F1)
+                                                            else Color(0x24FFFFFF),
+                                                            CircleShape
+                                                        ),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.Reply,
+                                                        contentDescription = "Reply",
+                                                        tint = Color(0xFFFFFFFF),
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .offset { IntOffset(animatedDragOffset.roundToInt(), 0) },
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                // Animated 22px Checkbox in Left Gutter for Multi-Select
+                                                AnimatedVisibility(
+                                                    visible = isMultiSelectMode,
+                                                    enter = expandHorizontally() + fadeIn(),
+                                                    exit = shrinkHorizontally() + fadeOut()
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .padding(start = 12.dp, end = 4.dp)
+                                                            .size(22.dp)
+                                                            .clip(CircleShape)
+                                                            .background(if (isMsgSelected) Color(0xFF6366F1) else Color.Transparent)
+                                                            .border(
+                                                                width = if (isMsgSelected) 0.dp else 1.5.dp,
+                                                                color = if (isMsgSelected) Color.Transparent else Color(0xFF64748B),
+                                                                shape = CircleShape
+                                                            ),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        if (isMsgSelected) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Check,
+                                                                contentDescription = "Selected",
+                                                                tint = Color.White,
+                                                                modifier = Modifier.size(13.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    CustomChatBubble(
+                                                        message = msg,
+                                                        ownBg = ownBubbleBg,
+                                                        ownText = ownBubbleText,
+                                                        friendBg = friendBubbleBg,
+                                                        friendBorder = friendBubbleBorder,
+                                                        friendText = friendBubbleText,
+                                                        isSelected = selectedMessageForAction?.id == msg.id,
+                                                        showAvatar = showAvatar,
+                                                        showSenderName = showSenderName,
+                                                        isLatestRead = (msg.id == latestReadMessageId) && (selectedFriend?.isGroup != true),
+                                                        isHighlighted = msg.id == highlightedMessageId,
+                                                        isSearchGlowPulse = msg.id == pulsingGlowMessageId,
+                                                        searchHighlightQuery = if (isChatSearchOpen) chatSearchQuery else "",
+                                                        recipientAvatarUrl = selectedFriend?.avatarUrl,
+                                                        recipientName = selectedFriend?.name ?: "Friend",
+                                                        onBubblePositioned = { rect ->
+                                                            messageBoundsMap[msg.id] = rect
+                                                        },
+                                                        onMessageClick = {
+                                                            if (isMultiSelectMode) {
+                                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                                if (selectedMultiMessageIds.contains(msg.id)) {
+                                                                    selectedMultiMessageIds.remove(msg.id)
+                                                                    if (selectedMultiMessageIds.isEmpty()) {
+                                                                        isMultiSelectMode = false
+                                                                    }
+                                                                } else {
+                                                                    selectedMultiMessageIds.add(msg.id)
+                                                                }
+                                                            } else if (selectedMessageForAction != null) {
+                                                                selectedMessageForAction = if (selectedMessageForAction?.id == msg.id) null else msg
+                                                            }
+                                                        },
+                                                    onMessageLongPress = { targetMsg ->
+                                                        selectedMessageForAction = targetMsg
+                                                    },
+                                                    onReplyClick = {
+                                                        editingMessage = null
+                                                        replyingTo = msg
+                                                        selectedMessageForAction = null
+                                                        try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
+                                                    },
+                                                    onCopyClick = {
+                                                        clipboardManager.setText(AnnotatedString(msg.content))
+                                                        Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                                                        selectedMessageForAction = null
+                                                    },
+                                                    onEditClick = {
+                                                        replyingTo = null
+                                                        editingMessage = msg
+                                                        typedMessage = msg.content
+                                                        selectedMessageForAction = null
+                                                        try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
+                                                    },
+                                                    onUnsendClick = {
+                                                        selectedMessageForAction = null
+                                                        showUnsendConfirmDialogForMsg = msg
+                                                    },
+                                                    onQuotedMessageClick = { quotedId ->
+                                                        val targetIdx = deduplicatedMessages.indexOfFirst { it.id == quotedId }
+                                                        if (targetIdx >= 0) {
+                                                            coroutineScope.launch {
+                                                                listState.animateScrollToItem(targetIdx + 1)
+                                                            }
+                                                            highlightedMessageId = quotedId
+                                                            coroutineScope.launch {
+                                                                delay(600)
+                                                                if (highlightedMessageId == quotedId) {
+                                                                    highlightedMessageId = null
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    onOpenFullEmojiSheet = { targetMsg ->
+                                                        showFullEmojiDialogForMessage = targetMsg
+                                                    },
+                                                    onReact = { targetMsg, emoji ->
+                                                        val currentUid = (ConnectoApiClient.currentUserId ?: currentUsername).trim().lowercase()
+                                                        val currentUname = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@").lowercase()
+                                                        val prevMap = targetMsg.reactions
+                                                        val newMap = prevMap.toMutableMap()
+                                                        val userList = (newMap[emoji] ?: emptyList()).toMutableList()
+                                                        val hasReacted = userList.any {
+                                                            val cu = it.trim().removePrefix("@").lowercase()
+                                                            cu == currentUname || (currentUid.isNotBlank() && cu == currentUid)
+                                                        }
+                                                        if (hasReacted) {
+                                                            userList.removeAll {
+                                                                val cu = it.trim().removePrefix("@").lowercase()
+                                                                cu == currentUname || (currentUid.isNotBlank() && cu == currentUid)
+                                                            }
+                                                        } else {
+                                                            userList.add(if (currentUid.isNotBlank()) currentUid else currentUname)
+                                                        }
+                                                        if (userList.isEmpty()) {
+                                                            newMap.remove(emoji)
+                                                        } else {
+                                                            newMap[emoji] = userList
+                                                        }
+                                                        val primaryReaction = newMap.keys.firstOrNull()
+
+                                                        // OPTIMISTIC UPDATE: Instant 0ms Compose state update
+                                                        friendMessages = friendMessages.map { m ->
+                                                            if (m.id == targetMsg.id) m.copy(reactions = newMap, reaction = primaryReaction) else m
+                                                        }
+                                                        selectedMessageForAction = null
+
+                                                        val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) (selectedFriend?.id ?: "") else getCanonicalChatId(selectedFriend))
+                                                        val recipientU = selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.name?.removePrefix("@")
+                                                        VoiceCallManager.sendReactionToggled(
+                                                            messageId = targetMsg.id,
+                                                            emoji = emoji,
+                                                            userId = if (currentUid.isNotBlank()) currentUid else currentUname,
+                                                            channelId = targetChan.ifBlank { null },
+                                                            recipientUsername = recipientU
+                                                        )
+
+                                                        coroutineScope.launch(Dispatchers.IO) {
+                                                            try {
+                                                                dbHelper.updateMessageReaction(targetMsg.id, primaryReaction)
+                                                            } catch (_: Exception) {}
+                                                        }
+                                                        coroutineScope.launch {
+                                                            try {
+                                                                ConnectoApiClient.reactToMessage(
+                                                                    messageId = targetMsg.id,
+                                                                    emoji = emoji,
+                                                                    channelId = targetChan.ifBlank { null }
+                                                                )
+                                                            } catch (_: Exception) {}
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                    if (isFriendTyping) {
+                                        item(key = "typing_indicator") {
+                                            AnimatedTypingIndicator(
+                                                friendName = selectedFriend?.name ?: "Friend",
+                                                accentColor = activeChatTheme.primaryColor,
+                                                bubbleBg = friendBubbleBg,
+                                                borderColor = friendBubbleBorder
+                                            )
+                                        }
+                                    }
+                                }
+                                } // end DisableSelection
+                                }
+                            // Floating "Scroll to Bottom" FAB (Bottom-Right corner: right 16px, 12px above chips/input dock)
+                            if (friendMessages.isNotEmpty()) {
+                                Column(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(end = 16.dp, bottom = 12.dp)
+                                        .zIndex(6f),
+                                    horizontalAlignment = Alignment.End
+                                ) {
+                                    AnimatedVisibility(
+                                        visible = canScrollDown,
+                                        enter = fadeIn(animationSpec = tween(durationMillis = 240, easing = EaseOutCubic)) +
+                                                scaleIn(initialScale = 0.65f, animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)) +
+                                                slideInVertically(initialOffsetY = { it / 2 }, animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)),
+                                        exit = fadeOut(animationSpec = tween(durationMillis = 180, easing = EaseInCubic)) +
+                                               scaleOut(targetScale = 0.65f, animationSpec = tween(durationMillis = 180, easing = EaseInCubic)) +
+                                               slideOutVertically(targetOffsetY = { it / 2 }, animationSpec = tween(durationMillis = 180, easing = EaseInCubic))
+                                    ) {
+                                        val haptic = LocalHapticFeedback.current
+                                        Box(
+                                            modifier = Modifier
+                                                .size(38.dp)
+                                                .pressScaleEffect(
+                                                    onClick = {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                        coroutineScope.launch {
+                                                            val count = friendMessages.size
+                                                            if (count > 0) {
+                                                                try {
+                                                                    listState.animateScrollToItem(count - 1)
+                                                                } catch (_: Exception) {
+                                                                    listState.scrollToItem(count - 1)
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    targetScale = 0.90f
+                                                )
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surface)
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = Color.White.copy(alpha = 0.12f),
+                                                    shape = CircleShape
+                                                )
+                                                .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color.Black.copy(alpha = 0.35f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.KeyboardArrowDown,
+                                                contentDescription = "Scroll to latest message",
+                                                tint = MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            }
+                        }
+
+                        // Layer 3: Sleek Floating Undo Toast docked cleanly 12px above bottom
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = pendingDeleteMessage != null,
+                            enter = slideInVertically(
+                                initialOffsetY = { fullHeight -> fullHeight },
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioLowBouncy)
+                            ) + fadeIn(tween(180)),
+                            exit = slideOutVertically(
+                                targetOffsetY = { fullHeight -> fullHeight },
+                                animationSpec = tween(150, easing = EaseInCubic)
+                            ) + fadeOut(tween(150)),
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 12.dp)
+                                .padding(horizontal = 20.dp)
+                                .zIndex(95f)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color(0xFF181C28),
+                                border = BorderStroke(1.dp, Color(0x1AFFFFFF)),
+                                shadowElevation = 8.dp,
+                                modifier = Modifier
+                                    .pointerInput(Unit) {
+                                        detectVerticalDragGestures { _, dragAmount ->
+                                            if (dragAmount > 8f) {
+                                                flushPendingDelete()
+                                            }
+                                        }
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    // 3.0s Subtle Countdown Progress Ring
+                                    Box(
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .drawBehind {
+                                                drawArc(
+                                                    color = Color(0x33818CF8),
+                                                    startAngle = -90f,
+                                                    sweepAngle = 360f,
+                                                    useCenter = false,
+                                                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+                                                )
+                                                drawArc(
+                                                    color = Color(0xFF818CF8),
+                                                    startAngle = -90f,
+                                                    sweepAngle = 360f * pendingDeleteProgress.coerceIn(0f, 1f),
+                                                    useCenter = false,
+                                                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+                                                )
+                                            }
+                                    )
+                                    Text(
+                                        text = "Message deleted for you",
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Undo",
+                                        color = Color(0xFF818CF8),
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .clickable {
+                                                undoPendingDelete()
+                                            }
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else -> {
+                // ================= FRIENDS LIST INBOX SCREEN =================
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                ) {
                 val isSearchActive = isDmSearchFocused || friendSearchQuery.isNotEmpty()
                 val dmHeaderCollapseRatio by animateFloatAsState(
                     targetValue = if (isSearchActive) 0f else 1f,
@@ -5749,60 +7887,11 @@ fun CustomizedChatScreen(
                         }
                     }
                 }
-            }
-
-            val currentScreenState = when {
-                isFriendProfileOpen && selectedFriend?.isGroup == false -> "FRIEND_PROFILE"
-                selectedFriend != null -> "DIRECT_CHAT"
-                else -> "FRIENDS_LIST"
-            }
-
-            AnimatedContent(
-                targetState = currentScreenState,
-                transitionSpec = {
-                    if (targetState == "FRIEND_PROFILE" || (initialState == "FRIENDS_LIST" && targetState == "DIRECT_CHAT")) {
-                        // Opening Direct Chat or Friend Profile: fluid horizontal slide-in from right
-                        (slideInHorizontally(
-                            initialOffsetX = { fullWidth -> fullWidth },
-                            animationSpec = tween(320, easing = EaseOutCubic)
-                        ) + fadeIn(animationSpec = tween(220, easing = EaseOutCubic)))
-                            .togetherWith(
-                                slideOutHorizontally(
-                                    targetOffsetX = { fullWidth -> -fullWidth / 4 },
-                                    animationSpec = tween(280, easing = EaseInCubic)
-                                ) + fadeOut(animationSpec = tween(180, easing = EaseInCubic))
-                            )
-                    } else if (targetState == "FRIENDS_LIST") {
-                        // Closing Direct Chat / Friend Profile: fluid horizontal slide-out to right
-                        (slideInHorizontally(
-                            initialOffsetX = { fullWidth -> -fullWidth / 4 },
-                            animationSpec = tween(300, easing = EaseOutCubic)
-                        ) + fadeIn(animationSpec = tween(220, easing = EaseOutCubic)))
-                            .togetherWith(
-                                slideOutHorizontally(
-                                    targetOffsetX = { fullWidth -> fullWidth },
-                                    animationSpec = tween(280, easing = EaseInCubic)
-                                ) + fadeOut(animationSpec = tween(180, easing = EaseInCubic))
-                            )
-                    } else {
-                        // Direct Chat <-> Friend Profile switching
-                        (slideInHorizontally(
-                            initialOffsetX = { fullWidth -> fullWidth / 2 },
-                            animationSpec = tween(280, easing = EaseOutCubic)
-                        ) + fadeIn(animationSpec = tween(200, easing = EaseOutCubic)))
-                            .togetherWith(
-                                slideOutHorizontally(
-                                    targetOffsetX = { fullWidth -> -fullWidth / 2 },
-                                    animationSpec = tween(260, easing = EaseInCubic)
-                                ) + fadeOut(animationSpec = tween(180, easing = EaseInCubic))
-                            )
-                    }
-                },
-                label = "friendChatViewTransition",
-                modifier = Modifier.weight(1f)
-            ) { screenState ->
-                when (screenState) {
-                    "FRIENDS_LIST" -> {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
                     // ================= 1. FRIENDS LIST SCREEN =================
                     Box(modifier = Modifier.fillMaxSize()) {
                     com.example.connecto.ui.components.ConnectoDragToRefresh(
@@ -6975,2103 +9064,8 @@ fun CustomizedChatScreen(
                     }
                     }
                     }
-                    } // end FRIENDS_LIST branch
-                    "FRIEND_PROFILE" -> {
-                        // ================= 3. DEDICATED FULL-SCREEN FRIEND PROFILE TAB =================
-                        selectedFriend?.let { friendObj ->
-                            val friendClean = friendObj.handle.removePrefix("@").trim().lowercase()
-                            // Strict validation: profData must belong to friendObj!
-                            val profData = selectedFriendProfileData?.takeIf {
-                                it.username.lowercase() == friendClean ||
-                                (it.id.isNotBlank() && it.id == friendObj.id)
-                            } ?: friendProfilesCache[friendClean]
-                            val friendHandleClean = friendObj.handle.removePrefix("@")
-                            val fId = friendObj.id
-                            val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
-                            val isGroupAdmin = if (friendObj.isGroup) friendObj.isUserAdmin(myUser) else true
-
-                            FriendProfileScreen(
-                                friend = friendObj,
-                                profData = profData,
-                                isLoading = isLoadingFriendProfile && profData == null,
-                                isChatLocked = isChatLocked,
-                                isChatMuted = isChatMuted,
-                                chatWallpaperId = chatWallpaperId,
-                                customWallpaperUri = customWallpaperUri,
-                                wallpaperTransform = wallpaperTransform,
-                                onOpenWallpaperCustomizer = {
-                                    if (friendObj.isGroup && !isGroupAdmin) {
-                                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        showWallpaperCustomizerDialog = true
-                                    }
-                                },
-                                subPage = friendProfileSubPage,
-                                onNavigateSubPage = { page -> friendProfileSubPage = page },
-                                onBack = {
-                                    if (friendProfileSubPage != null) {
-                                        friendProfileSubPage = null
-                                    } else if (openedProfileFromChatList) {
-                                        isFriendProfileOpen = false
-                                        openedProfileFromChatList = false
-                                        selectedFriend = null
-                                        selectedFriendProfileData = null
-                                        onDirectChatStateChanged(false)
-                                    } else {
-                                        isFriendProfileOpen = false
-                                        selectedFriendProfileData = null
-                                    }
-                                },
-                                onToggleChatLock = { checked ->
-                                    val activity = context.findFragmentActivity()
-                                    val userPrefix = myUser
-                                    if (checked) {
-                                        if (activity != null && (BiometricAuthManager.isBiometricEnrolled(activity) || BiometricAuthManager.isDeviceSecure(activity))) {
-                                            BiometricAuthManager.authenticate(
-                                                activity = activity,
-                                                title = "Lock Chat with @$friendHandleClean",
-                                                subtitle = "Verify biometric or device credential to enable chat lock",
-                                                onSuccess = {
-                                                    isChatLocked = true
-                                                    friendPrefs.edit()
-                                                        .putBoolean("${userPrefix}_chat_locked_$fId", true)
-                                                        .putBoolean("${userPrefix}_chat_locked_$friendHandleClean", true)
-                                                        .apply()
-                                                    if (!unlockedLockedFriends.contains(fId)) {
-                                                        unlockedLockedFriends.add(fId)
-                                                    }
-                                                    Toast.makeText(context, "Chat locked for @$friendHandleClean", Toast.LENGTH_SHORT).show()
-                                                },
-                                                onError = { _, err ->
-                                                    Toast.makeText(context, "Authentication required: $err", Toast.LENGTH_SHORT).show()
-                                                }
-                                            )
-                                        } else {
-                                            isChatLocked = true
-                                            friendPrefs.edit()
-                                                .putBoolean("${userPrefix}_chat_locked_$fId", true)
-                                                .putBoolean("${userPrefix}_chat_locked_$friendHandleClean", true)
-                                                .apply()
-                                            if (!unlockedLockedFriends.contains(fId)) {
-                                                unlockedLockedFriends.add(fId)
-                                            }
-                                            Toast.makeText(context, "Chat locked for @$friendHandleClean", Toast.LENGTH_SHORT).show()
-                                        }
-                                    } else {
-                                        if (activity != null && (BiometricAuthManager.isBiometricEnrolled(activity) || BiometricAuthManager.isDeviceSecure(activity))) {
-                                            BiometricAuthManager.authenticate(
-                                                activity = activity,
-                                                title = "Unlock Chat with @$friendHandleClean",
-                                                subtitle = "Verify identity to remove chat lock protection",
-                                                onSuccess = {
-                                                    isChatLocked = false
-                                                    friendPrefs.edit()
-                                                        .remove("${userPrefix}_chat_locked_$fId")
-                                                        .remove("${userPrefix}_chat_locked_$friendHandleClean")
-                                                        .remove("chat_locked_$fId")
-                                                        .apply()
-                                                    Toast.makeText(context, "Chat lock removed for @$friendHandleClean", Toast.LENGTH_SHORT).show()
-                                                },
-                                                onError = { _, err ->
-                                                    Toast.makeText(context, "Authentication required to disable lock: $err", Toast.LENGTH_SHORT).show()
-                                                }
-                                            )
-                                        } else {
-                                            isChatLocked = false
-                                            friendPrefs.edit()
-                                                .remove("${userPrefix}_chat_locked_$fId")
-                                                .remove("${userPrefix}_chat_locked_$friendHandleClean")
-                                                .remove("chat_locked_$fId")
-                                                .apply()
-                                            Toast.makeText(context, "Chat lock removed for @$friendHandleClean", Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-                                },
-                                onToggleChatMute = { checked ->
-                                    isChatMuted = checked
-                                    val currentMuted = notifPrefs.getStringSet("muted_channels", emptySet())?.toMutableSet() ?: mutableSetOf()
-                                    if (checked) {
-                                        currentMuted.add(friendHandleClean.lowercase())
-                                        currentMuted.add(fId.lowercase())
-                                        Toast.makeText(context, "Muted notifications from @$friendHandleClean", Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        currentMuted.removeAll { it.lowercase() == friendHandleClean.lowercase() || it.lowercase() == fId.lowercase() }
-                                        Toast.makeText(context, "Unmuted notifications from @$friendHandleClean", Toast.LENGTH_SHORT).show()
-                                    }
-                                    notifPrefs.edit().putStringSet("muted_channels", currentMuted).apply()
-                                },
-                                onSelectWallpaper = { wpId ->
-                                    if (friendObj.isGroup && !isGroupAdmin) {
-                                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
-                                        return@FriendProfileScreen
-                                    }
-                                    chatWallpaperId = wpId
-                                    customWallpaperUri = null
-                                    WallpaperSyncManager.applyAndSyncWallpaper(
-                                        context = context,
-                                        myUsername = myUser,
-                                        friend = friendObj,
-                                        conversationId = null,
-                                        wallpaperId = wpId,
-                                        customUri = null,
-                                        transform = WallpaperTransform(),
-                                        isGlobal = false
-                                    )
-                                },
-                                onPickCustomWallpaper = {
-                                    if (friendObj.isGroup && !isGroupAdmin) {
-                                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
-                                        return@FriendProfileScreen
-                                    }
-                                    wallpaperPickerLauncher.launch("image/*")
-                                },
-                                onRemoveCustomWallpaper = {
-                                    if (friendObj.isGroup && !isGroupAdmin) {
-                                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
-                                        return@FriendProfileScreen
-                                    }
-                                    chatWallpaperId = "default"
-                                    customWallpaperUri = null
-                                    wallpaperTransform = WallpaperTransform()
-                                    WallpaperSyncManager.resetAndSyncWallpaper(
-                                        context = context,
-                                        myUsername = myUser,
-                                        friend = friendObj,
-                                        conversationId = null,
-                                        isGlobal = false
-                                    )
-                                },
-                                onUnfriend = {
-                                    showUnfriendConfirmDialog = true
-                                },
-                                onInitiateVoiceCall = {
-                                    initiateVoiceCallWithFriend(friendObj)
-                                },
-                                onOpenDirectChat = {
-                                    isFriendProfileOpen = false
-                                    openedProfileFromChatList = false
-                                },
-                                onViewPhoto = {
-                                    showPhotoLightbox = true
-                                },
-                                isAdmin = isGroupAdmin
-                            )
-                        }
                     }
-                    "DIRECT_CHAT" -> {
-                        // ================= 2. DIRECT CHAT STREAM WITH IME RESIZE =================
-                    val canScrollDown by remember {
-                        derivedStateOf { listState.canScrollForward }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .imePadding()
-                            .navigationBarsPadding()
-                    ) {
-                        // Wallpaper Background Layer: Custom Photo or Preset Gradient Brush with 300ms Crossfade
-                        Crossfade(
-                            targetState = Triple(chatWallpaperId, customWallpaperUri, wallpaperTransform),
-                            animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic),
-                            label = "chatWallpaperCrossfade"
-                        ) { (currentId, currentUri, currentTransform) ->
-                            if (currentId == "custom" && !currentUri.isNullOrBlank()) {
-                                val resolvedContentScale = when (currentTransform.contentScaleMode) {
-                                    "fit" -> ContentScale.Fit
-                                    "fill_bounds" -> ContentScale.FillBounds
-                                    "inside" -> ContentScale.Inside
-                                    else -> ContentScale.Crop
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clipToBounds()
-                                ) {
-                                    val customWallpaperModel = remember(currentUri) {
-                                        if (currentUri.startsWith("file://")) {
-                                            java.io.File(currentUri.removePrefix("file://"))
-                                        } else if (currentUri.startsWith("/")) {
-                                            java.io.File(currentUri)
-                                        } else {
-                                            android.net.Uri.parse(currentUri)
-                                        }
-                                    }
-
-                                    AsyncImage(
-                                        model = customWallpaperModel,
-                                        contentDescription = null,
-                                        contentScale = resolvedContentScale,
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer {
-                                                scaleX = currentTransform.scale
-                                                scaleY = currentTransform.scale
-                                                translationX = currentTransform.offsetX
-                                                translationY = currentTransform.offsetY
-                                            }
-                                            .then(
-                                                if (currentTransform.blur > 0f) Modifier.blur(currentTransform.blur.dp) else Modifier
-                                            )
-                                    )
-                                    // Legibility Scrim Overlay so chat bubbles and text remain crisp
-                                    val scrimAlpha = (currentTransform.dim * 0.5f).coerceIn(0f, 0.45f)
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(
-                                                if (isLight) Color.White.copy(alpha = scrimAlpha * 0.7f)
-                                                else Color.Black.copy(alpha = scrimAlpha)
-                                            )
-                                    )
-                                }
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clipToBounds()
-                                ) {
-                                    val activeWp = remember(currentId) {
-                                        if (currentId != "default") {
-                                            AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == currentId } ?: AVAILABLE_CHAT_WALLPAPERS.first()
-                                        } else if (isLiquidGlassTheme || isGlassTheme) {
-                                            AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == "liquid_water" } ?: AVAILABLE_CHAT_WALLPAPERS.first()
-                                        } else {
-                                            AVAILABLE_CHAT_WALLPAPERS.first()
-                                        }
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer {
-                                                scaleX = currentTransform.scale
-                                                scaleY = currentTransform.scale
-                                                translationX = currentTransform.offsetX
-                                                translationY = currentTransform.offsetY
-                                            }
-                                            .then(
-                                                if (currentTransform.blur > 0f) Modifier.blur(currentTransform.blur.dp) else Modifier
-                                            )
-                                            .then(
-                                                if (currentId != "default") {
-                                                    if (currentId == "oled") {
-                                                        Modifier.background(Color(0xFF000000))
-                                                    } else {
-                                                        Modifier.background(
-                                                            brush = if (isLight) activeWp.lightBrush else activeWp.darkBrush
-                                                        )
-                                                    }
-                                                } else {
-                                                    if (isLiquidGlassTheme) {
-                                                        Modifier.liquidGlassCanvasMesh()
-                                                    } else if (isGlassTheme) {
-                                                        Modifier.glassCanvasMesh()
-                                                    } else if (isPureBlack) {
-                                                        Modifier.background(Color(0xFF000000))
-                                                    } else {
-                                                        Modifier.background(
-                                                            brush = if (isLight) activeWp.lightBrush else activeWp.darkBrush
-                                                        )
-                                                    }
-                                                }
-                                            )
-                                    )
-                                    if (currentId != "default" && currentId != "oled") {
-                                        val scrimAlpha = (currentTransform.dim * 0.35f).coerceIn(0f, 0.4f)
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .background(
-                                                    if (isLight) Color.White.copy(alpha = scrimAlpha * 0.5f)
-                                                    else Color.Black.copy(alpha = scrimAlpha)
-                                                )
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            // Pinned Message Banner at top of chat
-                            AnimatedVisibility(
-                                visible = pinnedMessageForChat != null,
-                                enter = expandVertically() + fadeIn(),
-                                exit = shrinkVertically() + fadeOut()
-                            ) {
-                                val pinned = pinnedMessageForChat
-                                if (pinned != null) {
-                                    Surface(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                                            .clip(RoundedCornerShape(14.dp))
-                                            .clickable {
-                                                val targetIdx = friendMessages.indexOfFirst { it.id == pinned.messageId }
-                                                if (targetIdx != -1) {
-                                                    coroutineScope.launch {
-                                                        listState.animateScrollToItem(targetIdx)
-                                                    }
-                                                }
-                                            },
-                                        color = if (isLiquidGlassTheme || isGlassTheme) {
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
-                                        } else if (isPureBlack) {
-                                            Color(0xFF18181B)
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceVariant
-                                        },
-                                        shape = RoundedCornerShape(14.dp),
-                                        tonalElevation = 2.dp,
-                                        shadowElevation = 2.dp
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(32.dp)
-                                                    .clip(CircleShape)
-                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.PushPin,
-                                                    contentDescription = "Pinned",
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.width(10.dp))
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Text(
-                                                        text = "PINNED MESSAGE",
-                                                        style = MaterialTheme.typography.labelSmall.copy(
-                                                            fontSize = 10.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            letterSpacing = 0.8.sp
-                                                        ),
-                                                        color = MaterialTheme.colorScheme.primary
-                                                    )
-                                                    if (pinned.authorName.isNotBlank()) {
-                                                        Text(
-                                                            text = " • ${pinned.authorName}",
-                                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                                fontSize = 10.sp,
-                                                                fontWeight = FontWeight.Medium
-                                                            ),
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
-                                                    }
-                                                }
-                                                Text(
-                                                    text = cleanMessageContentForDisplay(pinned.content, "Pinned message"),
-                                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(28.dp)
-                                                    .clip(CircleShape)
-                                                    .clickable {
-                                                        val currentFriend = selectedFriend
-                                                        val canonicalChatId = getCanonicalChatId(currentFriend)
-                                                        val activeChan = activeDmChannelId ?: (if (currentFriend?.isGroup == true) currentFriend.id else canonicalChatId)
-                                                        pinnedMessageForChat = null
-                                                        if (currentFriend != null) {
-                                                            val unpinKey = if (currentFriend.isGroup) currentFriend.id else canonicalChatId.lowercase()
-                                                            friendPrefs.edit()
-                                                                .remove("pinned_msg_${unpinKey}")
-                                                                .remove("pinned_content_${unpinKey}")
-                                                                .remove("pinned_author_${unpinKey}")
-                                                                .remove("pinned_msg_${currentFriend.id}")
-                                                                .remove("pinned_content_${currentFriend.id}")
-                                                                .remove("pinned_author_${currentFriend.id}")
-                                                                .apply()
-                                                        }
-                                                        if (activeChan.isNotBlank()) {
-                                                            coroutineScope.launch {
-                                                                ConnectoApiClient.unpinMessage(activeChan)
-                                                            }
-                                                        }
-                                                    },
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Close,
-                                                    contentDescription = "Unpin",
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f, fill = true)
-                                    .fillMaxWidth()
-                            ) {
-                                val showMessagesSkeleton = isLoadingMessages && friendMessages.isEmpty()
-                                androidx.compose.animation.Crossfade(
-                                    targetState = showMessagesSkeleton,
-                                    modifier = Modifier.fillMaxSize(),
-                                    animationSpec = tween(durationMillis = 160),
-                                    label = "directChatMessagesCrossfade"
-                                ) { isSkeleton ->
-                                    if (isSkeleton) {
-                                        ShimmerMessageFeed(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .padding(horizontal = 4.dp, vertical = 8.dp),
-                                            isDark = !isLight
-                                        )
-                                    } else if (friendMessages.isEmpty()) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 24.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(64.dp)
-                                                .clip(CircleShape)
-                                                .background(Brush.linearGradient(gradientColors)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.SportsEsports,
-                                                contentDescription = null,
-                                                tint = contentOnGradient,
-                                                modifier = Modifier.size(32.dp)
-                                            )
-                                        }
-                                        Text(
-                                            text = "Say hello to " + (selectedFriend?.name ?: "Friend") + "!",
-                                            fontSize = 17.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            textAlign = TextAlign.Center
-                                        )
-                                        Text(
-                                            text = "You are connected! Send a message or pick a quick gaming invite below to start chatting.",
-                                            fontSize = 13.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            textAlign = TextAlign.Center,
-                                            lineHeight = 18.sp,
-                                            modifier = Modifier.padding(horizontal = 24.dp)
-                                        )
-                                    }
-                                }
-                            } else {
-                                DisableSelection {
-                                val deduplicatedMessages = remember(friendMessages) {
-                                    friendMessages.distinctBy { it.id.removePrefix("notif_ws_").removePrefix("notif_") }
-                                }
-                                val latestReadMessageId = remember(deduplicatedMessages) {
-                                    deduplicatedMessages.filter { it.isMe && it.isRead }.lastOrNull()?.id
-                                }
-                                LazyColumn(
-                                    state = listState,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(0.dp),
-                                    contentPadding = PaddingValues(top = 12.dp, bottom = 12.dp)
-                                ) {
-                                    // Security Vault Encryption Chip
-                                    item(key = "encryption_chip") {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 4.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(12.dp))
-                                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))
-                                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-                                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                                            ) {
-                                                Text(
-                                                    text = "🔒 End-to-End Encrypted",
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    itemsIndexed(
-                                        deduplicatedMessages,
-                                        key = { _, msg -> msg.id },
-                                        contentType = { _, msg -> if (msg.content.startsWith("🎨 ") && msg.content.contains("wallpaper")) "system_pill" else if (msg.isMe) "own" else "friend" }
-                                    ) { index, msg ->
-                                        // Shared Wallpaper System Pill
-                                        if (msg.content.startsWith("🎨 ") && msg.content.contains("wallpaper")) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 8.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Surface(
-                                                    shape = RoundedCornerShape(16.dp),
-                                                    color = if (isLight) Color(0xE6F1F5F9) else Color(0xCC1E2433),
-                                                    tonalElevation = 2.dp,
-                                                    shadowElevation = 1.dp,
-                                                    border = BorderStroke(1.dp, if (isLight) Color(0x20000000) else Color(0x30FFFFFF))
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = msg.content,
-                                                            fontSize = 12.sp,
-                                                            fontWeight = FontWeight.Medium,
-                                                            color = if (isLight) Color(0xFF334155) else Color(0xFFCBD5E1)
-                                                        )
-                                                        Text(
-                                                            text = "Reset",
-                                                            fontSize = 12.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = MaterialTheme.colorScheme.primary,
-                                                            modifier = Modifier
-                                                                .clip(RoundedCornerShape(4.dp))
-                                                                .clickable {
-                                                                    coroutineScope.launch {
-                                                                        try {
-                                                                            val convId = currentChatKey.ifBlank {
-                                                                                selectedFriend?.let {
-                                                                                    if (it.isGroup) "group-${it.id}" else "dm-${listOf(myUsername.lowercase(), it.name.lowercase()).sorted().joinToString("-")}"
-                                                                                } ?: "global"
-                                                                            }
-
-                                                                            WallpaperSyncManager.resetAndSyncWallpaper(
-                                                                                context = context,
-                                                                                myUsername = myUsername,
-                                                                                friend = selectedFriend,
-                                                                                conversationId = convId,
-                                                                                isGlobal = false,
-                                                                                isShared = true
-                                                                            )
-                                                                            WallpaperResolver.clearSharedWallpaper(convId, friendPrefs)
-                                                                            val (defId, defUri) = WallpaperResolver.resolveForConversation(convId, selectedFriend, myUsername, friendPrefs, context.filesDir)
-                                                                            chatWallpaperId = defId
-                                                                            customWallpaperUri = defUri
-                                                                            wallpaperTransform = WallpaperResolver.resolveTransformForConversation(convId, selectedFriend, myUsername, friendPrefs)
-                                                                            Toast.makeText(context, "Wallpaper reset to default", Toast.LENGTH_SHORT).show()
-                                                                        } catch (e: Exception) {
-                                                                            e.printStackTrace()
-                                                                        }
-                                                                    }
-                                                                }
-                                                                .padding(horizontal = 4.dp, vertical = 2.dp)
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                            return@itemsIndexed
-                                        }
-
-                                        val prevMsg = deduplicatedMessages.getOrNull(index - 1)
-                                        val nextMsg = deduplicatedMessages.getOrNull(index + 1)
-                                        val isSameUserAsPrev = prevMsg != null && prevMsg.isMe == msg.isMe &&
-                                            (if (msg.isMe) true else prevMsg.senderName.equals(msg.senderName, ignoreCase = true)) &&
-                                            kotlin.math.abs(msg.timestampMillis - prevMsg.timestampMillis) < 3 * 60 * 1000L
-                                        val isSameUserAsNext = nextMsg != null && nextMsg.isMe == msg.isMe &&
-                                            (if (msg.isMe) true else nextMsg.senderName.equals(msg.senderName, ignoreCase = true)) &&
-                                            kotlin.math.abs(nextMsg.timestampMillis - msg.timestampMillis) < 3 * 60 * 1000L
-
-                                        val isDirectChat = selectedFriend?.isGroup != true
-                                        val showSenderName = !isDirectChat && !isSameUserAsPrev
-                                        val showAvatar = !isSameUserAsNext
-
-                                        var dragOffsetX by remember(msg.id) { mutableStateOf(0f) }
-                                        var hasTriggeredHaptic by remember(msg.id) { mutableStateOf(false) }
-                                        val animatedDragOffset by animateFloatAsState(
-                                            targetValue = dragOffsetX,
-                                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy),
-                                            label = "dragOffset"
-                                        )
-                                        val hapticFeedback = LocalHapticFeedback.current
-                                        val clipboardManager = LocalClipboardManager.current
-                                        val isSelectedMsg = selectedMessageForAction?.id == msg.id
-
-                                        val isRecentMsg = remember(msg.id) {
-                                            val diff = System.currentTimeMillis() - msg.timestampMillis
-                                            diff in 0..4000L
-                                        }
-                                        val popInAnim = remember { Animatable(if (isRecentMsg) 0f else 1f) }
-                                        LaunchedEffect(msg.id) {
-                                            if (isRecentMsg && popInAnim.value < 1f) {
-                                                popInAnim.animateTo(
-                                                    targetValue = 1f,
-                                                    animationSpec = tween(durationMillis = 180, easing = EaseOutCubic)
-                                                )
-                                            }
-                                        }
-                                        val msgBubbleScale = if (isRecentMsg) 0.94f + 0.06f * popInAnim.value else 1f
-                                        val msgBubbleTranslateY = if (isRecentMsg) 14f * (1f - popInAnim.value) else 0f
-
-                                        val isMsgSelected = isMultiSelectMode && selectedMultiMessageIds.contains(msg.id)
-                                        var totalDeltaX by remember(msg.id) { mutableStateOf(0f) }
-                                        var totalDeltaY by remember(msg.id) { mutableStateOf(0f) }
-                                        var isSwipingRight by remember(msg.id) { mutableStateOf(false) }
-
-                                        val dragModifier = if (!isMultiSelectMode) {
-                                            Modifier.pointerInput(msg.id) {
-                                                detectDragGestures(
-                                                    onDragStart = {
-                                                        totalDeltaX = 0f
-                                                        totalDeltaY = 0f
-                                                        isSwipingRight = false
-                                                    },
-                                                    onDragEnd = {
-                                                        if (dragOffsetX >= 52f) {
-                                                            editingMessage = null
-                                                            replyingTo = msg
-                                                            try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
-                                                        }
-                                                        dragOffsetX = 0f
-                                                        hasTriggeredHaptic = false
-                                                        isSwipingRight = false
-                                                    },
-                                                    onDragCancel = {
-                                                        dragOffsetX = 0f
-                                                        hasTriggeredHaptic = false
-                                                        isSwipingRight = false
-                                                    },
-                                                    onDrag = { change, dragAmount ->
-                                                        if (!isSwipingRight) {
-                                                            totalDeltaX += dragAmount.x
-                                                            totalDeltaY += dragAmount.y
-                                                            // Only lock into horizontal swipe when deltaX > 12px AND deltaX > Math.abs(deltaY) * 1.5
-                                                            if (totalDeltaX > 12f && totalDeltaX > kotlin.math.abs(totalDeltaY) * 1.5f) {
-                                                                isSwipingRight = true
-                                                                change.consume()
-                                                            }
-                                                        } else {
-                                                            change.consume()
-                                                            // Strict Single-Direction Swipe (Swipe Right --> ONLY) for ALL messages
-                                                            if (dragAmount.x > 0f || dragOffsetX > 0f) {
-                                                                val resistance = (1f - (dragOffsetX / 90f).coerceIn(0f, 0.85f))
-                                                                val nextOffset = dragOffsetX + dragAmount.x * 0.45f * resistance
-                                                                dragOffsetX = nextOffset.coerceIn(0f, 68f)
-                                                            }
-                                                            if (dragOffsetX >= 52f && !hasTriggeredHaptic) {
-                                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                                hasTriggeredHaptic = true
-                                                            } else if (dragOffsetX < 52f) {
-                                                                hasTriggeredHaptic = false
-                                                            }
-                                                        }
-                                                    }
-                                                )
-                                            }
-                                        } else {
-                                            Modifier.clickable {
-                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                if (selectedMultiMessageIds.contains(msg.id)) {
-                                                    selectedMultiMessageIds.remove(msg.id)
-                                                    if (selectedMultiMessageIds.isEmpty()) {
-                                                        isMultiSelectMode = false
-                                                    }
-                                                } else {
-                                                    selectedMultiMessageIds.add(msg.id)
-                                                }
-                                            }
-                                        }
-
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .animateItem()
-                                                .background(if (isMsgSelected) Color(0x246366F1) else Color.Transparent)
-                                                .zIndex(if (isSelectedMsg) 10f else 0f)
-                                                .graphicsLayer {
-                                                    scaleX = msgBubbleScale
-                                                    scaleY = msgBubbleScale
-                                                    translationY = msgBubbleTranslateY.dp.toPx()
-                                                    if (isRecentMsg) {
-                                                        alpha = 0.4f + 0.6f * popInAnim.value
-                                                    }
-                                                }
-                                                .padding(top = if (isSameUserAsPrev) 3.dp else 10.dp)
-                                                .then(dragModifier)
-                                        ) {
-                                            // High-contrast 32px x 32px dark circular badge (#1E2333, 1px solid rgba(255,255,255,0.14)) with white reply icon (↩)
-                                            val dragDist = animatedDragOffset.coerceAtLeast(0f)
-                                            if (dragDist > 3f) {
-                                                val isActivated = dragDist >= 52f
-                                                val progress = (dragDist / 52f).coerceIn(0f, 1f)
-                                                val badgeScale = if (isActivated) 1.12f else (0.55f + 0.45f * progress)
-                                                Box(
-                                                    modifier = Modifier
-                                                        .align(Alignment.CenterStart)
-                                                        .padding(start = 12.dp)
-                                                        .size(32.dp)
-                                                        .graphicsLayer {
-                                                            alpha = progress
-                                                            scaleX = badgeScale
-                                                            scaleY = badgeScale
-                                                        }
-                                                        .clip(CircleShape)
-                                                        .background(
-                                                            if (isActivated) Color(0xFF6366F1)
-                                                            else Color(0xFF1E2333)
-                                                        )
-                                                        .border(
-                                                            1.dp,
-                                                            if (isActivated) Color(0xFF6366F1)
-                                                            else Color(0x24FFFFFF),
-                                                            CircleShape
-                                                        ),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.Reply,
-                                                        contentDescription = "Reply",
-                                                        tint = Color(0xFFFFFFFF),
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
-                                                }
-                                            }
-
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .offset { IntOffset(animatedDragOffset.roundToInt(), 0) },
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                // Animated 22px Checkbox in Left Gutter for Multi-Select
-                                                AnimatedVisibility(
-                                                    visible = isMultiSelectMode,
-                                                    enter = expandHorizontally() + fadeIn(),
-                                                    exit = shrinkHorizontally() + fadeOut()
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .padding(start = 12.dp, end = 4.dp)
-                                                            .size(22.dp)
-                                                            .clip(CircleShape)
-                                                            .background(if (isMsgSelected) Color(0xFF6366F1) else Color.Transparent)
-                                                            .border(
-                                                                width = if (isMsgSelected) 0.dp else 1.5.dp,
-                                                                color = if (isMsgSelected) Color.Transparent else Color(0xFF64748B),
-                                                                shape = CircleShape
-                                                            ),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        if (isMsgSelected) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.Check,
-                                                                contentDescription = "Selected",
-                                                                tint = Color.White,
-                                                                modifier = Modifier.size(13.dp)
-                                                            )
-                                                        }
-                                                    }
-                                                }
-
-                                                Box(modifier = Modifier.weight(1f)) {
-                                                    CustomChatBubble(
-                                                        message = msg,
-                                                        ownBg = ownBubbleBg,
-                                                        ownText = ownBubbleText,
-                                                        friendBg = friendBubbleBg,
-                                                        friendBorder = friendBubbleBorder,
-                                                        friendText = friendBubbleText,
-                                                        isSelected = selectedMessageForAction?.id == msg.id,
-                                                        showAvatar = showAvatar,
-                                                        showSenderName = showSenderName,
-                                                        isLatestRead = (msg.id == latestReadMessageId) && (selectedFriend?.isGroup != true),
-                                                        isHighlighted = msg.id == highlightedMessageId,
-                                                        isSearchGlowPulse = msg.id == pulsingGlowMessageId,
-                                                        searchHighlightQuery = if (isChatSearchOpen) chatSearchQuery else "",
-                                                        recipientAvatarUrl = selectedFriend?.avatarUrl,
-                                                        recipientName = selectedFriend?.name ?: "Friend",
-                                                        onBubblePositioned = { rect ->
-                                                            messageBoundsMap[msg.id] = rect
-                                                        },
-                                                        onMessageClick = {
-                                                            if (isMultiSelectMode) {
-                                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                                if (selectedMultiMessageIds.contains(msg.id)) {
-                                                                    selectedMultiMessageIds.remove(msg.id)
-                                                                    if (selectedMultiMessageIds.isEmpty()) {
-                                                                        isMultiSelectMode = false
-                                                                    }
-                                                                } else {
-                                                                    selectedMultiMessageIds.add(msg.id)
-                                                                }
-                                                            } else if (selectedMessageForAction != null) {
-                                                                selectedMessageForAction = if (selectedMessageForAction?.id == msg.id) null else msg
-                                                            }
-                                                        },
-                                                    onMessageLongPress = { targetMsg ->
-                                                        selectedMessageForAction = targetMsg
-                                                    },
-                                                    onReplyClick = {
-                                                        editingMessage = null
-                                                        replyingTo = msg
-                                                        selectedMessageForAction = null
-                                                        try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
-                                                    },
-                                                    onCopyClick = {
-                                                        clipboardManager.setText(AnnotatedString(msg.content))
-                                                        Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
-                                                        selectedMessageForAction = null
-                                                    },
-                                                    onEditClick = {
-                                                        replyingTo = null
-                                                        editingMessage = msg
-                                                        typedMessage = msg.content
-                                                        selectedMessageForAction = null
-                                                        try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
-                                                    },
-                                                    onUnsendClick = {
-                                                        selectedMessageForAction = null
-                                                        showUnsendConfirmDialogForMsg = msg
-                                                    },
-                                                    onQuotedMessageClick = { quotedId ->
-                                                        val targetIdx = deduplicatedMessages.indexOfFirst { it.id == quotedId }
-                                                        if (targetIdx >= 0) {
-                                                            coroutineScope.launch {
-                                                                listState.animateScrollToItem(targetIdx + 1)
-                                                            }
-                                                            highlightedMessageId = quotedId
-                                                            coroutineScope.launch {
-                                                                delay(600)
-                                                                if (highlightedMessageId == quotedId) {
-                                                                    highlightedMessageId = null
-                                                                }
-                                                            }
-                                                        }
-                                                    },
-                                                    onOpenFullEmojiSheet = { targetMsg ->
-                                                        showFullEmojiDialogForMessage = targetMsg
-                                                    },
-                                                    onReact = { targetMsg, emoji ->
-                                                        val currentUid = (ConnectoApiClient.currentUserId ?: currentUsername).trim().lowercase()
-                                                        val currentUname = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@").lowercase()
-                                                        val prevMap = targetMsg.reactions
-                                                        val newMap = prevMap.toMutableMap()
-                                                        val userList = (newMap[emoji] ?: emptyList()).toMutableList()
-                                                        val hasReacted = userList.any {
-                                                            val cu = it.trim().removePrefix("@").lowercase()
-                                                            cu == currentUname || (currentUid.isNotBlank() && cu == currentUid)
-                                                        }
-                                                        if (hasReacted) {
-                                                            userList.removeAll {
-                                                                val cu = it.trim().removePrefix("@").lowercase()
-                                                                cu == currentUname || (currentUid.isNotBlank() && cu == currentUid)
-                                                            }
-                                                        } else {
-                                                            userList.add(if (currentUid.isNotBlank()) currentUid else currentUname)
-                                                        }
-                                                        if (userList.isEmpty()) {
-                                                            newMap.remove(emoji)
-                                                        } else {
-                                                            newMap[emoji] = userList
-                                                        }
-                                                        val primaryReaction = newMap.keys.firstOrNull()
-
-                                                        // OPTIMISTIC UPDATE: Instant 0ms Compose state update
-                                                        friendMessages = friendMessages.map { m ->
-                                                            if (m.id == targetMsg.id) m.copy(reactions = newMap, reaction = primaryReaction) else m
-                                                        }
-                                                        selectedMessageForAction = null
-
-                                                        val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) (selectedFriend?.id ?: "") else getCanonicalChatId(selectedFriend))
-                                                        val recipientU = selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.name?.removePrefix("@")
-                                                        VoiceCallManager.sendReactionToggled(
-                                                            messageId = targetMsg.id,
-                                                            emoji = emoji,
-                                                            userId = if (currentUid.isNotBlank()) currentUid else currentUname,
-                                                            channelId = targetChan.ifBlank { null },
-                                                            recipientUsername = recipientU
-                                                        )
-
-                                                        coroutineScope.launch(Dispatchers.IO) {
-                                                            try {
-                                                                dbHelper.updateMessageReaction(targetMsg.id, primaryReaction)
-                                                            } catch (_: Exception) {}
-                                                        }
-                                                        coroutineScope.launch {
-                                                            try {
-                                                                ConnectoApiClient.reactToMessage(
-                                                                    messageId = targetMsg.id,
-                                                                    emoji = emoji,
-                                                                    channelId = targetChan.ifBlank { null }
-                                                                )
-                                                            } catch (_: Exception) {}
-                                                        }
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-
-                                    if (isFriendTyping) {
-                                        item(key = "typing_indicator") {
-                                            AnimatedTypingIndicator(
-                                                friendName = selectedFriend?.name ?: "Friend",
-                                                accentColor = activeChatTheme.primaryColor,
-                                                bubbleBg = friendBubbleBg,
-                                                borderColor = friendBubbleBorder
-                                            )
-                                        }
-                                    }
-                                }
-                                } // end DisableSelection
-                                }
-                            }
-
-                            // Floating "Scroll to Bottom" FAB (Bottom-Right corner: right 16px, 12px above chips/input dock)
-                            if (friendMessages.isNotEmpty()) {
-                                Column(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(end = 16.dp, bottom = 12.dp)
-                                        .zIndex(6f),
-                                    horizontalAlignment = Alignment.End
-                                ) {
-                                    AnimatedVisibility(
-                                        visible = canScrollDown,
-                                        enter = fadeIn(animationSpec = tween(durationMillis = 240, easing = EaseOutCubic)) +
-                                                scaleIn(initialScale = 0.65f, animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)) +
-                                                slideInVertically(initialOffsetY = { it / 2 }, animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)),
-                                        exit = fadeOut(animationSpec = tween(durationMillis = 180, easing = EaseInCubic)) +
-                                               scaleOut(targetScale = 0.65f, animationSpec = tween(durationMillis = 180, easing = EaseInCubic)) +
-                                               slideOutVertically(targetOffsetY = { it / 2 }, animationSpec = tween(durationMillis = 180, easing = EaseInCubic))
-                                    ) {
-                                        val haptic = LocalHapticFeedback.current
-                                        Box(
-                                            modifier = Modifier
-                                                .size(38.dp)
-                                                .pressScaleEffect(
-                                                    onClick = {
-                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                        coroutineScope.launch {
-                                                            val count = friendMessages.size
-                                                            if (count > 0) {
-                                                                try {
-                                                                    listState.animateScrollToItem(count - 1)
-                                                                } catch (_: Exception) {
-                                                                    listState.scrollToItem(count - 1)
-                                                                }
-                                                            }
-                                                        }
-                                                    },
-                                                    targetScale = 0.90f
-                                                )
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.surface)
-                                                .border(
-                                                    width = 1.dp,
-                                                    color = Color.White.copy(alpha = 0.12f),
-                                                    shape = CircleShape
-                                                )
-                                                .shadow(elevation = 6.dp, shape = CircleShape, spotColor = Color.Black.copy(alpha = 0.35f)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.KeyboardArrowDown,
-                                                contentDescription = "Scroll to latest message",
-                                                tint = MaterialTheme.colorScheme.onSurface,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // ================= QUICK ACTION CHIPS (COLLAPSIBLE) =================
-                        AnimatedVisibility(
-                            visible = friendMessages.isEmpty() && !isInputFocused && typedMessage.isEmpty(),
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            DisableSelection {
-                                LazyRow(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp),
-                                    contentPadding = PaddingValues(horizontal = 16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    val quickChips = listOf(
-                                        "👋 Hey, how are you doing?",
-                                        "📅 Free for a quick call?",
-                                        "🚀 Just sent you an update",
-                                        "👍 Sounds great!"
-                                    )
-                                    items(quickChips) { chipText ->
-                                        val chipInteractionSource = remember { MutableInteractionSource() }
-                                        val chipBg = if (isLight) Color(0xFFF1F5F9) else Color(0xFF161922)
-                                        val chipBorder = if (isLight) Color(0xFFE2E8F0) else Color(0x0FFFFFFF)
-                                        val chipTextColor = if (isLight) Color(0xFF0F172A) else Color(0xFFE4E4E7)
-
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(14.dp))
-                                                .background(chipBg)
-                                                .border(1.dp, chipBorder, RoundedCornerShape(14.dp))
-                                                .clickable(
-                                                    interactionSource = chipInteractionSource,
-                                                    indication = null
-                                                ) {
-                                                    typedMessage = chipText
-                                                }
-                                                .padding(horizontal = 14.dp, vertical = 7.dp)
-                                        ) {
-                                            Text(
-                                                text = chipText,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = chipTextColor
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // ================= RICH EMOJI PICKER TRAY (100+ CATEGORIZED EMOJIS) =================
-                        AnimatedVisibility(
-                            visible = showEmojiPicker,
-                            enter = fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + scaleIn(initialScale = 0.94f),
-                            exit = fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + scaleOut(targetScale = 0.94f)
-                        ) {
-                            DisableSelection {
-                            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)) {
-                                ConnectoEmojiPicker(
-                                    onEmojiSelected = { emoji ->
-                                        typedMessage += emoji
-                                    },
-                                    onClose = { showEmojiPicker = false },
-                                    userId = com.example.connecto.network.ConnectoApiClient.currentUserId ?: currentUsername,
-                                    onBackspace = {
-                                        if (typedMessage.isNotEmpty()) {
-                                            val lastCodePoint = typedMessage.codePointBefore(typedMessage.length)
-                                            val charCount = Character.charCount(lastCodePoint)
-                                            typedMessage = typedMessage.dropLast(charCount)
-                                        }
-                                    }
-                                )
-                            }
-                            } // end DisableSelection
-                        }
-
-                        // ================= 3. ADVANCED CHAT INPUT BAR & SEND BUTTON =================
-                        val selFriendForInput = selectedFriend
-                        val isAcceptedFriend = selFriendForInput == null || selFriendForInput.isGroup || friendsList.any {
-                            it.id == selFriendForInput.id ||
-                            it.handle.removePrefix("@").equals(selFriendForInput.handle.removePrefix("@"), ignoreCase = true)
-                        }
-
-                        if (selFriendForInput != null && !isAcceptedFriend) {
-                            val targetHandle = selFriendForInput.handle.removePrefix("@")
-                            var isSendingReq by remember { mutableStateOf(false) }
-                            var reqSentLocally by remember { mutableStateOf(false) }
-
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
-                                    .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.4f), RoundedCornerShape(18.dp))
-                                    .padding(14.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(36.dp)
-                                                .clip(CircleShape)
-                                                .background(Color(0xFFEF4444).copy(alpha = 0.15f)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Lock,
-                                                contentDescription = "Locked",
-                                                tint = Color(0xFFF87171),
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Column {
-                                            Text(
-                                                text = "Direct Messaging Restricted",
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color(0xFFF87171)
-                                            )
-                                            Text(
-                                                text = if (reqSentLocally) "Friend request sent. Waiting for @$targetHandle to accept."
-                                                       else "You must be accepted friends to send messages.",
-                                                fontSize = 11.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    if (reqSentLocally) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(10.dp))
-                                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
-                                                .padding(horizontal = 10.dp, vertical = 6.dp)
-                                        ) {
-                                            Text("Pending", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                        }
-                                    } else {
-                                        Button(
-                                            onClick = {
-                                                if (!isSendingReq) {
-                                                    isSendingReq = true
-                                                    coroutineScope.launch {
-                                                        try {
-                                                            val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
-                                                            val res = ConnectoApiClient.sendFriendRequest(targetHandle, myUsernameOverride = effUser)
-                                                            if (res.isSuccess) {
-                                                                reqSentLocally = true
-                                                                Toast.makeText(context, "Friend request sent to @$targetHandle", Toast.LENGTH_SHORT).show()
-                                                            } else {
-                                                                Toast.makeText(context, "Could not send request: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
-                                                            }
-                                                        } finally {
-                                                            isSendingReq = false
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            shape = RoundedCornerShape(10.dp),
-                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                                        ) {
-                                            Text("Add Friend", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                }
-                            }
-                        } else if (isMultiSelectMode) {
-                            // Bottom Action Dock: Replace the message input bar smoothly with a clean #12151E bulk action dock containing evenly spaced icon + label buttons
-                            val clipboard = LocalClipboardManager.current
-                            val selectedMsgs = remember(selectedMultiMessageIds.size, friendMessages) {
-                                friendMessages.filter { selectedMultiMessageIds.contains(it.id) }.sortedBy { it.timestampMillis }
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(Color(0xFF12151E))
-                                    .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(18.dp))
-                                    .padding(horizontal = 16.dp, vertical = 10.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceEvenly,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    // 1. Copy Button
-                                    val isCopyEnabled = selectedMsgs.isNotEmpty()
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .clickable(enabled = isCopyEnabled) {
-                                                val distinctSenders = selectedMsgs.map { it.senderName }.distinct()
-                                                val formattedText = if (distinctSenders.size > 1) {
-                                                    selectedMsgs.joinToString("\n") { "[${it.senderName}]: ${it.content}" }
-                                                } else {
-                                                    selectedMsgs.joinToString("\n") { it.content }
-                                                }
-                                                clipboard.setText(AnnotatedString(formattedText))
-                                                Toast.makeText(context, "Copied ${selectedMsgs.size} messages", Toast.LENGTH_SHORT).show()
-                                                isMultiSelectMode = false
-                                                selectedMultiMessageIds.clear()
-                                            }
-                                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.ContentCopy,
-                                            contentDescription = "Copy",
-                                            tint = if (isCopyEnabled) Color.White else Color(0xFF64748B),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "Copy",
-                                            fontSize = 11.5.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = if (isCopyEnabled) Color.White else Color(0xFF64748B)
-                                        )
-                                    }
-
-                                    // 2. Forward Button
-                                    val isForwardEnabled = selectedMsgs.isNotEmpty()
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .clickable(enabled = isForwardEnabled) {
-                                                showForwardSheet = true
-                                            }
-                                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.Reply,
-                                            contentDescription = "Forward",
-                                            tint = if (isForwardEnabled) Color.White else Color(0xFF64748B),
-                                            modifier = Modifier
-                                                .size(20.dp)
-                                                .graphicsLayer { scaleX = -1f }
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "Forward",
-                                            fontSize = 11.5.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = if (isForwardEnabled) Color.White else Color(0xFF64748B)
-                                        )
-                                    }
-
-                                    // 3. Delete Button
-                                    val isDeleteEnabled = selectedMsgs.isNotEmpty()
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .clickable(enabled = isDeleteEnabled) {
-                                                showDeleteConfirmDialog = true
-                                            }
-                                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Delete",
-                                            tint = if (isDeleteEnabled) Color(0xFFEF4444) else Color(0xFF64748B),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "Delete",
-                                            fontSize = 11.5.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = if (isDeleteEnabled) Color(0xFFEF4444) else Color(0xFF64748B)
-                                        )
-                                    }
-                                }
-                            }
-                        } else {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .onGloballyPositioned { coords ->
-                                        chatInputBarHeightPx = coords.size.height
-                                    }
-                            ) {
-                                // Compact Swipe-to-Reply active preview bar (48px height)
-                            AnimatedVisibility(
-                                visible = replyingTo != null,
-                                enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(tween(180)) + expandVertically(),
-                                exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut(tween(150)) + shrinkVertically()
-                            ) {
-                                val replyTarget = replyingTo
-                                if (replyTarget != null) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(48.dp)
-                                            .padding(horizontal = 16.dp, vertical = 2.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(
-                                                if (isLiquidGlassTheme) {
-                                                    val alpha = ConnectoTheme.glassAlpha
-                                                    if (alpha <= 0.005f) Color.Transparent
-                                                    else Color.White.copy(alpha = (alpha * 0.25f).coerceIn(0.01f, 0.35f))
-                                                }
-                                                else if (isPureBlack) Color(0x1AFFFFFF)
-                                                else if (isLight) Color(0xFFF1F5F9)
-                                                else Color(0xFF161922)
-                                            )
-                                            .border(
-                                                1.dp,
-                                                if (isLight) Color(0x14000000) else Color(0x1FFFFFFF),
-                                                RoundedCornerShape(12.dp)
-                                            )
-                                            .padding(horizontal = 10.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .width(3.dp)
-                                                .height(28.dp)
-                                                .clip(RoundedCornerShape(2.dp))
-                                                .background(MaterialTheme.colorScheme.primary)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column(
-                                            modifier = Modifier.weight(1f),
-                                            verticalArrangement = Arrangement.Center
-                                        ) {
-                                            Text(
-                                                text = if (replyTarget.isMe) "Replying to yourself" else "Replying to ${replyTarget.senderName}",
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Text(
-                                                text = cleanMessageContentForDisplay(replyTarget.content, "Replying to message"),
-                                                fontSize = 13.sp,
-                                                color = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .clip(CircleShape)
-                                                .clickable { replyingTo = null },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Close,
-                                                contentDescription = "Cancel reply",
-                                                tint = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Active Editing Message Banner (48px height)
-                            AnimatedVisibility(
-                                visible = editingMessage != null,
-                                enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(tween(180)) + expandVertically(),
-                                exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut(tween(150)) + shrinkVertically()
-                            ) {
-                                editingMessage?.let { editTarget ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(48.dp)
-                                            .padding(horizontal = 16.dp, vertical = 2.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(
-                                                if (isLight) Color(0xFFF1F5F9) else Color(0xFF161922)
-                                            )
-                                            .border(
-                                                1.dp,
-                                                if (isLight) Color(0x14000000) else Color(0x1FFFFFFF),
-                                                RoundedCornerShape(12.dp)
-                                            )
-                                            .padding(horizontal = 10.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .width(3.dp)
-                                                .height(28.dp)
-                                                .clip(RoundedCornerShape(2.dp))
-                                                .background(MaterialTheme.colorScheme.primary)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column(
-                                            modifier = Modifier.weight(1f),
-                                            verticalArrangement = Arrangement.Center
-                                        ) {
-                                            Text(
-                                                text = "Editing message",
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Text(
-                                                text = cleanMessageContentForDisplay(editTarget.content, "Editing message"),
-                                                fontSize = 13.sp,
-                                                color = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .clip(CircleShape)
-                                                .clickable {
-                                                    editingMessage = null
-                                                    typedMessage = ""
-                                                },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Close,
-                                                contentDescription = "Cancel edit",
-                                                tint = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.Bottom
-                            ) {
-                            // Text Field Box (Multi-line Expandable)
-                            val inputContainerBg = if (isLiquidGlassTheme) {
-                                val alpha = ConnectoTheme.glassAlpha
-                                if (alpha <= 0.005f) Color.Transparent
-                                else Color.White.copy(alpha = (alpha * 0.28f).coerceIn(0.01f, 0.40f))
-                            } else if (isPureBlack) {
-                                Color(0x1AFFFFFF)
-                            } else if (isLight) {
-                                Color(0xFFFFFFFF)
-                            } else {
-                                Color(0xFF161922)
-                            }
-
-                            val inputContainerBorder = if (isLight) {
-                                if (isInputFocused) MaterialTheme.colorScheme.primary else Color(0xFFE2E8F0)
-                            } else {
-                                if (isInputFocused) Color(0x33FFFFFF) else Color(0x0FFFFFFF)
-                            }
-
-                            Row(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(min = 46.dp, max = 120.dp)
-                                    .clip(RoundedCornerShape(22.dp))
-                                    .background(inputContainerBg)
-                                    .border(
-                                        width = 1.dp,
-                                        color = inputContainerBorder,
-                                        shape = RoundedCornerShape(22.dp)
-                                    )
-                                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                BasicTextField(
-                                    value = typedMessage,
-                                    onValueChange = { typedMessage = it },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .focusRequester(messageInputFocusRequester)
-                                        .onFocusChanged { isInputFocused = it.isFocused },
-                                    textStyle = TextStyle(
-                                        color = if (isLight) Color(0xFF0F172A) else Color.White,
-                                        fontSize = 14.sp,
-                                        lineHeight = 20.sp
-                                    ),
-                                    cursorBrush = SolidColor(if (isLight) Color(0xFF0F172A) else MaterialTheme.colorScheme.primary),
-                                    maxLines = 4,
-                                    decorationBox = { inner ->
-                                        if (typedMessage.isEmpty()) {
-                                            Text(
-                                                text = "Type message for " + (selectedFriend?.name ?: "friend") + "...",
-                                                color = if (isLight) Color(0xFF94A3B8) else Color(0xFF717686),
-                                                fontSize = 13.sp
-                                            )
-                                        }
-                                        inner()
-                                    }
-                                )
-
-                                Spacer(modifier = Modifier.width(6.dp))
-
-                                // Emoji Toggle Button
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .clickable {
-                                            if (!showEmojiPicker) {
-                                                focusManager.clearFocus()
-                                            }
-                                            showEmojiPicker = !showEmojiPicker
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.SentimentSatisfiedAlt,
-                                        contentDescription = "Emoji picker",
-                                        tint = if (showEmojiPicker) MaterialTheme.colorScheme.primary else (if (isLight) Color(0xFF64748B) else Color(0xFF8E929F)),
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            // Dynamic Send Action Button with Hold-to-Send Silent & Whisper support
-                            var showHoldToSendMenu by remember { mutableStateOf(false) }
-                            val onSendMessage: (Boolean, Boolean) -> Unit = { isSilent, isWhisper ->
-                                val targetToEdit = editingMessage
-                                if (targetToEdit != null) {
-                                    val editTarget = targetToEdit
-                                    val newContent = typedMessage.trim()
-                                    if (newContent.isNotBlank()) {
-                                        val targetId = editTarget.id
-                                        friendMessages = friendMessages.map { if (it.id == targetId) it.copy(content = newContent) else it }
-                                        coroutineScope.launch(Dispatchers.IO) {
-                                            dbHelper.updateMessageContent(targetId, newContent)
-                                        }
-                                        val currentFriend = selectedFriend
-                                        val canonicalChatId = getCanonicalChatId(currentFriend)
-                                        val targetChan = activeDmChannelId ?: (if (currentFriend?.isGroup == true) currentFriend.id else canonicalChatId)
-                                        coroutineScope.launch {
-                                            ConnectoApiClient.editMessage(targetId, newContent, targetChan.ifBlank { null })
-                                        }
-                                    }
-                                    editingMessage = null
-                                    typedMessage = ""
-                                } else if (selectedFriend != null && !isAcceptedFriend) {
-                                    Toast.makeText(context, "Direct messaging is restricted to accepted friends.", Toast.LENGTH_SHORT).show()
-                                } else if (typedMessage.isNotBlank()) {
-                                    val userMsg = typedMessage.trim()
-                                    typedMessage = ""
-                                    selectedFriend?.let { curF ->
-                                        messageDrafts.remove(curF.id)
-                                        if (curF.id in deletedChatIds) {
-                                            deletedChatIds = deletedChatIds - curF.id
-                                            friendPrefs.edit()
-                                                .putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds)
-                                                .remove("${userPrefix}_cleared_at_${curF.id}")
-                                                .apply()
-                                            val canonicalChatId = getCanonicalChatId(curF)
-                                            coroutineScope.launch {
-                                                ConnectoApiClient.restoreConversation(canonicalChatId)
-                                            }
-                                        }
-                                    }
-                                    showEmojiPicker = false
-
-                                    val typingRecipient = selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.name ?: selectedFriend?.id
-                                    val typingTarget = activeDmChannelId ?: typingRecipient
-                                    if (typingTarget != null) {
-                                        VoiceCallManager.sendTypingStop(typingTarget, typingRecipient)
-                                    }
-
-                                    val myName = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@")
-                                    val tempId = "opt-${UUID.randomUUID()}"
-                                    val currentReply = replyingTo
-                                    replyingTo = null // Clear reply banner immediately
-
-                                    val isCurGroup = selectedFriend?.isGroup == true
-                                    val isRecipientOnline = selectedFriend?.isOnline == true
-                                    val initialDelivered = if (isCurGroup) true else isRecipientOnline
-                                    val nowMillis = System.currentTimeMillis()
-
-                                    val localItem = CustomMessageItem(
-                                        id = tempId,
-                                        senderName = myName,
-                                        initial = userInitial,
-                                        content = userMsg,
-                                        time = "Just now",
-                                        isMe = true,
-                                        isDelivered = initialDelivered,
-                                        isRead = false,
-                                        avatarUrl = ConnectoApiClient.currentUserAvatarUrl,
-                                        replyToId = currentReply?.id,
-                                        replyToContent = currentReply?.content,
-                                        replyToAuthor = currentReply?.senderName,
-                                        isEncrypted = false,
-                                        timestampMillis = nowMillis,
-                                        isSilent = isSilent,
-                                        isWhisper = isWhisper
-                                    )
-                                    val updatedList = (friendMessages + localItem).sortedBy { it.timestampMillis }
-                                    friendMessages = updatedList
-                                    isLoadingMessages = false
-
-                                    // Display preview text: for whispers, show 'Sent a whisper' in DM list
-                                    val previewText = if (isWhisper) "🫧 Sent a whisper" else userMsg
-
-                                    // Move current friend/group to index 0 of conversations list with latest message and timestamp
-                                    selectedFriend?.let { friend ->
-                                        val fIdx = friendsList.indexOfFirst {
-                                            it.id == friend.id || it.handle.removePrefix("@").equals(friend.handle.removePrefix("@"), ignoreCase = true)
-                                        }
-                                        if (fIdx != -1) {
-                                            val updated = friendsList[fIdx].copy(
-                                                lastMessage = previewText,
-                                                timeAgo = "Just now",
-                                                unreadCount = 0,
-                                                lastMessageTimestamp = nowMillis
-                                            )
-                                            friendsList.removeAt(fIdx)
-                                            friendsList.add(0, updated)
-                                            val cleanHandle = updated.handle.removePrefix("@").trim().lowercase()
-                                            readPrefs.edit()
-                                                .putString("last_msg_${updated.id}", previewText)
-                                                .putString("last_msg_${cleanHandle}", previewText)
-                                                .putString("last_time_${updated.id}", "Just now")
-                                                .putString("last_time_${cleanHandle}", "Just now")
-                                                .putLong("last_timestamp_${updated.id}", nowMillis)
-                                                .putLong("last_timestamp_${cleanHandle}", nowMillis)
-                                                .apply()
-                                            coroutineScope.launch(Dispatchers.IO) {
-                                                try {
-                                                    dbHelper.updateFriendLastMessageAndUnread(updated.id, previewText, "Just now", 0, nowMillis)
-                                                } catch (_: Exception) {}
-                                            }
-                                            notifyUnreadChanged()
-                                        } else {
-                                            val gIdx = userGroupsList.indexOfFirst { it.id == friend.id }
-                                            if (gIdx != -1) {
-                                                val updated = userGroupsList[gIdx].copy(
-                                                    lastMessage = previewText,
-                                                    timeAgo = "Just now",
-                                                    unreadCount = 0,
-                                                    lastMessageTimestamp = nowMillis
-                                                )
-                                                userGroupsList.removeAt(gIdx)
-                                                userGroupsList.add(0, updated)
-                                                readPrefs.edit()
-                                                    .putString("last_msg_${updated.id}", previewText)
-                                                    .putString("last_time_${updated.id}", "Just now")
-                                                    .putInt("unread_${updated.id}", 0)
-                                                    .putLong("last_timestamp_${updated.id}", nowMillis)
-                                                    .apply()
-                                                coroutineScope.launch(Dispatchers.IO) {
-                                                    try {
-                                                        dbHelper.updateGroupLastMessageAndUnread(updated.id, previewText, "Just now", 0, nowMillis)
-                                                    } catch (_: Exception) {}
-                                                }
-                                                notifyUnreadChanged()
-                                            }
-                                        }
-                                    }
-
-                                    // Instantly scroll to the bottom on sending message - zero lag, zero page load
-                                    coroutineScope.launch {
-                                        try { listState.scrollToItem(updatedList.size) } catch (_: Exception) {}
-                                    }
-
-                                    coroutineScope.launch {
-                                        try {
-                                            val friend = selectedFriend ?: return@launch
-                                            val isGrp = friend.isGroup
-                                            val cleanTarget = friend.handle.removePrefix("@").trim()
-                                            val myUser = myName.lowercase()
-                                            val canonicalName = if (isGrp) friend.id else "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
-
-                                            // Persist optimistic message immediately to local SQLite database so it never disappears across screens
-                                            withContext(Dispatchers.IO) {
-                                                val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date())
-                                                val optDto = MessageDto(
-                                                    id = tempId,
-                                                    channelId = if (isGrp) friend.id else canonicalName,
-                                                    authorId = myName,
-                                                    authorName = myName,
-                                                    content = userMsg,
-                                                    createdAt = nowIso,
-                                                    authorAvatar = ConnectoApiClient.currentUserAvatarUrl,
-                                                    replyToId = currentReply?.id,
-                                                    replyToContent = currentReply?.content,
-                                                    replyToAuthor = currentReply?.senderName,
-                                                    isSilent = isSilent,
-                                                    isWhisper = isWhisper
-                                                )
-                                                dbHelper.saveMessage(optDto)
-                                                dbHelper.saveMessages(if (isGrp) friend.id else canonicalName, listOf(optDto))
-                                            }
-
-                                            val targetChannelId = if (isGrp) {
-                                                activeDmChannelId ?: friend.id
-                                            } else {
-                                                activeDmChannelId ?: ConnectoApiClient.channelCache[canonicalName.lowercase()] ?: canonicalName
-                                            }
-
-                                            val sendRes = ConnectoApiClient.sendMessage(
-                                                channelId = targetChannelId,
-                                                content = userMsg,
-                                                replyToId = currentReply?.id,
-                                                replyToContent = currentReply?.content,
-                                                replyToAuthor = currentReply?.senderName,
-                                                isSilent = isSilent,
-                                                isWhisper = isWhisper
-                                            )
-                                            if (sendRes.isSuccess) {
-                                                val sentDto = sendRes.getOrThrow()
-                                                withContext(Dispatchers.IO) {
-                                                    dbHelper.deleteMessage(tempId)
-                                                    dbHelper.saveMessage(sentDto)
-                                                    if (isGrp) {
-                                                        dbHelper.saveMessages(targetChannelId, listOf(sentDto))
-                                                    } else {
-                                                        dbHelper.saveMessages(canonicalName, listOf(sentDto))
-                                                        if (targetChannelId.isNotBlank() && targetChannelId != canonicalName) {
-                                                            dbHelper.saveMessages(targetChannelId, listOf(sentDto))
-                                                        }
-                                                    }
-                                                }
-                                                val sentMillis = parseMessageTimestamp(sentDto.createdAt)
-                                                val realItem = CustomMessageItem(
-                                                    id = sentDto.id,
-                                                    senderName = sentDto.authorName,
-                                                    initial = userInitial,
-                                                    content = userMsg,
-                                                    time = formatIsoTime(sentDto.createdAt),
-                                                    isMe = true,
-                                                    isDelivered = if (isGrp) true else (selectedFriend?.isOnline == true || initialDelivered),
-                                                    isRead = false,
-                                                    avatarUrl = ConnectoApiClient.currentUserAvatarUrl,
-                                                    replyToId = sentDto.replyToId ?: currentReply?.id,
-                                                    replyToContent = sentDto.replyToContent ?: currentReply?.content,
-                                                    replyToAuthor = sentDto.replyToAuthor ?: currentReply?.senderName,
-                                                    isEncrypted = false,
-                                                    timestampMillis = if (sentMillis > 0) sentMillis else nowMillis,
-                                                    isSilent = sentDto.isSilent,
-                                                    isWhisper = sentDto.isWhisper
-                                                )
-                                                val curList = friendMessages.toMutableList()
-                                                val optIdx = curList.indexOfFirst { it.id == tempId }
-                                                if (optIdx != -1) {
-                                                    curList[optIdx] = realItem.copy(
-                                                        reaction = curList[optIdx].reaction ?: realItem.reaction,
-                                                        isDelivered = curList[optIdx].isDelivered || realItem.isDelivered
-                                                    )
-                                                } else if (curList.none { it.id == realItem.id }) {
-                                                    curList.add(realItem)
-                                                }
-                                                friendMessages = deduplicateCustomMessages(curList)
-                                                coroutineScope.launch {
-                                                    try { listState.animateScrollToItem(friendMessages.size) } catch (_: Exception) {}
-                                                }
-                                            } else {
-                                                // Server delivery failed: keep local message in friendMessages with delivery failure indicator
-                                                val curList = friendMessages.toMutableList()
-                                                val optIdx = curList.indexOfFirst { it.id == tempId }
-                                                if (optIdx != -1) {
-                                                    curList[optIdx] = curList[optIdx].copy(isDelivered = false)
-                                                    friendMessages = curList.sortedBy { it.timestampMillis }
-                                                }
-                                            }
-                                        } catch (e: Exception) {
-                                            // Local message remains visible in friendMessages with isDelivered = false
-                                            val curList = friendMessages.toMutableList()
-                                            val optIdx = curList.indexOfFirst { it.id == tempId }
-                                            if (optIdx != -1) {
-                                                curList[optIdx] = curList[optIdx].copy(isDelivered = false)
-                                                friendMessages = curList.sortedBy { it.timestampMillis }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            Box(
-                                modifier = Modifier.wrapContentSize(),
-                                contentAlignment = Alignment.BottomEnd
-                            ) {
-                                val haptic = LocalHapticFeedback.current
-                                if (showHoldToSendMenu) {
-                                    val pillScale by animateFloatAsState(
-                                        targetValue = if (showHoldToSendMenu) 1f else 0.85f,
-                                        animationSpec = spring(stiffness = 380f, dampingRatio = 0.75f),
-                                        label = "holdPillScale"
-                                    )
-                                    val pillAlpha by animateFloatAsState(
-                                        targetValue = if (showHoldToSendMenu) 1f else 0f,
-                                        animationSpec = tween(160, easing = EaseOutCubic),
-                                        label = "holdPillAlpha"
-                                    )
-
-                                    androidx.compose.ui.window.Popup(
-                                        alignment = Alignment.TopEnd,
-                                        offset = androidx.compose.ui.unit.IntOffset(0, -220),
-                                        onDismissRequest = { showHoldToSendMenu = false }
-                                    ) {
-                                        Surface(
-                                            shape = RoundedCornerShape(18.dp),
-                                            color = Color(0xFF181C28),
-                                            shadowElevation = 10.dp,
-                                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x1AFFFFFF)),
-                                            modifier = Modifier
-                                                .graphicsLayer {
-                                                    scaleX = pillScale
-                                                    scaleY = pillScale
-                                                    alpha = pillAlpha
-                                                }
-                                                .padding(bottom = 8.dp)
-                                        ) {
-                                            Column(
-                                                modifier = Modifier.padding(6.dp),
-                                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                                            ) {
-                                                // Option 1: Send Silently
-                                                Row(
-                                                    modifier = Modifier
-                                                        .clip(RoundedCornerShape(12.dp))
-                                                        .clickable {
-                                                            try {
-                                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                            } catch (_: Exception) {}
-                                                            showHoldToSendMenu = false
-                                                            onSendMessage(true, false)
-                                                        }
-                                                        .padding(horizontal = 14.dp, vertical = 9.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                                ) {
-                                                    Text(text = "🔕", fontSize = 16.sp)
-                                                    Text(
-                                                        text = "Send Silently",
-                                                        fontSize = 13.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = Color.White
-                                                    )
-                                                }
-
-                                                // Option 2: Send as Whisper
-                                                Row(
-                                                    modifier = Modifier
-                                                        .clip(RoundedCornerShape(12.dp))
-                                                        .clickable {
-                                                            try {
-                                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                            } catch (_: Exception) {}
-                                                            showHoldToSendMenu = false
-                                                            onSendMessage(false, true)
-                                                        }
-                                                        .padding(horizontal = 14.dp, vertical = 9.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                                ) {
-                                                    Text(text = "🫧", fontSize = 16.sp)
-                                                    Text(
-                                                        text = "Send as Whisper",
-                                                        fontSize = 13.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = Color.White
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(46.dp)
-                                        .graphicsLayer {
-                                            scaleX = sendButtonScale
-                                            scaleY = sendButtonScale
-                                        }
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (typedMessage.isNotBlank()) {
-                                                if (isPureBlack || isLiquidGlassTheme) Brush.linearGradient(listOf(Color.White, Color(0xFFE4E4E7)))
-                                                else if (isGlassTheme) Brush.linearGradient(listOf(Color(0xFF38BDF8), Color(0xFF0284C7)))
-                                                else Brush.linearGradient(gradientColors)
-                                            } else {
-                                                if (isPureBlack || isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x26FFFFFF), Color(0x14FFFFFF)))
-                                                else if (isGlassTheme) Brush.verticalGradient(listOf(Color(0xD91E293B), Color(0xB3111827)))
-                                                else Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
-                                            }
-                                        )
-                                        .border(
-                                            width = if (isLiquidGlassTheme || isGlassTheme || isPureBlack) 1.2.dp else 1.dp,
-                                            brush = if (isPureBlack || isLiquidGlassTheme) {
-                                                Brush.linearGradient(
-                                                    listOf(
-                                                        if (typedMessage.isNotBlank()) Color.White else Color(0x66FFFFFF),
-                                                        if (typedMessage.isNotBlank()) Color(0x80FFFFFF) else Color(0x26FFFFFF)
-                                                    )
-                                                )
-                                            } else if (isGlassTheme) {
-                                                Brush.linearGradient(
-                                                    listOf(
-                                                        if (typedMessage.isNotBlank()) Color(0xFFE0F2FE) else Color(0x6638BDF8),
-                                                        if (typedMessage.isNotBlank()) Color(0x8038BDF8) else Color(0x2038BDF8)
-                                                    )
-                                                )
-                                            } else {
-                                                SolidColor(if (typedMessage.isNotBlank()) Color.Transparent else MaterialTheme.colorScheme.outline)
-                                            },
-                                            shape = CircleShape
-                                        )
-                                        .pointerInput(typedMessage) {
-                                            detectTapGestures(
-                                                onTap = {
-                                                    if (typedMessage.isNotBlank()) {
-                                                        onSendMessage(false, false)
-                                                    }
-                                                },
-                                                onLongPress = {
-                                                    if (typedMessage.isNotBlank()) {
-                                                        try {
-                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                        } catch (_: Exception) {}
-                                                        showHoldToSendMenu = true
-                                                    }
-                                                }
-                                            )
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Send,
-                                        contentDescription = "Send",
-                                        tint = if (typedMessage.isNotBlank()) {
-                                            if (isPureBlack) Color.Black else contentOnGradient
-                                        } else {
-                                            if (isPureBlack || isLiquidGlassTheme) Color(0x66FFFFFF)
-                                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                        },
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-                        } // end Bottom Chat Input Area Column
-                    } // end Main Messages Column
-
-                    // Sleek, compact floating Undo toast pill docked cleanly 12px above the message input bar
-                    val density = LocalDensity.current
-                    val bottomToastOffsetDp = remember(chatInputBarHeightPx) {
-                        if (chatInputBarHeightPx > 0) {
-                            with(density) { chatInputBarHeightPx.toDp() } + 12.dp
-                        } else {
-                            76.dp
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.BottomCenter
-                    ) {
-                        androidx.compose.animation.AnimatedVisibility(
-                            visible = pendingDeleteMessage != null,
-                            enter = slideInVertically(
-                                initialOffsetY = { fullHeight -> fullHeight },
-                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioLowBouncy)
-                            ) + fadeIn(tween(180)),
-                            exit = slideOutVertically(
-                                targetOffsetY = { fullHeight -> fullHeight },
-                                animationSpec = tween(150, easing = EaseInCubic)
-                            ) + fadeOut(tween(150)),
-                            modifier = Modifier
-                                .padding(bottom = bottomToastOffsetDp)
-                                .padding(horizontal = 20.dp)
-                                .zIndex(95f)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = Color(0xFF181C28),
-                                border = BorderStroke(1.dp, Color(0x1AFFFFFF)),
-                                shadowElevation = 8.dp,
-                                modifier = Modifier
-                                    .pointerInput(Unit) {
-                                        detectVerticalDragGestures { _, dragAmount ->
-                                            if (dragAmount > 8f) {
-                                                flushPendingDelete()
-                                            }
-                                        }
-                                    }
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    // 3.0s Subtle Countdown Progress Ring
-                                    Box(
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .drawBehind {
-                                                drawArc(
-                                                    color = Color(0x33818CF8),
-                                                    startAngle = -90f,
-                                                    sweepAngle = 360f,
-                                                    useCenter = false,
-                                                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
-                                                )
-                                                drawArc(
-                                                    color = Color(0xFF818CF8),
-                                                    startAngle = -90f,
-                                                    sweepAngle = 360f * pendingDeleteProgress.coerceIn(0f, 1f),
-                                                    useCenter = false,
-                                                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
-                                                )
-                                            }
-                                    )
-                                    Text(
-                                        text = "Message deleted for you",
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Undo",
-                                        color = Color(0xFF818CF8),
-                                        fontSize = 13.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .clickable {
-                                                undoPendingDelete()
-                                            }
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    } // end Wallpaper Box
                 }
-                } // end when (screenState)
             }
         }
 
@@ -9657,7 +9651,6 @@ fun CustomizedChatScreen(
 
     }
 
-}
 }
 
 @Composable

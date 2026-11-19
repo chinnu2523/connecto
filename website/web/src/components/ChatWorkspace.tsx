@@ -1320,9 +1320,9 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
           </div>
         ) : (
           /* ================= TEXT CHAT VIEW ================= */
-          <div className="flex-1 flex flex-col justify-between overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             {/* Chat Header */}
-            <div className="px-6 py-4 border-b border-slate-800/80 bg-darkglass/40 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-slate-800/80 bg-darkglass/40 flex items-center justify-between shrink-0">
               <div className="flex items-center space-x-3">
                 <div className="w-9 h-9 rounded-xl bg-electric/20 border border-electric/30 flex items-center justify-center text-cyanglow">
                   {activeChannel?.name.startsWith('dm-') ? <MessageSquare className="w-5 h-5" /> : <Hash className="w-5 h-5" />}
@@ -1519,7 +1519,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
                 )}
 
                 {/* Message Input Form */}
-                <form onSubmit={handleSendMessage} className="p-4 bg-darkglass/60 border-t border-slate-800/80 flex items-center space-x-3">
+                <form onSubmit={handleSendMessage} className="p-4 bg-darkglass/60 border-t border-slate-800/80 flex items-center space-x-3 shrink-0">
                   <input
                     type="text"
                     value={messageInput}
