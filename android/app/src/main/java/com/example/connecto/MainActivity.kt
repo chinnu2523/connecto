@@ -607,6 +607,9 @@ fun ConnectoApp(
                     try {
                         com.example.connecto.network.ConnectoApiClient.getCallLogs(authenticatedUsername)
                     } catch (_: Exception) {}
+                    try {
+                        com.example.connecto.data.WallpaperSyncManager.syncWallpapersFromCloud(context)
+                    } catch (_: Exception) {}
                 }
             } catch (e: Exception) {
                 // Ignore network error on startup
@@ -614,9 +617,14 @@ fun ConnectoApp(
         }
     }
 
-    // Register FCM token with backend on login (token was saved by ConnectoFirebaseMessagingService.onNewToken)
+    // Register FCM token and sync cloud wallpapers on login/entry
     androidx.compose.runtime.LaunchedEffect(flowState, authenticatedUsername) {
         if (flowState == AppFlowState.CHAT_APP && authenticatedUsername.isNotBlank()) {
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                try {
+                    com.example.connecto.data.WallpaperSyncManager.syncWallpapersFromCloud(context)
+                } catch (_: Exception) {}
+            }
             try {
                 val fcmPrefs = context.getSharedPreferences("connecto_fcm", Context.MODE_PRIVATE)
                 val savedToken = fcmPrefs.getString("fcm_token", null)

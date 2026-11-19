@@ -129,6 +129,22 @@ data class PollDto(
     val timestamp: String = ""
 )
 
+data class CloudWallpaperDto(
+    val id: String = "",
+    val userId: String = "",
+    val conversationId: String? = null,
+    val wallpaperType: String = "preset", // "preset" or "custom_image"
+    val presetId: String? = null,
+    val imageUrl: String? = null,
+    val dim: Float = 0.50f,
+    val blur: Float = 0.0f,
+    val zoom: Float = 1.0f,
+    val offsetX: Float = 0.0f,
+    val offsetY: Float = 0.0f,
+    val fitMode: String = "crop",
+    val updatedAt: String? = null
+)
+
 data class MessageDto(
     val id: String,
     val channelId: String?,
@@ -4751,6 +4767,165 @@ object ConnectoApiClient {
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    suspend fun uploadWallpaperBytes(
+        context: android.content.Context,
+        imageBytes: ByteArray,
+        mimeType: String = "image/webp",
+        token: String? = null
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val activeToken = token ?: sessionToken
+            val boundary = "ConnectoWallpaperBoundary_${System.currentTimeMillis()}"
+            val extension = when {
+                mimeType.contains("png") -> "png"
+                mimeType.contains("webp") -> "webp"
+                else -> "jpg"
+            }
+            val fileName = "wallpaper.$extension"
+            val u = currentUsername
+
+            val candidateBases = ConnectoNetworkConfig.getCandidateBases()
+            var lastException: Exception? = null
+
+            for (base in candidateBases) {
+                var conn: java.net.HttpURLConnection? = null
+                try {
+                    val uploadUrl = "$base/api/wallpapers/upload"
+                    val url = java.net.URL(uploadUrl)
+                    conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                        if (this is javax.net.ssl.HttpsURLConnection) {
+                            ConnectoNetworkHelper.patchedSslSocketFactory?.let { factory ->
+                                sslSocketFactory = factory
+                            }
+                        }
+                        requestMethod = "POST"
+                        connectTimeout = 15000
+                        readTimeout = 20000
+                        doOutput = true
+                        setRequestProperty("User-Agent", USER_AGENT)
+                        setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+                        if (!activeToken.isNullOrEmpty()) {
+                            setRequestProperty("Authorization", "Bearer $activeToken")
+                        }
+                        if (!sessionCookie.isNullOrEmpty()) {
+                            setRequestProperty("Cookie", sessionCookie)
+                        }
+                        if (!u.isNullOrEmpty()) {
+                            setRequestProperty("X-User-Username", u)
+                            setRequestProperty("X-Username", u)
+                        }
+                    }
+
+                    conn.outputStream.use { output ->
+                        val writer = java.io.PrintWriter(java.io.OutputStreamWriter(output, "UTF-8"), true)
+                        writer.append("--$boundary\r\n")
+                        writer.append("Content-Disposition: form-data; name=\"purpose\"\r\n\r\n")
+                        writer.append("wallpaper\r\n")
+                        if (!u.isNullOrEmpty()) {
+                            writer.append("--$boundary\r\n")
+                            writer.append("Content-Disposition: form-data; name=\"username\"\r\n\r\n")
+                            writer.append(u).append("\r\n")
+                        }
+                        writer.append("--$boundary\r\n")
+                        writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"\r\n")
+                        writer.append("Content-Type: $mimeType\r\n\r\n")
+                        writer.flush()
+                        output.write(imageBytes)
+                        output.flush()
+                        writer.append("\r\n--$boundary--\r\n")
+                        writer.flush()
+                    }
+
+                    val responseCode = conn.responseCode
+                    val isSuccess = responseCode in 200..299
+
+                    val stream = if (isSuccess) conn.inputStream else conn.errorStream
+                    val responseText = stream?.bufferedReader(Charsets.UTF_8)?.readText() ?: ""
+
+                    if (isSuccess) {
+                        ConnectoNetworkConfig.activeBaseUrl = base
+                        val json = JSONObject(responseText)
+                        val returnedUrl = json.optString("image_url").ifEmpty {
+                            json.optString("url")
+                        }
+                        val fullUrl = if (returnedUrl.startsWith("http://") || returnedUrl.startsWith("https://")) {
+                            returnedUrl
+                        } else {
+                            "$base$returnedUrl"
+                        }
+                        return@withContext Result.success(fullUrl)
+                    } else {
+                        lastException = Exception("Wallpaper upload failed ($responseCode): $responseText")
+                    }
+                } catch (e: Exception) {
+                    lastException = e
+                } finally {
+                    conn?.disconnect()
+                }
+            }
+            Result.failure(lastException ?: Exception("Wallpaper upload failed — no reachable server"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchWallpapers(token: String? = null): Result<List<CloudWallpaperDto>> = withContext(Dispatchers.IO) {
+        val result = executeRequest("/api/wallpapers", "GET", null, token)
+        result.mapCatching { responseText ->
+            val json = JSONObject(responseText)
+            val list = mutableListOf<CloudWallpaperDto>()
+            val arr = json.optJSONArray("wallpapers") ?: JSONArray()
+            for (i in 0 until arr.length()) {
+                val item = arr.getJSONObject(i)
+                list.add(
+                    CloudWallpaperDto(
+                        id = item.optString("id"),
+                        userId = item.optString("user_id"),
+                        conversationId = if (item.isNull("conversation_id")) null else item.optString("conversation_id").ifEmpty { null },
+                        wallpaperType = item.optString("wallpaper_type", "preset"),
+                        presetId = if (item.isNull("preset_id")) null else item.optString("preset_id").ifEmpty { null },
+                        imageUrl = if (item.isNull("image_url")) null else item.optString("image_url").ifEmpty { null },
+                        dim = item.optDouble("dim", 0.50).toFloat(),
+                        blur = item.optDouble("blur", 0.0).toFloat(),
+                        zoom = item.optDouble("zoom", 1.0).toFloat(),
+                        offsetX = item.optDouble("offset_x", 0.0).toFloat(),
+                        offsetY = item.optDouble("offset_y", 0.0).toFloat(),
+                        fitMode = item.optString("fit_mode", "crop"),
+                        updatedAt = item.optString("updated_at")
+                    )
+                )
+            }
+            list
+        }
+    }
+
+    suspend fun saveWallpaperConfig(dto: CloudWallpaperDto, token: String? = null): Result<Boolean> = withContext(Dispatchers.IO) {
+        val bodyJson = JSONObject().apply {
+            put("conversation_id", dto.conversationId ?: JSONObject.NULL)
+            put("wallpaper_type", dto.wallpaperType)
+            put("preset_id", dto.presetId ?: JSONObject.NULL)
+            put("image_url", dto.imageUrl ?: JSONObject.NULL)
+            put("dim", dto.dim.toDouble())
+            put("blur", dto.blur.toDouble())
+            put("zoom", dto.zoom.toDouble())
+            put("offset_x", dto.offsetX.toDouble())
+            put("offset_y", dto.offsetY.toDouble())
+            put("fit_mode", dto.fitMode)
+        }
+        val result = executeRequest("/api/wallpapers", "POST", bodyJson.toString(), token)
+        result.map { true }
+    }
+
+    suspend fun deleteWallpaperConfig(conversationId: String?, resetAll: Boolean = false, token: String? = null): Result<Boolean> = withContext(Dispatchers.IO) {
+        val path = when {
+            resetAll -> "/api/wallpapers?reset_all=true"
+            !conversationId.isNullOrBlank() -> "/api/wallpapers?conversation_id=${java.net.URLEncoder.encode(conversationId, "UTF-8")}"
+            else -> "/api/wallpapers?conversation_id=global"
+        }
+        val result = executeRequest(path, "DELETE", null, token)
+        result.map { true }
     }
 
     private fun executeRequest(

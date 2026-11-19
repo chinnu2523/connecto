@@ -32,22 +32,49 @@ object WallpaperResolver {
      * 4. Pre-update image files stored on disk in chat_wallpapers directory
      * 5. Automatically heals/migrates legacy entries forward to canonical keys
      */
+    /**
+     * Resolves the active wallpaper ID and custom wallpaper URI for a friend, group, or channel.
+     * Enforces the strict Fallback Resolution Order:
+     * 1. Chat-specific cloud wallpaper (userId + conversationId)
+     * 2. Global user wallpaper (userId + global, if Set for all chats was used)
+     * 3. Theme default canvas ("default", null)
+     */
     fun resolve(
         friend: FriendItem?,
         myUsername: String,
         prefs: SharedPreferences,
         filesDir: File? = null
     ): Pair<String, String?> {
-        if (friend == null) return Pair("default", null)
         val userPrefix = myUsername.trim().removePrefix("@").lowercase()
-        val chatKey = getCanonicalChatId(friend, userPrefix)
-        val friendId = friend.id.trim()
-        val cleanHandle = friend.handle.trim().removePrefix("@").lowercase()
-        val friendName = friend.name.trim().lowercase()
+        val chatKey = if (friend != null) getCanonicalChatId(friend, userPrefix) else ""
+        return resolveForConversation(
+            conversationId = chatKey.ifBlank { friend?.id },
+            friend = friend,
+            myUsername = myUsername,
+            prefs = prefs,
+            filesDir = filesDir
+        )
+    }
 
-        // 1. Build prioritized list of candidate identifiers
+    /**
+     * Resolves active wallpaper for an arbitrary conversationId (direct chat or channel).
+     */
+    fun resolveForConversation(
+        conversationId: String?,
+        friend: FriendItem? = null,
+        myUsername: String,
+        prefs: SharedPreferences,
+        filesDir: File? = null
+    ): Pair<String, String?> {
+        val userPrefix = myUsername.trim().removePrefix("@").lowercase()
+        val chatKey = conversationId?.trim() ?: (if (friend != null) getCanonicalChatId(friend, userPrefix) else "")
+        val friendId = friend?.id?.trim() ?: ""
+        val cleanHandle = friend?.handle?.trim()?.removePrefix("@")?.lowercase() ?: ""
+        val friendName = friend?.name?.trim()?.lowercase() ?: ""
+
+        // 1. Build prioritized list of chat-specific candidate identifiers
         val candidateIds = linkedSetOf<String>()
-        if (chatKey.isNotBlank()) candidateIds.add(chatKey)
+        if (chatKey.isNotBlank() && chatKey != "global") candidateIds.add(chatKey)
         if (friendId.isNotBlank()) candidateIds.add(friendId)
         if (cleanHandle.isNotBlank()) candidateIds.add(cleanHandle)
         if (friendId.isNotBlank() && friendId.startsWith("usr_")) candidateIds.add(friendId.removePrefix("usr_"))
@@ -58,7 +85,7 @@ object WallpaperResolver {
         var resolvedUri: String? = null
         var isFromLegacyOrFallback = false
 
-        // 2. Check modern userPrefix-scoped keys
+        // 1. ORDER STEP 1: Check chat-specific scoped keys (${userPrefix}_chat_wallpaper_$id)
         if (userPrefix.isNotBlank()) {
             for (id in candidateIds) {
                 val scopedWp = prefs.getString("${userPrefix}_chat_wallpaper_$id", null)
@@ -78,7 +105,7 @@ object WallpaperResolver {
             }
         }
 
-        // 3. Check legacy unscoped keys (saved before the multi-account scoping update)
+        // 2. Legacy unscoped keys for candidate chat IDs
         if (resolvedWp == null || resolvedWp == "default") {
             for (id in candidateIds) {
                 val legacyWp = prefs.getString("chat_wallpaper_$id", null)
@@ -100,8 +127,36 @@ object WallpaperResolver {
             }
         }
 
+        // 3. ORDER STEP 2: Fallback to Global User Wallpaper (${userPrefix}_chat_wallpaper_global)
+        if (resolvedWp == null || resolvedWp == "default") {
+            if (userPrefix.isNotBlank()) {
+                val globalWp = prefs.getString("${userPrefix}_chat_wallpaper_global", null)
+                val globalCustom = prefs.getString("${userPrefix}_chat_wallpaper_custom_global", null)
+
+                if (!globalWp.isNullOrBlank() && globalWp != "default") {
+                    resolvedWp = globalWp
+                    if (globalWp == "custom") {
+                        resolvedUri = globalCustom
+                    }
+                } else if (!globalCustom.isNullOrBlank()) {
+                    resolvedWp = "custom"
+                    resolvedUri = globalCustom
+                }
+            }
+            if (resolvedWp == null || resolvedWp == "default") {
+                val legacyGlobalWp = prefs.getString("chat_wallpaper_global", null)
+                val legacyGlobalCustom = prefs.getString("chat_wallpaper_custom_global", null)
+                if (!legacyGlobalWp.isNullOrBlank() && legacyGlobalWp != "default") {
+                    resolvedWp = legacyGlobalWp
+                    if (legacyGlobalWp == "custom") resolvedUri = legacyGlobalCustom
+                } else if (!legacyGlobalCustom.isNullOrBlank()) {
+                    resolvedWp = "custom"
+                    resolvedUri = legacyGlobalCustom
+                }
+            }
+        }
+
         // 4. Check on-disk local files in chat_wallpapers directory
-        // Only trigger if no wallpaper was found, or if wallpaper is custom but URI is missing/broken
         val isUriValidOnDisk = if (resolvedUri.isNullOrBlank()) false else {
             val path = if (resolvedUri.startsWith("file://")) resolvedUri.removePrefix("file://") else resolvedUri
             if (path.startsWith("/")) File(path).exists() else true
@@ -112,10 +167,17 @@ object WallpaperResolver {
         if (needsDiskFallback && filesDir != null) {
             val wallpapersDir = File(filesDir, "chat_wallpapers")
             if (wallpapersDir.exists() && wallpapersDir.isDirectory) {
-                for (id in candidateIds) {
+                val searchKeys = linkedSetOf<String>().apply {
+                    addAll(candidateIds)
+                    add("global")
+                }
+                for (id in searchKeys) {
                     val candidateFiles = listOfNotNull(
+                        if (userPrefix.isNotBlank()) File(wallpapersDir, "wp_${userPrefix}_${id}.webp") else null,
                         if (userPrefix.isNotBlank()) File(wallpapersDir, "wp_${userPrefix}_${id}.jpg") else null,
+                        File(wallpapersDir, "wp_${id}.webp"),
                         File(wallpapersDir, "wp_${id}.jpg"),
+                        if (userPrefix.isNotBlank()) File(wallpapersDir, "custom_wp_${userPrefix}_${id}.webp") else null,
                         if (userPrefix.isNotBlank()) File(wallpapersDir, "custom_wp_${userPrefix}_${id}.jpg") else null,
                         File(wallpapersDir, "custom_wp_${id}.jpg")
                     )
@@ -141,9 +203,23 @@ object WallpaperResolver {
                 val path = resolvedUri.removePrefix("file:")
                 val cleanPath = "/" + path.trimStart('/')
                 resolvedUri = "file://$cleanPath"
+            } else if (resolvedUri.startsWith("http://") || resolvedUri.startsWith("https://")) {
+                // If remote cloud URL, check if we already have it downloaded on disk for 0ms offline rendering
+                if (filesDir != null) {
+                    val wallpapersDir = File(filesDir, "chat_wallpapers")
+                    val effectiveKey = if (candidateIds.isNotEmpty()) candidateIds.first() else "global"
+                    val cachedWebp = File(wallpapersDir, "wp_${userPrefix}_${effectiveKey}.webp")
+                    val cachedGlobalWebp = File(wallpapersDir, "wp_${userPrefix}_global.webp")
+                    if (cachedWebp.exists() && cachedWebp.length() > 0) {
+                        resolvedUri = "file://" + cachedWebp.absolutePath
+                    } else if (cachedGlobalWebp.exists() && cachedGlobalWebp.length() > 0) {
+                        resolvedUri = "file://" + cachedGlobalWebp.absolutePath
+                    }
+                }
             }
         }
 
+        // 6. ORDER STEP 3: Fallback to Theme default canvas
         val finalWp = resolvedWp ?: "default"
         val finalUri = if (finalWp == "custom") resolvedUri else null
 
@@ -191,13 +267,32 @@ object WallpaperResolver {
         prefs: SharedPreferences
     ): WallpaperTransform {
         val userPrefix = myUsername.trim().removePrefix("@").lowercase()
-        val chatKey = if (friend != null) getCanonicalChatId(friend, userPrefix) else "global"
+        val chatKey = if (friend != null) getCanonicalChatId(friend, userPrefix) else ""
+        return resolveTransformForConversation(
+            conversationId = chatKey.ifBlank { friend?.id },
+            friend = friend,
+            myUsername = myUsername,
+            prefs = prefs
+        )
+    }
+
+    /**
+     * Resolves the transform customizations for an arbitrary conversationId or channel.
+     */
+    fun resolveTransformForConversation(
+        conversationId: String?,
+        friend: FriendItem? = null,
+        myUsername: String,
+        prefs: SharedPreferences
+    ): WallpaperTransform {
+        val userPrefix = myUsername.trim().removePrefix("@").lowercase()
+        val chatKey = conversationId?.trim() ?: (if (friend != null) getCanonicalChatId(friend, userPrefix) else "")
         val friendId = friend?.id?.trim() ?: ""
         val cleanHandle = friend?.handle?.trim()?.removePrefix("@")?.lowercase() ?: ""
         val friendName = friend?.name?.trim()?.lowercase() ?: ""
 
         val candidateIds = linkedSetOf<String>()
-        if (chatKey.isNotBlank()) candidateIds.add(chatKey)
+        if (chatKey.isNotBlank() && chatKey != "global") candidateIds.add(chatKey)
         if (friendId.isNotBlank()) candidateIds.add(friendId)
         if (cleanHandle.isNotBlank()) candidateIds.add(cleanHandle)
         if (friendId.isNotBlank() && friendId.startsWith("usr_")) candidateIds.add(friendId.removePrefix("usr_"))

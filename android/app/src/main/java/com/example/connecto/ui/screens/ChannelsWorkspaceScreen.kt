@@ -120,6 +120,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -132,6 +133,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
@@ -159,6 +161,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.connecto.data.ConnectoDatabaseHelper
+import com.example.connecto.data.WallpaperResolver
+import com.example.connecto.data.WallpaperSyncManager
+import com.example.connecto.data.WallpaperTransform
 import com.example.connecto.network.ConnectoApiClient
 import com.example.connecto.network.MessageDto
 import com.example.connecto.network.PinnedMessageDto
@@ -270,6 +275,39 @@ fun ChannelsWorkspaceScreen(
 
     val cleanSelectedChannel = remember(selectedChannelId) {
         selectedChannelId.trim().lowercase().removePrefix("#")
+    }
+
+    val wallpaperSyncTrigger by WallpaperSyncManager.wallpaperUpdateTrigger.collectAsState()
+    var channelWallpaperId by remember { mutableStateOf("default") }
+    var channelCustomWallpaperUri by remember { mutableStateOf<String?>(null) }
+    var channelWallpaperTransform by remember { mutableStateOf(WallpaperTransform()) }
+
+    val friendPrefs = remember { context.getSharedPreferences("friend_prefs", Context.MODE_PRIVATE) }
+
+    LaunchedEffect(cleanSelectedChannel, currentUsername, wallpaperSyncTrigger) {
+        val (wId, cUri) = WallpaperResolver.resolveForConversation(
+            conversationId = "channel_$cleanSelectedChannel",
+            friend = null,
+            myUsername = currentUsername,
+            prefs = friendPrefs,
+            filesDir = context.filesDir
+        )
+        channelWallpaperId = wId
+        channelCustomWallpaperUri = cUri
+        channelWallpaperTransform = WallpaperResolver.resolveTransformForConversation(
+            conversationId = "channel_$cleanSelectedChannel",
+            friend = null,
+            myUsername = currentUsername,
+            prefs = friendPrefs
+        )
+    }
+
+    val activeChannelWallpaper = remember(channelWallpaperId) {
+        if (channelWallpaperId != "default") {
+            AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == channelWallpaperId } ?: AVAILABLE_CHAT_WALLPAPERS.first()
+        } else {
+            AVAILABLE_CHAT_WALLPAPERS.first()
+        }
     }
 
     val deletedForMeSet = remember(currentUsername) {
@@ -1543,6 +1581,101 @@ fun ChannelsWorkspaceScreen(
                         .weight(1f)
                         .fillMaxWidth()
                 ) {
+                    // Wallpaper Background Layer: Custom Photo or Preset Gradient Brush
+                    if (channelWallpaperId == "custom" && !channelCustomWallpaperUri.isNullOrBlank()) {
+                        val resolvedContentScale = when (channelWallpaperTransform.contentScaleMode) {
+                            "fit" -> ContentScale.Fit
+                            "fill_bounds" -> ContentScale.FillBounds
+                            "inside" -> ContentScale.Inside
+                            else -> ContentScale.Crop
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clipToBounds()
+                        ) {
+                            val customWallpaperModel = remember(channelCustomWallpaperUri) {
+                                channelCustomWallpaperUri?.let { uriStr ->
+                                    if (uriStr.startsWith("file://")) {
+                                        java.io.File(uriStr.removePrefix("file://"))
+                                    } else if (uriStr.startsWith("/")) {
+                                        java.io.File(uriStr)
+                                    } else {
+                                        android.net.Uri.parse(uriStr)
+                                    }
+                                }
+                            }
+
+                            AsyncImage(
+                                model = customWallpaperModel,
+                                contentDescription = null,
+                                contentScale = resolvedContentScale,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer {
+                                        scaleX = channelWallpaperTransform.scale
+                                        scaleY = channelWallpaperTransform.scale
+                                        translationX = channelWallpaperTransform.offsetX
+                                        translationY = channelWallpaperTransform.offsetY
+                                    }
+                                    .then(
+                                        if (channelWallpaperTransform.blur > 0f) Modifier.blur(channelWallpaperTransform.blur.dp) else Modifier
+                                    )
+                            )
+                            // Legibility Scrim Overlay so chat bubbles and text remain crisp
+                            val scrimAlpha = (channelWallpaperTransform.dim * 0.5f).coerceIn(0f, 0.45f)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        if (!colors.isDark) Color.White.copy(alpha = scrimAlpha * 0.7f)
+                                        else Color.Black.copy(alpha = scrimAlpha)
+                                    )
+                            )
+                        }
+                    } else if (channelWallpaperId != "default") {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clipToBounds()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer {
+                                        scaleX = channelWallpaperTransform.scale
+                                        scaleY = channelWallpaperTransform.scale
+                                        translationX = channelWallpaperTransform.offsetX
+                                        translationY = channelWallpaperTransform.offsetY
+                                    }
+                                    .then(
+                                        if (channelWallpaperTransform.blur > 0f) Modifier.blur(channelWallpaperTransform.blur.dp) else Modifier
+                                    )
+                                    .then(
+                                        if (channelWallpaperId == "oled") {
+                                            Modifier.background(Color(0xFF000000))
+                                        } else {
+                                            Modifier.background(
+                                                brush = if (!colors.isDark) activeChannelWallpaper.lightBrush else activeChannelWallpaper.darkBrush
+                                            )
+                                        }
+                                    )
+                            )
+                            if (channelWallpaperId != "oled") {
+                                val scrimAlpha = (channelWallpaperTransform.dim * 0.35f).coerceIn(0f, 0.4f)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            if (!colors.isDark) Color.White.copy(alpha = scrimAlpha * 0.5f)
+                                            else Color.Black.copy(alpha = scrimAlpha)
+                                        )
+                                )
+                            }
+                        }
+                    }
+
                     val showChannelSkeleton = isLoadingMessages && messages.isEmpty()
                     androidx.compose.animation.Crossfade(
                         targetState = showChannelSkeleton,

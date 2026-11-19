@@ -100,6 +100,17 @@ Sitemap: https://connecto.fun/sitemap.xml
       });
     }
 
+    // 0b. Edge Wallpaper File Serving (High-Performance CDN Delivery)
+    if (url.pathname.startsWith("/wallpapers/") || url.pathname.startsWith("/uploads/wallpapers/")) {
+      return handleWallpaperFileServing(request, url, env, ctx);
+    }
+
+    // 0c. Edge Wallpaper Settings & Custom Photo Upload API
+    if (url.pathname === "/api/wallpapers" || url.pathname === "/api/v1/wallpapers" ||
+        url.pathname === "/api/wallpapers/upload" || url.pathname === "/api/v1/wallpapers/upload") {
+      return handleWallpaperApi(request, url, env, ctx);
+    }
+
     // 1. Edge D1 Query & Database Management APIs
     if (url.pathname === "/api/v1/db/health" || url.pathname === "/api/db/health") {
       return handleDbHealth(env);
@@ -2079,7 +2090,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
                          path === "/api/auth/check-email" ||
                          path === "/api/auth/forgot-password" || path === "/api/auth/verify-otp" || path === "/api/auth/reset-password" ||
                          path.startsWith("/api/store/") || path.startsWith("/api/v1/store/") ||
-                         path.startsWith("/download/") || path.startsWith("/static/") || path.startsWith("/uploads/");
+                         path.startsWith("/download/") || path.startsWith("/static/") || path.startsWith("/uploads/") ||
+                         path.startsWith("/wallpapers/");
     if (!isPublicPath) {
       return jsonResponse({
         error: "Unauthorized",
@@ -2108,6 +2120,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   }
   if (path === "/api/v1/sync/now" || path === "/api/sync/now") {
     return handleSyncNow(request, env);
+  }
+
+  // 1b-2. Cloud Wallpaper Persistence & Sync APIs
+  if (path === "/api/wallpapers" || path === "/api/v1/wallpapers" ||
+      path === "/api/wallpapers/upload" || path === "/api/v1/wallpapers/upload") {
+    return handleWallpaperApi(request, url, env, ctx);
   }
 
   // 1c. Our Store User Consent API (Terms of Use & Privacy Policy Agreement)
@@ -9491,6 +9509,301 @@ async function handleDbHealth(env) {
   } catch (err) {
     return jsonResponse({ status: "error", message: err.message }, 500);
   }
+}
+
+// ============================================================================
+// CLOUD WALLPAPER PERSISTENCE & FILE SERVING ENGINE
+// ============================================================================
+
+function extractWallpaperFilePath(imageUrl, userId) {
+  if (!imageUrl) return null;
+  const match = imageUrl.match(/wallpapers\/([^/]+)\/([^/?#]+)/i);
+  if (match) {
+    const fileUser = match[1];
+    const fileName = match[2];
+    if (fileUser === userId) {
+      return `wallpapers/${fileUser}/${fileName}`;
+    }
+  }
+  return null;
+}
+
+async function handleWallpaperFileServing(request, url, env, ctx) {
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return jsonResponse({ error: "Method not allowed" }, 405);
+  }
+  if (!env || !env.DB) {
+    return jsonResponse({ error: "Database unavailable" }, 503);
+  }
+
+  // Parse path: /wallpapers/:userId/:filename or /uploads/wallpapers/:userId/:filename
+  const cleanPath = url.pathname.replace(/^\/uploads\//, "/").replace(/^\/api\/wallpapers\/file\//, "/wallpapers/");
+  const parts = cleanPath.split("/").filter(Boolean);
+  // parts should be ["wallpapers", userId, filename]
+  if (parts.length < 3) {
+    return jsonResponse({ error: "Invalid wallpaper file path" }, 400);
+  }
+  const userId = parts[1];
+  const filename = parts.slice(2).join("/");
+  const filePath = `wallpapers/${userId}/${filename}`;
+
+  try {
+    const row = await env.DB.prepare(
+      "SELECT mime_type, data, size_bytes FROM wallpaper_files WHERE file_path = ? LIMIT 1"
+    ).bind(filePath).first();
+
+    if (!row || !row.data) {
+      return jsonResponse({ error: "Wallpaper not found", file: filePath }, 404);
+    }
+
+    let bytes;
+    if (row.data instanceof ArrayBuffer) {
+      bytes = new Uint8Array(row.data);
+    } else if (row.data instanceof Uint8Array) {
+      bytes = row.data;
+    } else if (Array.isArray(row.data)) {
+      bytes = new Uint8Array(row.data);
+    } else if (typeof row.data === "string") {
+      const bin = atob(row.data);
+      bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    } else {
+      bytes = new Uint8Array(0);
+    }
+
+    const headers = new Headers();
+    headers.set("Content-Type", row.mime_type || "image/webp");
+    if (row.size_bytes) headers.set("Content-Length", String(row.size_bytes));
+    headers.set("Cache-Control", "public, max-age=31536000, immutable");
+    headers.set("Access-Control-Allow-Origin", "*");
+    headers.set("X-Connecto-Asset", "Cloud-Wallpaper");
+
+    return new Response(bytes, {
+      status: 200,
+      headers: headers
+    });
+  } catch (err) {
+    return jsonResponse({ error: "Error reading wallpaper file: " + err.message }, 500);
+  }
+}
+
+async function handleWallpaperApi(request, url, env, ctx) {
+  const method = request.method;
+  const path = url.pathname;
+
+  if (!env || !env.DB) {
+    return jsonResponse({ error: "Database unavailable" }, 503);
+  }
+
+  const caller = await resolveUserFromRequest(request, env);
+  if (!caller) {
+    return jsonResponse({ error: "Authentication required to access wallpaper preferences" }, 401);
+  }
+
+  // 1. Upload custom gallery photo: POST /api/wallpapers/upload
+  if (method === "POST" && (path === "/api/wallpapers/upload" || path === "/api/v1/wallpapers/upload")) {
+    try {
+      const contentType = request.headers.get("content-type") || "";
+      let buffer = null;
+      let mimeType = "image/webp";
+
+      if (contentType.includes("multipart/form-data")) {
+        const formData = await request.formData();
+        const fileEntry = formData.get("file") || formData.get("image") || formData.get("wallpaper");
+        if (fileEntry && typeof fileEntry === "object" && typeof fileEntry.arrayBuffer === "function") {
+          buffer = await fileEntry.arrayBuffer();
+          mimeType = (fileEntry.type || "image/webp").toLowerCase().trim();
+        }
+      } else if (contentType.includes("application/json")) {
+        const body = await request.json().catch(() => ({}));
+        const dataUrl = body.image_data || body.data || body.image || "";
+        if (dataUrl && dataUrl.startsWith("data:")) {
+          const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/i);
+          if (match) {
+            mimeType = match[1].toLowerCase().trim();
+            const bin = atob(match[2]);
+            const arr = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+            buffer = arr.buffer;
+          }
+        } else if (body.base64) {
+          mimeType = (body.mime_type || "image/webp").toLowerCase().trim();
+          const bin = atob(body.base64);
+          const arr = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+          buffer = arr.buffer;
+        }
+      } else if (contentType.startsWith("image/")) {
+        buffer = await request.arrayBuffer();
+        mimeType = contentType.split(";")[0].toLowerCase().trim();
+      }
+
+      if (!buffer || buffer.byteLength === 0) {
+        return jsonResponse({ error: "No image content provided in wallpaper upload" }, 400);
+      }
+
+      if (buffer.byteLength > 5 * 1024 * 1024) {
+        return jsonResponse({ error: "Wallpaper exceeds 5MB size limit" }, 413);
+      }
+
+      const ext = mimeType.includes("jpeg") || mimeType.includes("jpg") ? "jpg" : (mimeType.includes("png") ? "png" : "webp");
+      const wallpaperId = "wp_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 8);
+      const filePath = `wallpapers/${caller.id}/${wallpaperId}.${ext}`;
+      const permanentUrl = `https://connecto.fun/wallpapers/${caller.id}/${wallpaperId}.${ext}`;
+
+      // Insert file into wallpaper_files table in D1
+      await env.DB.prepare(
+        "INSERT OR REPLACE INTO wallpaper_files (file_path, user_id, mime_type, data, size_bytes, created_at) VALUES (?, ?, ?, ?, ?, datetime('now'))"
+      ).bind(filePath, caller.id, mimeType, new Uint8Array(buffer), buffer.byteLength).run();
+
+      return jsonResponse({
+        status: "success",
+        wallpaper_id: wallpaperId,
+        image_url: permanentUrl,
+        file_path: filePath,
+        size_bytes: buffer.byteLength
+      });
+    } catch (err) {
+      return jsonResponse({ error: "Failed to upload wallpaper: " + err.message }, 500);
+    }
+  }
+
+  // 2. Fetch saved wallpapers: GET /api/wallpapers
+  if (method === "GET") {
+    try {
+      const rows = await env.DB.prepare(
+        "SELECT id, user_id, conversation_id, wallpaper_type, preset_id, image_url, dim, blur, zoom, offset_x, offset_y, fit_mode, updated_at FROM user_wallpapers WHERE user_id = ? ORDER BY updated_at DESC"
+      ).bind(caller.id).all();
+
+      return jsonResponse({
+        status: "success",
+        user_id: caller.id,
+        wallpapers: rows.results || []
+      });
+    } catch (err) {
+      return jsonResponse({ error: "Failed to query wallpapers: " + err.message }, 500);
+    }
+  }
+
+  // 3. Save or update wallpaper preferences: POST /api/wallpapers
+  if (method === "POST") {
+    try {
+      const body = await request.json().catch(() => ({}));
+      const conversationId = body.conversation_id ? String(body.conversation_id).trim() : null;
+      const wallpaperType = (body.wallpaper_type || "preset").trim().toLowerCase(); // 'preset' or 'custom_image'
+      const presetId = body.preset_id ? String(body.preset_id).trim() : null;
+      let imageUrl = body.image_url ? String(body.image_url).trim() : null;
+
+      // Never store local content:// or file:// paths in the cloud database
+      if (imageUrl && (imageUrl.startsWith("content://") || imageUrl.startsWith("file://"))) {
+        return jsonResponse({ error: "Local file or content URIs cannot be saved to cloud database. Please upload via /api/wallpapers/upload first." }, 400);
+      }
+
+      const dim = typeof body.dim === "number" ? Math.max(0.0, Math.min(0.90, body.dim)) : 0.50;
+      const blur = typeof body.blur === "number" ? Math.max(0.0, Math.min(25.0, body.blur)) : 0.0;
+      const zoom = typeof body.zoom === "number" ? Math.max(0.5, Math.min(3.0, body.zoom)) : 1.0;
+      const offsetX = typeof body.offset_x === "number" ? body.offset_x : 0.0;
+      const offsetY = typeof body.offset_y === "number" ? body.offset_y : 0.0;
+      const fitMode = (body.fit_mode || "crop").trim().toLowerCase();
+
+      // Check if existing record had a custom image that should be pruned
+      const existing = await env.DB.prepare(
+        "SELECT image_url FROM user_wallpapers WHERE user_id = ? AND conversation_id IS ?"
+      ).bind(caller.id, conversationId).first().catch(() => null);
+
+      if (existing && existing.image_url && existing.image_url !== imageUrl) {
+        const oldPath = extractWallpaperFilePath(existing.image_url, caller.id);
+        if (oldPath) {
+          await env.DB.prepare("DELETE FROM wallpaper_files WHERE file_path = ? AND user_id = ?").bind(oldPath, caller.id).run().catch(() => {});
+        }
+      }
+
+      const recId = "wp_" + caller.id + "_" + (conversationId ? conversationId.replace(/[^a-zA-Z0-9_-]/g, "_") : "global");
+
+      await env.DB.prepare(`
+        INSERT INTO user_wallpapers (
+          id, user_id, conversation_id, wallpaper_type, preset_id, image_url,
+          dim, blur, zoom, offset_x, offset_y, fit_mode, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(user_id, COALESCE(conversation_id, '__GLOBAL__')) DO UPDATE SET
+          wallpaper_type = excluded.wallpaper_type,
+          preset_id = excluded.preset_id,
+          image_url = excluded.image_url,
+          dim = excluded.dim,
+          blur = excluded.blur,
+          zoom = excluded.zoom,
+          offset_x = excluded.offset_x,
+          offset_y = excluded.offset_y,
+          fit_mode = excluded.fit_mode,
+          updated_at = datetime('now')
+      `).bind(
+        recId, caller.id, conversationId, wallpaperType, presetId, imageUrl,
+        dim, blur, zoom, offsetX, offsetY, fitMode
+      ).run();
+
+      return jsonResponse({
+        status: "success",
+        message: conversationId ? "Chat wallpaper preferences saved" : "Global wallpaper preferences saved",
+        wallpaper: {
+          id: recId,
+          user_id: caller.id,
+          conversation_id: conversationId,
+          wallpaper_type: wallpaperType,
+          preset_id: presetId,
+          image_url: imageUrl,
+          dim: dim,
+          blur: blur,
+          zoom: zoom,
+          offset_x: offsetX,
+          offset_y: offsetY,
+          fit_mode: fitMode
+        }
+      });
+    } catch (err) {
+      return jsonResponse({ error: "Failed to save wallpaper: " + err.message }, 500);
+    }
+  }
+
+  // 4. Delete / Reset wallpaper preferences: DELETE /api/wallpapers
+  if (method === "DELETE") {
+    try {
+      const convParam = url.searchParams.get("conversation_id");
+      const conversationId = (convParam && convParam.trim() && convParam.trim() !== "global") ? convParam.trim() : null;
+      const resetAll = url.searchParams.get("reset_all") === "true";
+
+      if (resetAll) {
+        // Delete all wallpaper files for this user
+        await env.DB.prepare("DELETE FROM wallpaper_files WHERE user_id = ?").bind(caller.id).run().catch(() => {});
+        await env.DB.prepare("DELETE FROM user_wallpapers WHERE user_id = ?").bind(caller.id).run();
+        return jsonResponse({ status: "success", message: "All user wallpapers reset to default" });
+      }
+
+      // Check if target record had custom image
+      const existing = await env.DB.prepare(
+        "SELECT image_url FROM user_wallpapers WHERE user_id = ? AND conversation_id IS ?"
+      ).bind(caller.id, conversationId).first().catch(() => null);
+
+      if (existing && existing.image_url) {
+        const oldPath = extractWallpaperFilePath(existing.image_url, caller.id);
+        if (oldPath) {
+          await env.DB.prepare("DELETE FROM wallpaper_files WHERE file_path = ? AND user_id = ?").bind(oldPath, caller.id).run().catch(() => {});
+        }
+      }
+
+      await env.DB.prepare(
+        "DELETE FROM user_wallpapers WHERE user_id = ? AND conversation_id IS ?"
+      ).bind(caller.id, conversationId).run();
+
+      return jsonResponse({
+        status: "success",
+        message: conversationId ? `Wallpaper for chat ${conversationId} reset to default` : "Global wallpaper reset to default"
+      });
+    } catch (err) {
+      return jsonResponse({ error: "Failed to reset wallpaper: " + err.message }, 500);
+    }
+  }
+
+  return jsonResponse({ error: "Method not allowed" }, 405);
 }
 
 async function handleDbQuery(request, env) {
