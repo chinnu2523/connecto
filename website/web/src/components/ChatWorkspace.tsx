@@ -1411,7 +1411,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
             )}
 
             {/* Messages Feed */}
-            <div className="flex-1 p-6 overflow-y-auto space-y-4">
+            <div className="flex-1 min-h-0 p-6 overflow-y-auto space-y-4">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-3 opacity-60">
                   <MessageSquare className="w-12 h-12 text-slate-500" />
@@ -1503,18 +1503,20 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
               </div>
             ) : (
               <>
-                {/* Quick Action Gamer Chips */}
-                <div className="px-6 py-2 bg-darkglass/40 border-t border-slate-800/60 flex items-center space-x-2 overflow-x-auto">
-                  {quickChips.map((chip, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setMessageInput(chip)}
-                      className="px-3 py-1 rounded-lg bg-slate-800/70 hover:bg-electric/20 border border-slate-700/60 hover:border-cyanglow/50 text-slate-300 hover:text-white text-xs font-medium whitespace-nowrap transition-all"
-                    >
-                      {chip}
-                    </button>
-                  ))}
-                </div>
+                {/* Quick Action Gamer Chips (Empty state only) */}
+                {messages.length === 0 && (
+                  <div className="px-6 py-2 pr-6 bg-darkglass/40 border-t border-slate-800/60 flex items-center space-x-2 overflow-x-auto">
+                    {quickChips.map((chip, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setMessageInput(chip)}
+                        className="px-3 py-1 rounded-lg bg-slate-800/70 hover:bg-electric/20 border border-slate-700/60 hover:border-cyanglow/50 text-slate-300 hover:text-white text-xs font-medium whitespace-nowrap transition-all"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Message Input Form */}
                 <form onSubmit={handleSendMessage} className="p-4 bg-darkglass/60 border-t border-slate-800/80 flex items-center space-x-3">

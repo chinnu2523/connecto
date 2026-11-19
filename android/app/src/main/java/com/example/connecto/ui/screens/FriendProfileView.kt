@@ -30,6 +30,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -285,6 +288,7 @@ fun FriendProfileScreen(
     val effectiveName = validatedProf?.displayName?.ifBlank { validatedProf.fullName.ifBlank { friend.name } } ?: friend.name
     val effectiveBio = validatedProf?.bio?.ifBlank { friend.bio } ?: friend.bio
     val isLight = !ConnectoTheme.colors.isDark
+    val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     AnimatedContent(
         targetState = subPage,
@@ -356,7 +360,7 @@ fun FriendProfileScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
-                        contentPadding = PaddingValues(top = 8.dp, bottom = 28.dp)
+                        contentPadding = PaddingValues(top = 8.dp, bottom = navBarBottom + 32.dp)
                     ) {
                         // 1. BIOMETRIC CHAT LOCK
                         item(key = "setting_lock_chat") {
@@ -612,7 +616,7 @@ fun FriendProfileScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(14.dp),
-                            contentPadding = PaddingValues(top = 8.dp, bottom = 28.dp)
+                            contentPadding = PaddingValues(top = 8.dp, bottom = navBarBottom + 32.dp)
                     ) {
                         // 0. ADMIN RESTRICTION NOTICE (if group and non-admin)
                         if (friend.isGroup && !isAdmin) {
@@ -797,18 +801,23 @@ fun FriendProfileScreen(
                                             .weight(1f)
                                             .height(46.dp),
                                         shape = RoundedCornerShape(14.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFF6366F1),
+                                            contentColor = Color.White
+                                        )
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.AddPhotoAlternate,
                                             contentDescription = null,
+                                            tint = Color.White,
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = if (customWallpaperUri != null) "Change Photo" else "Pick From Gallery",
                                             fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
                                         )
                                     }
 
@@ -1049,7 +1058,7 @@ fun FriendProfileScreen(
                                     .fillMaxSize()
                                     .padding(horizontal = 16.dp),
                                 verticalArrangement = Arrangement.spacedBy(14.dp),
-                                contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp)
+                                contentPadding = PaddingValues(top = 4.dp, bottom = navBarBottom + 32.dp)
                             ) {
                         // 1. HERO COVER BANNER & AVATAR
                         item(key = "friend_profile_hero") {

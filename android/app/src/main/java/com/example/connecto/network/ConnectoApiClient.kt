@@ -2813,6 +2813,68 @@ object ConnectoApiClient {
         }
     }
 
+    suspend fun clearConversation(
+        conversationId: String
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val cleanConv = conversationId.trim().lowercase().removePrefix("#")
+            val body = JSONObject().apply {
+                put("conversation_id", cleanConv)
+            }
+            val res = executeRequest(
+                endpoint = "/api/conversations/$cleanConv/clear",
+                method = "POST",
+                body = body.toString(),
+                token = sessionToken
+            )
+            if (res.isSuccess) {
+                Result.success(true)
+            } else {
+                val fallbackRes = executeRequest(
+                    endpoint = "/api/conversations/clear",
+                    method = "POST",
+                    body = body.toString(),
+                    token = sessionToken
+                )
+                if (fallbackRes.isSuccess) Result.success(true)
+                else Result.failure(fallbackRes.exceptionOrNull() ?: Exception("Failed to clear conversation"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun restoreConversation(
+        conversationId: String
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val cleanConv = conversationId.trim().lowercase().removePrefix("#")
+            val body = JSONObject().apply {
+                put("conversation_id", cleanConv)
+            }
+            val res = executeRequest(
+                endpoint = "/api/conversations/$cleanConv/restore",
+                method = "POST",
+                body = body.toString(),
+                token = sessionToken
+            )
+            if (res.isSuccess) {
+                Result.success(true)
+            } else {
+                val fallbackRes = executeRequest(
+                    endpoint = "/api/conversations/restore",
+                    method = "POST",
+                    body = body.toString(),
+                    token = sessionToken
+                )
+                if (fallbackRes.isSuccess) Result.success(true)
+                else Result.failure(fallbackRes.exceptionOrNull() ?: Exception("Failed to restore conversation"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun pinMessage(
         channelId: String,
         messageId: String,

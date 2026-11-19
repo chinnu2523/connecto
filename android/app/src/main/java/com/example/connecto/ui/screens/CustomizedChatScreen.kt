@@ -1167,9 +1167,11 @@ fun CustomizedChatScreen(
 
         val delPrefsKey = "deleted_for_me_${myUser.lowercase()}"
         val deletedSet = friendPrefs.getStringSet(delPrefsKey, emptySet()) ?: emptySet()
+        val clearedAtKey = "${userPrefix}_cleared_at_${friend.id}"
+        val clearedAt = friendPrefs.getLong(clearedAtKey, 0L)
         val lastFriendMsgTime = mappedCached.filter { !it.isMe }.maxOfOrNull { it.timestampMillis } ?: 0L
         val resolvedCached = mappedCached
-            .filter { it.id !in deletedSet }
+            .filter { it.id !in deletedSet && (clearedAt == 0L || it.timestampMillis > clearedAt) }
             .map { msg ->
                 if (msg.isMe) {
                     if (msg.isRead || (lastFriendMsgTime > 0 && msg.timestampMillis <= lastFriendMsgTime)) {
@@ -2147,8 +2149,6 @@ fun CustomizedChatScreen(
                 "GROUPS" -> userGroupsList.toList()
                 else -> friendsList.toList() + userGroupsList.toList()
             }
-            // Filter out deleted chats unless currently in undo strip state
-            val activeList = baseList.filter { it.id !in deletedChatIds || it.id in pendingDeleteChatIds }
 
             // Filter out locked chats if hide locked chats is enabled and vault is locked
             val userPrefix = myUsername.lowercase()
@@ -2159,31 +2159,34 @@ fun CustomizedChatScreen(
                     .toSet()
             } else emptySet()
 
-            val visibleList = if (lockedIds.isNotEmpty()) {
-                activeList.filter { friend ->
+            val unlockedBaseList = if (lockedIds.isNotEmpty()) {
+                baseList.filter { friend ->
                     val clean = friend.handle.removePrefix("@").trim().lowercase()
                     friend.id.lowercase() !in lockedIds && clean !in lockedIds
                 }
-            } else activeList
+            } else baseList
 
-            val sortedList = visibleList.sortedWith(
-                compareByDescending<FriendItem> { pinnedChatIds.contains(it.id) }
-                    .thenByDescending { it.lastMessageTimestamp }
-                    .thenBy { it.name.lowercase() }
-            )
-            if (friendSearchQuery.isBlank()) sortedList
-            else {
+            if (friendSearchQuery.isNotBlank()) {
                 val q = friendSearchQuery.trim()
                 if (SecretVaultManager.isSecretCodeMatch(context, q)) {
                     emptyList()
                 } else {
-                    sortedList.filter {
+                    // Always discoverable in search! Never exclude friends whose conversation was deleted/hidden
+                    unlockedBaseList.filter {
                         it.name.contains(q, ignoreCase = true) ||
                         it.handle.contains(q, ignoreCase = true) ||
                         it.lastMessage.contains(q, ignoreCase = true) ||
                         it.bio.contains(q, ignoreCase = true)
                     }
                 }
+            } else {
+                // In standard inbox: filter out deleted chats unless currently in undo strip state
+                val activeList = unlockedBaseList.filter { it.id !in deletedChatIds || it.id in pendingDeleteChatIds }
+                activeList.sortedWith(
+                    compareByDescending<FriendItem> { pinnedChatIds.contains(it.id) }
+                        .thenByDescending { it.lastMessageTimestamp }
+                        .thenBy { it.name.lowercase() }
+                )
             }
         }
     }
@@ -2819,6 +2822,13 @@ fun CustomizedChatScreen(
                 } else -1
                 if (fIdx != -1) {
                     val target = friendsList[fIdx]
+                    if (target.id in deletedChatIds) {
+                        deletedChatIds = deletedChatIds - target.id
+                        friendPrefs.edit()
+                            .putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds)
+                            .remove("${userPrefix}_cleared_at_${target.id}")
+                            .apply()
+                    }
                     val cleanHandle = target.handle.removePrefix("@").trim().lowercase()
                     val updated = target.copy(
                         lastMessage = safeInChatPreview,
@@ -2894,6 +2904,13 @@ fun CustomizedChatScreen(
                 val safeBgPreview = cleanMessageContentForDisplay(decContent, "New message")
                 if (fIdx != -1) {
                     val targetFriend = friendsList[fIdx]
+                    if (targetFriend.id in deletedChatIds) {
+                        deletedChatIds = deletedChatIds - targetFriend.id
+                        friendPrefs.edit()
+                            .putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds)
+                            .remove("${userPrefix}_cleared_at_${targetFriend.id}")
+                            .apply()
+                    }
                     val cleanHandle = targetFriend.handle.removePrefix("@").trim().lowercase()
                     val newUnread = targetFriend.unreadCount + 1
                     val updated = targetFriend.copy(
@@ -2926,6 +2943,13 @@ fun CustomizedChatScreen(
                     }
                     if (gIdx != -1) {
                         val targetGroup = userGroupsList[gIdx]
+                        if (targetGroup.id in deletedChatIds) {
+                            deletedChatIds = deletedChatIds - targetGroup.id
+                            friendPrefs.edit()
+                                .putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds)
+                                .remove("${userPrefix}_cleared_at_${targetGroup.id}")
+                                .apply()
+                        }
                         val newUnread = targetGroup.unreadCount + 1
                         val updated = targetGroup.copy(
                             lastMessage = safeBgPreview,
@@ -3332,8 +3356,10 @@ fun CustomizedChatScreen(
                                 }
                                 val delPrefsKey = "deleted_for_me_${myUser.lowercase()}"
                                 val deletedSet = friendPrefs.getStringSet(delPrefsKey, emptySet()) ?: emptySet()
+                                val clearedAtKey = "${userPrefix}_cleared_at_${friend.id}"
+                                val clearedAt = friendPrefs.getLong(clearedAtKey, 0L)
                                 val merged = deduplicateCustomMessages(
-                                    (mappedResolved + unconfirmedLocal).filter { it.id !in deletedSet }
+                                    (mappedResolved + unconfirmedLocal).filter { it.id !in deletedSet && (clearedAt == 0L || it.timestampMillis > clearedAt) }
                                 )
                                 if (friendMessages != merged) {
                                     val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -4749,6 +4775,13 @@ fun CustomizedChatScreen(
                     unreadCount = 0,
                     isOnline = false
                 )
+                if (friendItem.id in deletedChatIds) {
+                    deletedChatIds = deletedChatIds - friendItem.id
+                    friendPrefs.edit()
+                        .putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds)
+                        .remove("${userPrefix}_cleared_at_${friendItem.id}")
+                        .apply()
+                }
                 friendMessages = emptyList()
                 activeDmChannelId = null
                 isLoadingMessages = false
@@ -4973,7 +5006,7 @@ fun CustomizedChatScreen(
                         .background(headerBg)
                         .border(width = 1.dp, color = headerBorderColor, shape = RectangleShape)
                         .statusBarsPadding()
-                        .heightIn(min = 68.dp)
+                        .heightIn(min = 56.dp)
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -6159,12 +6192,26 @@ fun CustomizedChatScreen(
                                 onDeleteFinalized = {
                                     pendingDeleteChatIds = pendingDeleteChatIds - friend.id
                                     deletedChatIds = deletedChatIds + friend.id
-                                    friendPrefs.edit().putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds).apply()
+                                    friendPrefs.edit()
+                                        .putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds)
+                                        .putLong("${userPrefix}_cleared_at_${friend.id}", System.currentTimeMillis())
+                                        .apply()
+                                    val canonicalChatId = getCanonicalChatId(friend)
+                                    coroutineScope.launch {
+                                        ConnectoApiClient.clearConversation(canonicalChatId)
+                                    }
                                 },
                                 onUndoDelete = {
                                     pendingDeleteChatIds = pendingDeleteChatIds - friend.id
                                     deletedChatIds = deletedChatIds - friend.id
-                                    friendPrefs.edit().putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds).apply()
+                                    friendPrefs.edit()
+                                        .putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds)
+                                        .remove("${userPrefix}_cleared_at_${friend.id}")
+                                        .apply()
+                                    val canonicalChatId = getCanonicalChatId(friend)
+                                    coroutineScope.launch {
+                                        ConnectoApiClient.restoreConversation(canonicalChatId)
+                                    }
                                 },
                                 onPeekHintDone = {
                                     hasSeenSwipePeekHint = true
@@ -7375,12 +7422,13 @@ fun CustomizedChatScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .weight(1f, fill = true)
                                     .fillMaxWidth()
                             ) {
                                 val showMessagesSkeleton = isLoadingMessages && friendMessages.isEmpty()
                                 androidx.compose.animation.Crossfade(
                                     targetState = showMessagesSkeleton,
+                                    modifier = Modifier.fillMaxSize(),
                                     animationSpec = tween(durationMillis = 160),
                                     label = "directChatMessagesCrossfade"
                                 ) { isSkeleton ->
@@ -7965,7 +8013,7 @@ fun CustomizedChatScreen(
 
                         // ================= QUICK ACTION CHIPS (COLLAPSIBLE) =================
                         AnimatedVisibility(
-                            visible = !isInputFocused && typedMessage.isEmpty(),
+                            visible = friendMessages.isEmpty() && !isInputFocused && typedMessage.isEmpty(),
                             enter = expandVertically() + fadeIn(),
                             exit = shrinkVertically() + fadeOut()
                         ) {
@@ -7973,7 +8021,8 @@ fun CustomizedChatScreen(
                                 LazyRow(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                                        .padding(vertical = 4.dp),
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     val quickChips = listOf(
@@ -8527,7 +8576,20 @@ fun CustomizedChatScreen(
                                 } else if (typedMessage.isNotBlank()) {
                                     val userMsg = typedMessage.trim()
                                     typedMessage = ""
-                                    selectedFriend?.let { messageDrafts.remove(it.id) }
+                                    selectedFriend?.let { curF ->
+                                        messageDrafts.remove(curF.id)
+                                        if (curF.id in deletedChatIds) {
+                                            deletedChatIds = deletedChatIds - curF.id
+                                            friendPrefs.edit()
+                                                .putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds)
+                                                .remove("${userPrefix}_cleared_at_${curF.id}")
+                                                .apply()
+                                            val canonicalChatId = getCanonicalChatId(curF)
+                                            coroutineScope.launch {
+                                                ConnectoApiClient.restoreConversation(canonicalChatId)
+                                            }
+                                        }
+                                    }
                                     showEmojiPicker = false
 
                                     val typingRecipient = selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.name ?: selectedFriend?.id

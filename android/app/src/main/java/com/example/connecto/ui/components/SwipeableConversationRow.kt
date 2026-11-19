@@ -403,7 +403,8 @@ fun InlineUndoStrip(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(72.dp),
+            .height(72.dp)
+            .clip(RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f)
@@ -411,7 +412,9 @@ fun InlineUndoStrip(
         border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f))
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(16.dp)),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
@@ -485,12 +488,13 @@ fun InlineUndoStrip(
                 }
             }
 
-            // Bottom Progress Bar
+            // Bottom Progress Bar cleanly clipped to bottom card corners
             LinearProgressIndicator(
                 progress = { progress.value },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.dp),
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)),
                 color = Color(0xFF10B981),
                 trackColor = Color(0xFFEF4444).copy(alpha = 0.2f)
             )

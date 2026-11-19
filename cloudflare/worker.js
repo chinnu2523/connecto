@@ -2333,14 +2333,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.1",
-        version_code: 188,
-        size_bytes: 38449358,
+        version_name: "5.8.2",
+        version_code: 189,
+        size_bytes: 38454164,
         size_formatted: "36.7 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Direct Chat Decoupling, Layout Integrity & Android 15 Edge-to-Edge Safe Areas (v5.8.2): Decoupled 'Delete Chat' from Friendship & Search using Cloudflare D1 per-user conversation state (hiddenFromInbox, clearedAt) so deleted conversations are cleanly hidden from inbox without deleting friendship rows or hiding contacts from Search, + New Chat, or Calls picker; auto-unhides on sending/receiving new messages. Fixed Personal Direct Chat layout collapse by anchoring 100% viewport container height, 56px fixed header with statusBarsPadding, and weighted scrollable message feed pinning input composer to the screen bottom. Restricted quick-reply chips to empty chat states with right padding. Fixed Android 15 edge-to-edge safe-area insets globally across Call Ringtone picker, Message Notifications & Sounds, Friend Profile, and Settings subpages with statusBarsPadding and bottom navigation bar insets so stock ringtones ('Jovi Lifestyle') and wallpaper presets ('Emerald Matrix') scroll cleanly above the gesture pill. Harmonized 'Pick From Gallery' button to Obsidian #6366F1 styling and cleanly clipped conversation row progress bar to 16dp rounded corner radius.",
           "Custom Message Notification Sounds & Tactile Vibration Patterns (v5.8.1): Android 15 (API 35) compliant notification system featuring curated audio chimes (Connecto Chime, Minimal Pop, Glass Harp, Cosmic Ping, Digital Watch) with FileProvider SystemUI grants, and tactile vibration patterns (Single Pulse, Double Tap, Heartbeat, Escalating, Rapid Buzz, SOS) alongside a custom 60fps pulse-pad recorder. Added per-contact sound and vibration overrides with priority fallback, real-time audio playback preview with auto-stop, and central management list for non-vaulted contacts. Integrated WebRTC Voice Call audio fixes: eliminated post-pickup silence via pre-warmed Cloudflare TURN credentials and non-blocking Trickle ICE, resolved audio latency via WebRTC playout buffers, prevented RtpSender disposal crashes on call accept, and added Obsidian custom call ringtone picker with per-contact ringtone overrides. Upgraded Direct Messages with instant local Delete for seen messages, 3-second floating Undo countdown toast pill, protected Unsend confirmation modal, and multi-select chat message deletion.",
           "Root Portal Long-Press Focus Overlay (v5.7.9): Eliminated all blur artifacts from message content by extracting the active overlay into a top-level document body portal. Multi-layered composition featuring full-screen dark frosted scrim (rgba(5, 7, 12, 0.72), backdrop-filter: blur(12px)), 100% crisp focused message bubble clone with soft elevation shadow, quick-reaction emoji pill, and contextual action bar (Reply, Copy, Edit, Unsend). Mathematical viewport edge clamping ensures bubbles at screen extremities never get clipped or truncated.",
           "Push-Down Tray Elastic Pull-to-Refresh (v5.7.9): Replaced overlapping floating spinners with an integrated push-down layout tray. Fluid 60fps micro-spinner with smooth progress arc expansion, 180° orientation snap, and tactile spring return physics. Touch shield prevents accidental item opens during swipe gestures.",
@@ -6452,6 +6453,18 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           querySql += ` AND m.id NOT IN (SELECT message_id FROM user_deleted_messages WHERE user_id = ? OR lower(user_id) = ?) `;
           querySql += ` AND m.id NOT IN (SELECT message_id FROM message_deletions WHERE lower(username) = ?) `;
           queryBindings.push(caller.id || reqUser, reqUser, reqUser);
+
+          // Per-User Soft-Clear Filter: filter out messages older than cleared_at for currentUserId
+          try {
+            const ucsPlaceholders = channelCandidates.map(() => "?").join(", ");
+            const ucsRow = await env.DB.prepare(
+              `SELECT cleared_at FROM user_conversation_state WHERE (user_id = ? OR lower(user_id) = ?) AND conversation_id IN (${ucsPlaceholders}) AND cleared_at IS NOT NULL ORDER BY cleared_at DESC LIMIT 1`
+            ).bind(caller.id || reqUser, reqUser, ...channelCandidates).first();
+            if (ucsRow && ucsRow.cleared_at) {
+              querySql += ` AND m.created_at > ? `;
+              queryBindings.push(ucsRow.cleared_at);
+            }
+          } catch (_) {}
         }
 
         querySql += ` ORDER BY m.created_at ASC LIMIT 100 `;
@@ -6610,6 +6623,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           await env.DB.prepare(
             "INSERT INTO messages (id, channel_id, sender_id, content, attachments) VALUES (?, ?, ?, ?, ?)"
           ).bind(newMsgId, canonicalChannel, senderId, content, attStr).run();
+
+          // Automatically unhide conversation in user_conversation_state when a new message is posted
+          try {
+            const cVariants = [canonicalChannel, channelId, resolvedChannelId].filter(Boolean);
+            if (dmRecipient) {
+              cVariants.push(dmRecipient);
+              cVariants.push(senderUsername.toLowerCase());
+              cVariants.push(`dm-${senderUsername.toLowerCase()}-${dmRecipient.toLowerCase()}`);
+              cVariants.push(`dm-${dmRecipient.toLowerCase()}-${senderUsername.toLowerCase()}`);
+            }
+            for (const cv of Array.from(new Set(cVariants))) {
+              await env.DB.prepare(
+                "UPDATE user_conversation_state SET hidden_from_inbox = 0, updated_at = datetime('now') WHERE conversation_id = ?"
+              ).bind(cv).run().catch(() => {});
+            }
+          } catch (_) {}
 
           let targetRecipient = dmRecipient;
           let recUser = null;
@@ -7095,6 +7124,104 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     }
     // Zero broadcast to recipient: returns confirmation to caller only
     return jsonResponse({ status: "ok", message_id: messageId, username: uname, delete_for_me: true });
+  }
+
+  // 17d-2. Per-User Conversation Soft-Clear & Visibility State (POST /api/conversations/:id/clear, POST /api/conversations/:id/restore, GET /api/conversations/states)
+  const clearConvMatch = path.match(/^\/api(?:\/v1)?(?:\/chat)?\/conversations\/([a-zA-Z0-9_\-]+)\/(clear|restore)$/);
+  const isDirectConvClear = path === "/api/conversations/clear" || path === "/api/v1/chat/conversations/clear" || path === "/api/conversations/restore" || path === "/api/v1/chat/conversations/restore";
+  if ((clearConvMatch && method === "POST") || (isDirectConvClear && method === "POST")) {
+    const u = await resolveUserFromRequest(request, env);
+    if (!u || !u.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required." }, 401);
+    }
+    const uname = (u.username || "").toLowerCase().trim().replace(/^@/, "");
+    const uid = u.id || uname;
+    let convId = clearConvMatch ? clearConvMatch[1] : "";
+    const action = clearConvMatch ? clearConvMatch[2] : (path.endsWith("/restore") ? "restore" : "clear");
+    let body = {};
+    try { body = await request.json(); } catch (_) {}
+    if (!convId) {
+      convId = (body.conversation_id || body.conversationId || body.channel_id || body.chatId || "").trim();
+    }
+    if (!convId) {
+      return jsonResponse({ error: "conversation_id required" }, 400);
+    }
+
+    if (env.DB) {
+      try {
+        if (action === "clear") {
+          await env.DB.prepare(`
+            INSERT INTO user_conversation_state (user_id, conversation_id, hidden_from_inbox, cleared_at, updated_at)
+            VALUES (?, ?, 1, datetime('now'), datetime('now'))
+            ON CONFLICT(user_id, conversation_id) DO UPDATE SET
+              hidden_from_inbox = 1,
+              cleared_at = datetime('now'),
+              updated_at = datetime('now')
+          `).bind(uid, convId).run().catch(() => {});
+
+          if (uname !== uid) {
+            await env.DB.prepare(`
+              INSERT INTO user_conversation_state (user_id, conversation_id, hidden_from_inbox, cleared_at, updated_at)
+              VALUES (?, ?, 1, datetime('now'), datetime('now'))
+              ON CONFLICT(user_id, conversation_id) DO UPDATE SET
+                hidden_from_inbox = 1,
+                cleared_at = datetime('now'),
+                updated_at = datetime('now')
+            `).bind(uname, convId).run().catch(() => {});
+          }
+        } else {
+          await env.DB.prepare(`
+            INSERT INTO user_conversation_state (user_id, conversation_id, hidden_from_inbox, cleared_at, updated_at)
+            VALUES (?, ?, 0, NULL, datetime('now'))
+            ON CONFLICT(user_id, conversation_id) DO UPDATE SET
+              hidden_from_inbox = 0,
+              cleared_at = NULL,
+              updated_at = datetime('now')
+          `).bind(uid, convId).run().catch(() => {});
+
+          if (uname !== uid) {
+            await env.DB.prepare(`
+              INSERT INTO user_conversation_state (user_id, conversation_id, hidden_from_inbox, cleared_at, updated_at)
+              VALUES (?, ?, 0, NULL, datetime('now'))
+              ON CONFLICT(user_id, conversation_id) DO UPDATE SET
+                hidden_from_inbox = 0,
+                cleared_at = NULL,
+                updated_at = datetime('now')
+            `).bind(uname, convId).run().catch(() => {});
+          }
+        }
+      } catch (err) {
+        return jsonResponse({ error: err.message }, 500);
+      }
+    }
+
+    return jsonResponse({
+      status: "ok",
+      action: action,
+      conversation_id: convId,
+      user_id: uid,
+      hidden_from_inbox: action === "clear"
+    });
+  }
+
+  // GET /api/conversations/states: returns per-user conversation visibility & cleared_at
+  if ((path === "/api/conversations/states" || path === "/api/v1/chat/conversations/states") && (method === "GET" || method === "HEAD")) {
+    const u = await resolveUserFromRequest(request, env);
+    if (!u || !u.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required." }, 401);
+    }
+    const uname = (u.username || "").toLowerCase().trim().replace(/^@/, "");
+    const uid = u.id || uname;
+    let states = [];
+    if (env.DB) {
+      try {
+        const rows = await env.DB.prepare(
+          "SELECT conversation_id, hidden_from_inbox, cleared_at, updated_at FROM user_conversation_state WHERE user_id = ? OR lower(user_id) = ?"
+        ).bind(uid, uname).all();
+        states = rows.results || [];
+      } catch (_) {}
+    }
+    return jsonResponse({ status: "ok", states: states });
   }
 
   // 17e. Channel Pins: GET, POST, DELETE (/api/channels/:id/pin, /api/channels/:id/unpin)

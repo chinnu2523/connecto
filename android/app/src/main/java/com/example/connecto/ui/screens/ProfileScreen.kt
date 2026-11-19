@@ -116,6 +116,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -1865,6 +1868,7 @@ fun ProfileScreen(
                         }
                     )
 
+                    val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
                     LazyColumn(
                         state = subpageListState,
                         modifier = Modifier
@@ -1872,7 +1876,7 @@ fun ProfileScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp)
+                        contentPadding = PaddingValues(top = 16.dp, bottom = navBarBottom + 32.dp)
                     ) {
                         // Auto-save confirmation banner inside sub-screen
                         if (showSavedBadge) {
