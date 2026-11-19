@@ -7130,23 +7130,53 @@ async def serve_service_worker():
         return response
     return Response(status_code=404)
 
+@app.get("/api/turn-credentials")
+@app.post("/api/turn-credentials")
+@app.get("/api/v1/turn-credentials")
+@app.post("/api/v1/turn-credentials")
 @app.get("/api/calls/ice-servers")
 @app.get("/api/v1/calls/ice-servers")
 @app.get("/api/v1/voice/ice-servers")
 async def get_ice_servers():
-    return {
-        "status": "ok",
-        "iceServers": [
-            {
-                "urls": [
-                    "stun:stun.cloudflare.com:3478",
-                    "stun:stun.l.google.com:19302",
-                    "stun:stun1.l.google.com:19302",
-                    "stun:stun2.l.google.com:19302",
-                    "stun:stun3.l.google.com:19302",
-                    "stun:stun4.l.google.com:19302"
-                ]
-            },
+    turn_token_id = os.getenv("TURN_TOKEN_ID") or os.getenv("CLOUDFLARE_TURN_KEY_ID") or os.getenv("CF_TURN_KEY_ID")
+    turn_api_token = os.getenv("TURN_API_TOKEN") or os.getenv("CLOUDFLARE_TURN_TOKEN") or os.getenv("CLOUDFLARE_API_TOKEN")
+
+    base_stun = [
+        {
+            "urls": [
+                "stun:stun.cloudflare.com:3478",
+                "stun:stun.l.google.com:19302",
+                "stun:stun1.l.google.com:19302",
+                "stun:stun2.l.google.com:19302"
+            ]
+        }
+    ]
+
+    turn_servers = []
+    if turn_token_id and turn_api_token:
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                cf_resp = await client.post(
+                    f"https://rtc.live.cloudflare.com/v1/turn/keys/{turn_token_id}/credentials/generate",
+                    headers={
+                        "Authorization": f"Bearer {turn_api_token}",
+                        "Content-Type": "application/json"
+                    },
+                    json={"ttl": 86400}
+                )
+                if cf_resp.status_code == 200:
+                    cf_data = cf_resp.json()
+                    raw_ice = cf_data.get("iceServers")
+                    if isinstance(raw_ice, list):
+                        turn_servers = raw_ice
+                    elif isinstance(raw_ice, dict):
+                        turn_servers = [raw_ice]
+        except Exception:
+            pass
+
+    if not turn_servers:
+        turn_servers = [
             {
                 "urls": [
                     "turn:openrelay.metered.ca:80",
@@ -7157,10 +7187,16 @@ async def get_ice_servers():
                 "username": "openrelay",
                 "credential": "openrelay"
             }
-        ],
+        ]
+
+    return {
+        "status": "ok",
+        "iceServers": base_stun + turn_servers,
+        "ice_servers": base_stun + turn_servers,
         "iceCandidatePoolSize": 10,
         "bundlePolicy": "max-bundle",
-        "rtcpMuxPolicy": "require"
+        "rtcpMuxPolicy": "require",
+        "ttl": 86400
     }
 
 

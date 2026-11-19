@@ -29,6 +29,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -99,7 +100,11 @@ data class CallStatsDto(
     val packetsLost: Int,
     val packetsReceived: Int = 0,
     val packetLossPct: Double = 0.0,
-    val candidateType: String // "host", "srflx", "relay"
+    val candidateType: String, // "host", "srflx", "relay"
+    val iceConnectionState: String = "checking",
+    val packetsSent: Int = 0,
+    val bytesReceived: Long = 0L,
+    val micActive: Boolean = true
 )
 
 data class CallParticipant(
@@ -619,8 +624,14 @@ object VoiceCallManager {
         }
     }
 
-    // ICE servers: Resilient public STUN servers and authenticated TURN servers (UDP/TCP/TLS) for NAT traversal across mobile carriers
-    private val iceServers by lazy {
+    // Dynamic ICE Servers fetched from Cloudflare Calls TURN (/api/turn-credentials)
+    @Volatile
+    private var dynamicIceServers: List<PeerConnection.IceServer>? = null
+    @Volatile
+    private var lastTurnFetchTimestampMs: Long = 0L
+
+    // ICE servers: Resilient public STUN servers and authenticated fallback TURN servers (UDP/TCP/TLS) for NAT traversal across mobile carriers
+    private val fallbackIceServers by lazy {
         listOf(
             // STUN Servers
             PeerConnection.IceServer.builder("stun:stun.cloudflare.com:3478").createIceServer(),
@@ -630,7 +641,7 @@ object VoiceCallManager {
             PeerConnection.IceServer.builder("stun:stun3.l.google.com:19302").createIceServer(),
             PeerConnection.IceServer.builder("stun:stun4.l.google.com:19302").createIceServer(),
 
-            // Authenticated TURN Servers (UDP, TCP, TLS) for mobile 4G/5G carrier symmetric NAT traversal
+            // Authenticated fallback TURN Servers (UDP, TCP, TLS) for mobile 4G/5G carrier symmetric NAT traversal
             PeerConnection.IceServer.builder("turn:openrelay.metered.ca:80")
                 .setUsername("openrelay")
                 .setPassword("openrelay")
@@ -650,8 +661,111 @@ object VoiceCallManager {
         )
     }
 
+    private fun parseIceServersFromJson(jsonStr: String): List<PeerConnection.IceServer> {
+        val result = mutableListOf<PeerConnection.IceServer>()
+        try {
+            val root = JSONObject(jsonStr)
+            val arr = root.optJSONArray("iceServers") ?: root.optJSONArray("ice_servers") ?: return emptyList()
+            for (i in 0 until arr.length()) {
+                val obj = arr.optJSONObject(i) ?: continue
+                val username = obj.optString("username").takeIf { it.isNotBlank() }
+                val credential = obj.optString("credential").takeIf { it.isNotBlank() }
+                    ?: obj.optString("password").takeIf { it.isNotBlank() }
+
+                val urlList = mutableListOf<String>()
+                val urlsObj = obj.opt("urls")
+                if (urlsObj is JSONArray) {
+                    for (u in 0 until urlsObj.length()) {
+                        val uStr = urlsObj.optString(u)
+                        if (uStr.isNotBlank()) urlList.add(uStr)
+                    }
+                } else if (urlsObj is String && urlsObj.isNotBlank()) {
+                    urlList.add(urlsObj)
+                } else {
+                    val singleUrl = obj.optString("url")
+                    if (singleUrl.isNotBlank()) urlList.add(singleUrl)
+                }
+
+                for (url in urlList) {
+                    try {
+                        val builder = PeerConnection.IceServer.builder(url)
+                        if (!username.isNullOrBlank()) {
+                            builder.setUsername(username)
+                        }
+                        if (!credential.isNullOrBlank()) {
+                            builder.setPassword(credential)
+                        }
+                        result.add(builder.createIceServer())
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Skipping invalid ICE server url '$url': ${e.message}")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing ICE servers: ${e.message}")
+        }
+        return result
+    }
+
+    suspend fun fetchTurnCredentials(): List<PeerConnection.IceServer> = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        val currentCached = dynamicIceServers
+        if (currentCached != null && (now - lastTurnFetchTimestampMs) < 120_000L) {
+            return@withContext currentCached
+        }
+
+        val candidateBases = try {
+            ConnectoNetworkConfig.getCandidateBases()
+        } catch (_: Throwable) {
+            listOf(ConnectoNetworkConfig.activeBaseUrl)
+        }
+
+        for (base in candidateBases) {
+            val urlStr = "${base.trimEnd('/')}/api/turn-credentials"
+            var conn: java.net.HttpURLConnection? = null
+            try {
+                val url = java.net.URL(urlStr)
+                conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                    if (this is javax.net.ssl.HttpsURLConnection) {
+                        ConnectoNetworkHelper.patchedSslSocketFactory?.let { factory ->
+                            sslSocketFactory = factory
+                        }
+                    }
+                    requestMethod = "POST"
+                    connectTimeout = 3000
+                    readTimeout = 3000
+                    doOutput = true
+                    setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                }
+                conn.outputStream.use { os ->
+                    os.write("{}".toByteArray(Charsets.UTF_8))
+                }
+                val code = conn.responseCode
+                if (code in 200..299) {
+                    val respBody = conn.inputStream.bufferedReader().use { it.readText() }
+                    if (respBody.isNotBlank()) {
+                        val parsed = parseIceServersFromJson(respBody)
+                        if (parsed.isNotEmpty()) {
+                            Log.d(TAG, "Successfully fetched ${parsed.size} dynamic Cloudflare TURN ICE servers from $urlStr")
+                            dynamicIceServers = parsed
+                            lastTurnFetchTimestampMs = now
+                            return@withContext parsed
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed fetching TURN credentials from $urlStr: ${e.message}")
+            } finally {
+                conn?.disconnect()
+            }
+        }
+
+        return@withContext dynamicIceServers ?: fallbackIceServers
+    }
+
     private fun getRtcConfig(): PeerConnection.RTCConfiguration {
-        return PeerConnection.RTCConfiguration(iceServers).apply {
+        val activeServers = dynamicIceServers?.takeIf { it.isNotEmpty() } ?: fallbackIceServers
+        return PeerConnection.RTCConfiguration(activeServers).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
             continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
             bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
@@ -863,8 +977,19 @@ object VoiceCallManager {
     private fun getOrCreatePeerConnection(peerId: String): PeerConnection? {
         synchronized(webRtcTeardownLock) {
             val existing = peerConnections[peerId]
-            if (existing != null && !disposedPcs.contains(existing)) {
-                return existing
+            if (existing != null) {
+                if (!disposedPcs.contains(existing)) {
+                    val st = try { existing.iceConnectionState() } catch (_: Throwable) { null }
+                    if (st != PeerConnection.IceConnectionState.CLOSED && st != PeerConnection.IceConnectionState.FAILED) {
+                        return existing
+                    }
+                }
+                try {
+                    disposedPcs.add(existing)
+                    peerConnections.remove(peerId)
+                    existing.close()
+                    existing.dispose()
+                } catch (_: Throwable) {}
             }
             val ctx = appContext ?: return null
             if (peerConnectionFactory == null) {
@@ -1022,6 +1147,7 @@ object VoiceCallManager {
 
     fun initiateWebRtcOffer(peerId: String) {
         scope.launch(Dispatchers.IO) {
+            fetchTurnCredentials()
             val pc = getOrCreatePeerConnection(peerId) ?: return@launch
             ensureLocalAudioTrackAttached(pc)
             val constraints = MediaConstraints().apply {
@@ -1145,6 +1271,7 @@ object VoiceCallManager {
     fun handleWebRtcOffer(senderPeerId: String, sdpDescription: String) {
         scope.launch(Dispatchers.IO) {
             try {
+                fetchTurnCredentials()
                 val pc = getOrCreatePeerConnection(senderPeerId) ?: return@launch
                 if (disposedPcs.contains(pc)) return@launch
                 val sigState = pc.signalingState()
@@ -1360,10 +1487,16 @@ object VoiceCallManager {
                             var jitterMs = 0.0
                             var packetsLost = 0
                             var packetsReceived = 0
+                            var packetsSent = 0
                             var bytesReceived = 0L
                             var candidateType = "unknown"
                             for (stats in report.statsMap.values) {
                                 when (stats.type) {
+                                    "outbound-rtp" -> {
+                                        val tx = (stats.members["packetsSent"] as? Long)?.toInt()
+                                            ?: (stats.members["packetsSent"] as? Int)
+                                        if (tx != null) packetsSent = tx
+                                    }
                                     "remote-inbound-rtp" -> {
                                         (stats.members["roundTripTime"] as? Double)?.let { rttMs = it * 1000 }
                                         (stats.members["jitter"] as? Double)?.let { jitterMs = it * 1000 }
@@ -1403,7 +1536,28 @@ object VoiceCallManager {
                             }
                             val totalPackets = packetsReceived + packetsLost
                             val lossPct = if (totalPackets > 0) (packetsLost.toDouble() / totalPackets) * 100.0 else (if (packetsLost > 0) 5.0 else 0.0)
-                            val dto = CallStatsDto(rttMs, jitterMs, packetsLost, packetsReceived, lossPct, candidateType)
+                            val iceState = pc.iceConnectionState()
+                            val iceStr = when (iceState) {
+                                PeerConnection.IceConnectionState.CONNECTED -> "connected"
+                                PeerConnection.IceConnectionState.COMPLETED -> "completed"
+                                PeerConnection.IceConnectionState.CHECKING -> "checking"
+                                PeerConnection.IceConnectionState.FAILED -> "failed"
+                                PeerConnection.IceConnectionState.DISCONNECTED -> "disconnected"
+                                PeerConnection.IceConnectionState.CLOSED -> "closed"
+                                else -> "checking"
+                            }
+                            val dto = CallStatsDto(
+                                roundTripTimeMs = rttMs,
+                                jitterMs = jitterMs,
+                                packetsLost = packetsLost,
+                                packetsReceived = packetsReceived,
+                                packetLossPct = lossPct,
+                                candidateType = candidateType,
+                                iceConnectionState = iceStr,
+                                packetsSent = packetsSent,
+                                bytesReceived = bytesReceived,
+                                micActive = !_isMuted.value
+                            )
                             _callStats.value = dto
                             Log.d(TAG, "WebRTC stats: RTT=${rttMs.toInt()}ms jitter=${jitterMs.toInt()}ms loss=$packetsLost lossPct=${String.format(Locale.US, "%.1f", lossPct)}% candidate=$candidateType bytesRx=$bytesReceived")
 
@@ -1411,7 +1565,6 @@ object VoiceCallManager {
                             // If connected for >= 3 seconds (iceConnectionState == CONNECTED) but bytesReceived == 0,
                             // automatically trigger a single restartIce() with IceTransportsType.RELAY
                             val connectedDuration = System.currentTimeMillis() - connectedSinceMs
-                            val iceState = pc.iceConnectionState()
                             if ((iceState == PeerConnection.IceConnectionState.CONNECTED || iceState == PeerConnection.IceConnectionState.COMPLETED) &&
                                 connectedDuration >= 3000L && bytesReceived == 0L && relayFallbackTriggered[peerId] != true) {
                                 relayFallbackTriggered[peerId] = true
@@ -2490,9 +2643,10 @@ object VoiceCallManager {
         val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.EARPIECE
         setAudioRoute(initialRoute)
         syncProximityMonitoring()
-                    appContext?.let {
-                        VoiceCallForegroundService.startService(it, _activeCallTitle.value, _activeCallPartner.value, _isMuted.value)
-                    }
+
+        // Background ForegroundService start call removed here during WebRTC state transition
+        // to strictly prevent ForegroundServiceStartNotAllowedException crashes on Android 14/15 (API 35).
+        // (Foreground service is already safely started on explicit user tap in startVoiceCall / answerCall).
                     // Ensure this peer is in the server's voice_rooms map so audio relay works.
                     // Both the caller (who gets call_connected after callee accepts) and the
                     // callee (who may also get this event) must be in voice_rooms[roomId].
@@ -2618,7 +2772,10 @@ object VoiceCallManager {
                     _participantCount.value += 1
                     Log.d(TAG, "WebRTC voice peer joined: $peerId")
                     if (peerId.isNotBlank()) {
-                        getOrCreatePeerConnection(peerId)
+                        scope.launch(Dispatchers.IO) {
+                            fetchTurnCredentials()
+                            getOrCreatePeerConnection(peerId)
+                        }
                     }
                 }
 
@@ -3039,6 +3196,12 @@ object VoiceCallManager {
     // ----------------------------------------------------
 
     fun start1on1Call(targetUsername: String, targetDisplayName: String, avatarUrl: String? = null) {
+        if (_callState.value != CallState.IDLE) {
+            endCallLocally()
+        }
+        scope.launch(Dispatchers.IO) {
+            fetchTurnCredentials()
+        }
         val callStartNano = System.nanoTime()
         val cleanTarget = targetUsername.trim()
             .removePrefix("@")
@@ -3274,6 +3437,12 @@ object VoiceCallManager {
             return
         }
         val call = _incomingCall.value ?: return
+        if (_callState.value != CallState.IDLE && _callState.value != CallState.INCOMING_RINGING) {
+            endCallLocally()
+        }
+        scope.launch(Dispatchers.IO) {
+            fetchTurnCredentials()
+        }
         CallRingtoneManager.stopRingtoneAndVibration(appContext)
         com.example.connecto.ui.components.InAppNotificationController.dismiss()
         ConnectoNotificationManager.cancelCallNotification()
@@ -3385,6 +3554,12 @@ object VoiceCallManager {
     }
 
     fun joinVoiceRoom(roomId: String, roomName: String, roomCode: String? = null) {
+        if (_callState.value != CallState.IDLE) {
+            endCallLocally()
+        }
+        scope.launch(Dispatchers.IO) {
+            fetchTurnCredentials()
+        }
         preWarmAudio()
         _isGroupCall.value = true
         _activeRoomId.value = roomId
@@ -3831,8 +4006,8 @@ object VoiceCallManager {
                     localAudioTrack = newTrack
                     localAudioSource = newSource
 
-                    try { oldTrack?.dispose() } catch (_: Throwable) {}
-                    try { oldSource?.dispose() } catch (_: Throwable) {}
+                    // Disable old track safely without calling .dispose() on native tracks while call is active (SIGSEGV prevention)
+                    try { oldTrack?.setEnabled(false) } catch (_: Throwable) {}
                     Log.d(TAG, "Rebuilt local WebRTC AudioSource with updated constraints (voiceIsolation=$enabled)")
                 } catch (t: Throwable) {
                     Log.e(TAG, "Error rebuilding local audio track for voice isolation: ${t.message}", t)

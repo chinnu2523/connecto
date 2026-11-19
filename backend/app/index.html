@@ -25767,10 +25767,21 @@ html[data-theme="dark"] #saveProfileBtn {
     
     <!-- Persistent Active Call Bar -->
     <div class="active-call-bar" id="activeCallBar">
-      <div style="display:flex; align-items:center; gap:var(--space-2);">
+      <div style="display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap;">
         <span style="display:inline-flex; align-items:center;"><i data-lucide="phone" class="lucide-sm"></i></span>
         <span>In Call with <strong id="callPeerName">Ally</strong></span>
         <span class="call-timer" id="callDuration">00:00</span>
+        <div id="callDiagnosticPill" style="display:inline-flex; align-items:center; gap:6px; background:rgba(15,23,42,0.85); border:1px solid rgba(71,85,105,0.45); border-radius:12px; padding:2px 8px; font-size:10px; font-family:monospace; color:#94a3b8; cursor:pointer;" onclick="toggleWebRtcStatsDisplay()" title="Toggle WebRTC Telemetry">
+          <span id="diagIceState" style="color:#10b981; font-weight:600;">ICE: checking</span>
+          <span>•</span>
+          <span id="diagCandidate">Cand: unknown</span>
+          <span id="diagStatsDetails" style="display:inline-flex; align-items:center; gap:6px;">
+            <span>•</span>
+            <span id="diagAudioOut">Out: 0p (mic:ON)</span>
+            <span>•</span>
+            <span id="diagAudioIn">In: 0B</span>
+          </span>
+        </div>
       </div>
       <div style="display:flex; gap:var(--space-2);">
         <button class="btn btn-outline" style="padding:4px 10px; font-size:11.5px;" id="muteBtn" onclick="toggleMuteMic()">🎙️ Mute</button>
@@ -37607,10 +37618,22 @@ html[data-theme="dark"] #saveProfileBtn {
         ]
       };
       try {
-        const iceRes = await fetch('/api/calls/ice-servers');
-        if (iceRes.ok) {
-          const customIce = await iceRes.json();
-          if (customIce && customIce.iceServers) iceConfig = customIce;
+        const turnRes = await fetch('/api/turn-credentials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}'
+        });
+        if (turnRes.ok) {
+          const creds = await turnRes.json();
+          if (creds && (creds.iceServers || creds.ice_servers)) {
+            iceConfig = { iceServers: creds.iceServers || creds.ice_servers };
+          }
+        } else {
+          const iceRes = await fetch('/api/calls/ice-servers');
+          if (iceRes.ok) {
+            const customIce = await iceRes.json();
+            if (customIce && customIce.iceServers) iceConfig = customIce;
+          }
         }
       } catch(e) {}
 
@@ -37646,6 +37669,8 @@ html[data-theme="dark"] #saveProfileBtn {
         if (!remoteAudioEl) {
           remoteAudioEl = document.createElement('audio');
           remoteAudioEl.autoplay = true;
+          remoteAudioEl.setAttribute('playsinline', '');
+          remoteAudioEl.setAttribute('webkit-playsinline', '');
           document.body.appendChild(remoteAudioEl);
         }
         if (event.streams && event.streams[0]) {
@@ -37812,9 +37837,68 @@ html[data-theme="dark"] #saveProfileBtn {
       }
     }
 
+    let webrtcStatsInterval = null;
+    let webrtcStatsExpanded = true;
+    function toggleWebRtcStatsDisplay() {
+      webrtcStatsExpanded = !webrtcStatsExpanded;
+      const detailsEl = document.getElementById('diagStatsDetails');
+      if (detailsEl) detailsEl.style.display = webrtcStatsExpanded ? 'inline-flex' : 'none';
+    }
+
+    function startWebRtcStatsPolling() {
+      clearInterval(webrtcStatsInterval);
+      webrtcStatsInterval = setInterval(async () => {
+        if (!peerConnection) return;
+        try {
+          const stats = await peerConnection.getStats();
+          let iceState = peerConnection.iceConnectionState || 'checking';
+          let candidateType = 'unknown';
+          let packetsSent = 0;
+          let bytesReceived = 0;
+          let micActive = localStream ? localStream.getAudioTracks().some(t => t.enabled) : true;
+
+          stats.forEach(report => {
+            if (report.type === 'candidate-pair' && (report.state === 'succeeded' || report.nominated)) {
+              if (report.remoteCandidateId) {
+                const rem = stats.get(report.remoteCandidateId);
+                if (rem && rem.candidateType) candidateType = rem.candidateType;
+              }
+            }
+            if (report.type === 'outbound-rtp' && report.kind === 'audio') {
+              if (report.packetsSent !== undefined) packetsSent = report.packetsSent;
+            }
+            if (report.type === 'inbound-rtp' && report.kind === 'audio') {
+              if (report.bytesReceived !== undefined) bytesReceived = report.bytesReceived;
+            }
+          });
+
+          const iceEl = document.getElementById('diagIceState');
+          if (iceEl) {
+            iceEl.innerText = `ICE: ${iceState}`;
+            iceEl.style.color = (iceState === 'connected' || iceState === 'completed') ? '#10b981' : (iceState === 'checking' ? '#f59e0b' : '#ef4444');
+          }
+          const candEl = document.getElementById('diagCandidate');
+          if (candEl) {
+            candEl.innerText = `Cand: ${candidateType}`;
+            candEl.style.color = candidateType === 'relay' ? '#60a5fa' : (candidateType === 'host' ? '#34d399' : '#cbd5e1');
+          }
+          const outEl = document.getElementById('diagAudioOut');
+          if (outEl) {
+            outEl.innerText = `Out: ${packetsSent}p (${micActive ? 'mic:ON' : 'mic:MUT'})`;
+          }
+          const inEl = document.getElementById('diagAudioIn');
+          if (inEl) {
+            const bytesFmt = bytesReceived >= 1048576 ? `${(bytesReceived / 1048576).toFixed(1)}MB` : (bytesReceived >= 1024 ? `${Math.floor(bytesReceived / 1024)}KB` : `${bytesReceived}B`);
+            inEl.innerText = `In: ${bytesFmt}`;
+          }
+        } catch(e) {}
+      }, 1000);
+    }
+
     function setCallConnectedState() {
       stopRingtone();
       startCallTimer();
+      startWebRtcStatsPolling();
     }
 
     function showActiveCallBar(peerName, initialStatus = '00:00') {
@@ -37948,6 +38032,7 @@ html[data-theme="dark"] #saveProfileBtn {
       const incomingModal = document.getElementById('incomingCallModal');
       if (incomingModal) incomingModal.style.display = 'none';
       clearInterval(callTimerInterval);
+      clearInterval(webrtcStatsInterval);
       if (localStream) {
         localStream.getTracks().forEach(t => t.stop());
         localStream = null;

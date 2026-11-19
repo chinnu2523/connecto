@@ -64,7 +64,7 @@ class VoiceCallForegroundService : Service() {
                 ContextCompat.startForegroundService(context, intent)
                 Log.d(TAG, "VoiceCallForegroundService start request sent for: $title")
             } catch (t: Throwable) {
-                Log.e(TAG, "Failed to start VoiceCallForegroundService: ${t.message}", t)
+                Log.w(TAG, "Avoided ForegroundService start error (e.g. background restriction on API 34/35): ${t.message}")
             }
         }
 

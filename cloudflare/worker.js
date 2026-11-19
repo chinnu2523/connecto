@@ -7190,20 +7190,64 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     });
   }
 
-  // WebRTC ICE Servers (Cloudflare Ultra-low Latency Global STUN + Google STUN)
-  if (path === "/api/calls/ice-servers") {
-    const iceServers = [
+  // WebRTC Real Cloudflare Calls TURN Credentials & ICE Servers API
+  if (path === "/api/turn-credentials" || path === "/api/v1/turn-credentials" || path === "/api/calls/ice-servers" || path === "/api/v1/voice/ice-servers" || path === "/api/v1/calls/ice-servers") {
+    const turnTokenId = env.TURN_TOKEN_ID || env.CLOUDFLARE_TURN_KEY_ID || env.CF_TURN_KEY_ID || env.CLOUDFLARE_CALLS_APP_ID;
+    const turnApiToken = env.TURN_API_TOKEN || env.CLOUDFLARE_TURN_TOKEN || env.CLOUDFLARE_API_TOKEN || env.CF_API_TOKEN;
+
+    const baseStun = [
       { urls: "stun:stun.cloudflare.com:3478" },
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:stun1.l.google.com:19302" },
-      { urls: "stun:stun2.l.google.com:19302" },
-      { urls: "stun:stun3.l.google.com:19302" },
-      { urls: "stun:stun4.l.google.com:19302" }
+      { urls: "stun:stun2.l.google.com:19302" }
     ];
+
+    let generatedTurnServers = [];
+
+    if (turnTokenId && turnApiToken) {
+      try {
+        const cfRes = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${turnTokenId}/credentials/generate`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${turnApiToken}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ ttl: 86400 })
+        });
+        if (cfRes.ok) {
+          const cfData = await cfRes.json();
+          if (cfData.iceServers) {
+            generatedTurnServers = Array.isArray(cfData.iceServers) ? cfData.iceServers : [cfData.iceServers];
+          }
+        }
+      } catch (err) {
+        console.error("Cloudflare Calls TURN generation error:", err);
+      }
+    }
+
+    // Resilient fallback TURN servers if Cloudflare Calls credentials are not configured or request fails
+    if (generatedTurnServers.length === 0) {
+      generatedTurnServers = [
+        {
+          urls: [
+            "turn:openrelay.metered.ca:80",
+            "turn:openrelay.metered.ca:443",
+            "turn:openrelay.metered.ca:443?transport=tcp",
+            "turns:openrelay.metered.ca:443?transport=tcp"
+          ],
+          username: "openrelay",
+          credential: "openrelay"
+        }
+      ];
+    }
+
+    const allServers = [...baseStun, ...generatedTurnServers];
+
     return jsonResponse({
       status: "ok",
-      iceServers: iceServers,
-      ice_servers: iceServers
+      iceServers: allServers,
+      ice_servers: allServers,
+      ttl: 86400
     });
   }
 

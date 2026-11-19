@@ -766,6 +766,12 @@ fun FullScreenCallUI(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(top = 10.dp)
             ) {
+                // Live WebRTC Diagnostics Pill
+                CallDiagnosticPill(
+                    callStats = callStats,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
                 Text(
                     text = cleanDisplayName,
                     fontSize = 28.sp,
@@ -1637,6 +1643,123 @@ fun ConnectionQualityIndicator(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Real-Time WebRTC Diagnostics Pill (ICE, Candidate, Audio Out, Audio In)
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+fun CallDiagnosticPill(
+    callStats: CallStatsDto?,
+    modifier: Modifier = Modifier
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    val rawIce = callStats?.iceConnectionState?.trim()?.lowercase() ?: "checking"
+    val iceDisplay = when (rawIce) {
+        "connected", "completed" -> "connected"
+        "checking" -> "checking"
+        "failed" -> "failed"
+        "disconnected" -> "disconnected"
+        "closed" -> "closed"
+        else -> rawIce.ifBlank { "checking" }
+    }
+
+    val iceColor = when (iceDisplay) {
+        "connected" -> Color(0xFF10B981) // Emerald Green
+        "checking" -> Color(0xFFF59E0B)  // Amber
+        "failed", "disconnected", "closed" -> Color(0xFFEF4444) // Red
+        else -> Color(0xFF94A3B8)
+    }
+
+    val candidate = callStats?.candidateType?.ifBlank { "unknown" } ?: "unknown"
+    val candColor = when (candidate.lowercase()) {
+        "relay" -> Color(0xFF60A5FA)  // Blue for TURN relay
+        "srflx" -> Color(0xFFA78BFA)  // Purple for STUN srflx
+        "host"  -> Color(0xFF34D399)  // Green for LAN / direct
+        else    -> Color(0xFFCBD5E1)
+    }
+
+    val packetsSent = callStats?.packetsSent ?: 0
+    val micStatus = if (callStats?.micActive != false) "mic:ON" else "mic:MUT"
+    val bytesIn = callStats?.bytesReceived ?: 0L
+    val bytesInFormatted = when {
+        bytesIn >= 1024 * 1024 -> String.format(java.util.Locale.US, "%.1fMB", bytesIn / (1024f * 1024f))
+        bytesIn >= 1024 -> "${bytesIn / 1024}KB"
+        else -> "${bytesIn}B"
+    }
+
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { isExpanded = !isExpanded },
+        color = Color(0xCC0E131F),
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33475569))
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(iceColor)
+                )
+                Text(
+                    text = "ICE: $iceDisplay",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = iceColor
+                )
+                Text(
+                    text = "•",
+                    fontSize = 10.sp,
+                    color = Color.White.copy(alpha = 0.35f)
+                )
+                Text(
+                    text = "Cand: $candidate",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = candColor
+                )
+                Text(
+                    text = if (isExpanded) "▲" else "▼",
+                    fontSize = 9.sp,
+                    color = Color.White.copy(alpha = 0.5f)
+                )
+            }
+
+            if (isExpanded) {
+                Row(
+                    modifier = Modifier.padding(top = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Audio Out: ${packetsSent}p ($micStatus)",
+                        fontSize = 10.sp,
+                        color = Color(0xFFCBD5E1)
+                    )
+                    Text(
+                        text = "•",
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.35f)
+                    )
+                    Text(
+                        text = "Audio In: $bytesInFormatted",
+                        fontSize = 10.sp,
+                        color = Color(0xFFCBD5E1)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Isolated 60fps VAD Participant Tile
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
@@ -1965,6 +2088,14 @@ fun FullScreenGroupCallUI(
                     )
                 }
             }
+
+            // Live WebRTC Diagnostics Pill
+            CallDiagnosticPill(
+                callStats = callStats,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(top = 4.dp, bottom = 4.dp)
+            )
 
             // Adaptive Participant Grid
             Box(
