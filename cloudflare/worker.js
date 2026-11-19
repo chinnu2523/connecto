@@ -22,9 +22,12 @@ let lastOriginProbeTime = 0;
 const PROBE_INTERVAL_MS = 30000; // 30 seconds between background probes
 
 export default {
-  // 1. Cron Trigger Handler (Automated Background Health Monitoring)
+  // 1. Cron Trigger Handler (Automated Background Health Monitoring & Daily Session Purge)
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(probeOriginHealth(env));
+    ctx.waitUntil(Promise.all([
+      probeOriginHealth(env),
+      purgeExpiredSessions(env)
+    ]));
   },
 
   // 2. HTTP & WebSocket Fetch Handler
@@ -1725,6 +1728,7 @@ async function recordUserSession(userId, token, request, body = {}, env) {
          ON CONFLICT(session_token_hash) DO UPDATE SET
            device_id = COALESCE(excluded.device_id, user_sessions.device_id),
            last_active_at = excluded.last_active_at,
+           expires_at = excluded.expires_at,
            ip_address = excluded.ip_address,
            user_agent = excluded.user_agent,
            location = excluded.location,
@@ -1748,6 +1752,160 @@ async function recordUserSession(userId, token, request, body = {}, env) {
   }
 }
 
+// ----------------------------------------------------------------------------
+// AUTOMATED SESSION EXPIRATION & DAILY BACKGROUND PURGE ENGINE
+// ----------------------------------------------------------------------------
+
+async function purgeExpiredSessions(env) {
+  if (!env || !env.DB) return { purged: 0, orphanedFcmCleared: 0 };
+  try {
+    // 1. Identify users whose sessions are about to be purged
+    const expiredUsers = await env.DB.prepare(
+      `SELECT DISTINCT user_id FROM user_sessions 
+       WHERE expires_at <= datetime('now') 
+          OR last_active_at <= datetime('now', '-30 days')`
+    ).all().catch(() => ({ results: [] }));
+
+    // 2. Delete expired and inactive sessions older than 30 days
+    const deleteRes = await env.DB.prepare(
+      `DELETE FROM user_sessions 
+       WHERE expires_at <= datetime('now') 
+          OR last_active_at <= datetime('now', '-30 days')`
+    ).run().catch((err) => {
+      console.warn("[purgeExpiredSessions] Delete error:", err.message);
+      return { meta: { changes: 0 } };
+    });
+
+    const purgedCount = (deleteRes && deleteRes.meta && deleteRes.meta.changes) || 0;
+
+    // 3. Invalidate orphaned FCM push tokens for users who now have zero active sessions
+    let fcmCleared = 0;
+    if (expiredUsers && expiredUsers.results && expiredUsers.results.length > 0) {
+      for (const row of expiredUsers.results) {
+        if (!row.user_id) continue;
+        const activeCount = await env.DB.prepare(
+          `SELECT COUNT(1) as cnt FROM user_sessions 
+           WHERE user_id = ? 
+             AND expires_at > datetime('now') 
+             AND (last_active_at IS NULL OR last_active_at > datetime('now', '-30 days'))`
+        ).bind(row.user_id).first().catch(() => null);
+
+        if (!activeCount || Number(activeCount.cnt) === 0) {
+          const upd = await env.DB.prepare(
+            "UPDATE users SET fcm_token = NULL WHERE id = ? AND fcm_token IS NOT NULL"
+          ).bind(row.user_id).run().catch(() => null);
+          if (upd && upd.meta && upd.meta.changes) {
+            fcmCleared += upd.meta.changes;
+          }
+        }
+      }
+    }
+
+    // 4. Clean up old revoked token entries (> 60 days) to prevent table bloat
+    await env.DB.prepare(
+      "DELETE FROM terminated_sessions WHERE created_at <= datetime('now', '-60 days')"
+    ).run().catch(() => {});
+
+    console.log(`[purgeExpiredSessions] Purged ${purgedCount} expired sessions, cleared ${fcmCleared} orphaned push tokens.`);
+    return { purged: purgedCount, orphanedFcmCleared: fcmCleared };
+  } catch (err) {
+    console.warn("[purgeExpiredSessions] Error:", err.message);
+    return { purged: 0, orphanedFcmCleared: 0, error: err.message };
+  }
+}
+
+async function checkSessionExpiration(request, env) {
+  const authHeader = request.headers.get("Authorization") || "";
+  const cookie = request.headers.get("Cookie") || "";
+
+  let token = "";
+  if (authHeader.startsWith("Bearer ")) {
+    token = authHeader.substring(7).trim();
+  } else if (cookie.includes("connecto_session=")) {
+    token = (cookie.split("connecto_session=")[1] || "").split(";")[0].trim();
+  }
+
+  if (!token || !env || !env.DB) return null;
+
+  try {
+    const hashHex = await sha256Hex(token);
+
+    // Check if explicitly revoked
+    const isTerminated = await env.DB.prepare(
+      "SELECT 1 FROM terminated_sessions WHERE session_token_hash = ? OR session_token_hash = ? LIMIT 1"
+    ).bind(hashHex, token).first().catch(() => null);
+
+    if (isTerminated) {
+      return { expired: true, revoked: true };
+    }
+
+    // Query active session record
+    const session = await env.DB.prepare(
+      "SELECT id, user_id, expires_at, last_active_at FROM user_sessions WHERE session_token_hash = ? OR id = ? LIMIT 1"
+    ).bind(hashHex, token).first().catch(() => null);
+
+    if (session) {
+      const now = Date.now();
+      const expiresAtMs = session.expires_at ? new Date(session.expires_at).getTime() : 0;
+      const lastActiveMs = session.last_active_at ? new Date(session.last_active_at).getTime() : 0;
+      const thirtyDaysMs = 30 * 86400 * 1000;
+
+      const isExpired = (expiresAtMs > 0 && expiresAtMs <= now) ||
+                        (lastActiveMs > 0 && (now - lastActiveMs >= thirtyDaysMs));
+
+      if (isExpired) {
+        // Immediate lazy purge of expired row
+        await env.DB.prepare("DELETE FROM user_sessions WHERE id = ?").bind(session.id).run().catch(() => {});
+
+        // Invalidate orphaned fcm_token if user has no remaining active sessions
+        if (session.user_id) {
+          const remaining = await env.DB.prepare(
+            `SELECT 1 FROM user_sessions 
+             WHERE user_id = ? 
+               AND expires_at > datetime('now') 
+               AND (last_active_at IS NULL OR last_active_at > datetime('now', '-30 days')) 
+             LIMIT 1`
+          ).bind(session.user_id).first().catch(() => null);
+
+          if (!remaining) {
+            await env.DB.prepare("UPDATE users SET fcm_token = NULL WHERE id = ?").bind(session.user_id).run().catch(() => {});
+          }
+        }
+
+        return { expired: true, userId: session.user_id, sessionId: session.id };
+      }
+
+      // Valid active session: slide 30-day window forward
+      const nowIso = new Date().toISOString();
+      const slideExpiresAt = new Date(Date.now() + thirtyDaysMs).toISOString();
+      await env.DB.prepare(
+        "UPDATE user_sessions SET last_active_at = ?, expires_at = ? WHERE id = ?"
+      ).bind(nowIso, slideExpiresAt, session.id).run().catch(() => {});
+
+      return { expired: false, valid: true, userId: session.user_id, sessionId: session.id };
+    }
+
+    // Edge token fallback check if not in DB
+    if (token.startsWith("cf_edge_")) {
+      const dotIdx = token.lastIndexOf(".");
+      if (dotIdx !== -1) {
+        const payload = token.substring(8, dotIdx);
+        const lastUnderscore = payload.lastIndexOf("_");
+        if (lastUnderscore !== -1) {
+          const ts = parseInt(payload.substring(lastUnderscore + 1), 10);
+          if (!isNaN(ts) && (Date.now() - ts > 30 * 86400 * 1000)) {
+            return { expired: true };
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[checkSessionExpiration] Check error:", err.message);
+  }
+
+  return null;
+}
+
 async function resolveUserFromRequest(request, env) {
   const authHeader = request.headers.get("Authorization") || "";
   const cookie = request.headers.get("Cookie") || "";
@@ -1761,17 +1919,12 @@ async function resolveUserFromRequest(request, env) {
 
   if (!env || !env.DB) return null;
 
-  // Check if token was explicitly terminated/revoked
+  // Immediate check: verify session is not expired or revoked
   if (token) {
-    try {
-      const hashHex = await sha256Hex(token);
-      const isTerminated = await env.DB.prepare(
-        "SELECT 1 FROM terminated_sessions WHERE session_token_hash = ? OR session_token_hash = ? LIMIT 1"
-      ).bind(hashHex, token).first();
-      if (isTerminated) {
-        return null;
-      }
-    } catch (_) {}
+    const sessionCheck = await checkSessionExpiration(request, env);
+    if (sessionCheck && sessionCheck.expired) {
+      return null;
+    }
   }
 
   let user = null;
@@ -1910,6 +2063,28 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   const path = url.pathname;
   const method = request.method;
   const clientIp = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown";
+
+  // 0. Immediate Auth Session Expiration Check & Lazy Purge
+  const sessionCheck = await checkSessionExpiration(request, env);
+  if (sessionCheck && sessionCheck.expired) {
+    const isPublicPath = path === "/api/health" || path === "/api/v1/health" ||
+                         path === "/api/app/version" || path === "/api/v1/app/version" ||
+                         path === "/api/app/latest" || path === "/api/v1/app/latest" ||
+                         path === "/api/auth/login" || path === "/api/login" || path === "/api/v1/auth/login" ||
+                         path === "/api/auth/register" || path === "/api/register" || path === "/api/v1/auth/signup" ||
+                         path === "/api/auth/check-username" || path === "/api/users/check-username" ||
+                         path === "/api/auth/check-email" ||
+                         path === "/api/auth/forgot-password" || path === "/api/auth/verify-otp" || path === "/api/auth/reset-password" ||
+                         path.startsWith("/api/store/") || path.startsWith("/api/v1/store/") ||
+                         path.startsWith("/download/") || path.startsWith("/static/") || path.startsWith("/uploads/");
+    if (!isPublicPath) {
+      return jsonResponse({
+        error: "Unauthorized",
+        code: "SESSION_EXPIRED",
+        message: "Your session has expired. Please log in again."
+      }, 401);
+    }
+  }
 
   // 1. Health checks for Android APK, Web, and Monitoring
   if (path === "/api/health" || path === "/api/v1/health") {
@@ -3518,18 +3693,27 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           if (!existingCurrent) {
             await recordUserSession(user.id, token, request, {}, env);
           } else {
-            // Update last_active_at, user_agent, device_name and IP/location
+            // Update last_active_at, slide expires_at (+30 days), user_agent, device_name and IP/location
             const devInfo = extractDeviceInfo(request, {});
+            const nowIso = new Date().toISOString();
+            const slideExpiresAt = new Date(Date.now() + 30 * 86400 * 1000).toISOString();
             await env.DB.prepare(
-              "UPDATE user_sessions SET last_active_at = datetime('now'), ip_address = ?, user_agent = ?, device_name = ?, location = coalesce(location, ?) WHERE session_token_hash = ?"
-            ).bind(devInfo.ip, devInfo.userAgent.substring(0, 500), (devInfo.phoneType || devInfo.deviceName).substring(0, 100), devInfo.location, currentHash).run().catch(() => {});
+              "UPDATE user_sessions SET last_active_at = ?, expires_at = ?, ip_address = ?, user_agent = ?, device_name = ?, location = coalesce(location, ?) WHERE session_token_hash = ?"
+            ).bind(nowIso, slideExpiresAt, devInfo.ip, devInfo.userAgent.substring(0, 500), (devInfo.phoneType || devInfo.deviceName).substring(0, 100), devInfo.location, currentHash).run().catch(() => {});
           }
         } catch (sessRegErr) {
           console.warn("[GET /api/auth/sessions] Session update error:", sessRegErr.message);
         }
       }
 
-      // Fetch all non-terminated sessions for this user
+      // Lazy-purge any expired sessions for this user before fetching active sessions
+      await env.DB.prepare(
+        `DELETE FROM user_sessions 
+         WHERE user_id = ? 
+           AND (expires_at <= datetime('now') OR last_active_at <= datetime('now', '-30 days'))`
+      ).bind(user.id).run().catch(() => {});
+
+      // Fetch all active, non-expired, non-terminated sessions for this user
       let rawSessions = { results: [] };
       try {
         rawSessions = await env.DB.prepare(
@@ -3537,6 +3721,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
            FROM user_sessions s
            WHERE s.user_id = ? 
              AND s.expires_at > datetime('now')
+             AND (s.last_active_at IS NULL OR s.last_active_at > datetime('now', '-30 days'))
              AND NOT EXISTS (SELECT 1 FROM terminated_sessions t WHERE t.session_token_hash = s.session_token_hash)
            ORDER BY s.last_active_at DESC, s.created_at DESC`
         ).bind(user.id).all();
@@ -3805,7 +3990,30 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     }
   }
 
-  // 3h-6. Permanently Delete User Account (DELETE or POST /api/v1/users/me/delete-account, /api/auth/delete-account, etc.)
+  // 3h-6. Purge Expired Sessions & Stale Push Tokens (POST /api/auth/sessions/purge)
+  if (path === "/api/auth/sessions/purge" || path === "/api/v1/auth/sessions/purge") {
+    if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+    try {
+      const user = await resolveUserFromRequest(request, env);
+      if (!user) {
+        return jsonResponse({
+          error: "Unauthorized",
+          code: "SESSION_EXPIRED",
+          message: "Your session has expired. Please log in again."
+        }, 401);
+      }
+      const purgeResult = await purgeExpiredSessions(env);
+      return jsonResponse({
+        status: "ok",
+        message: "Expired sessions purged successfully",
+        ...purgeResult
+      });
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500);
+    }
+  }
+
+  // 3h-7. Permanently Delete User Account (DELETE or POST /api/v1/users/me/delete-account, /api/auth/delete-account, etc.)
   if (
     path === "/api/v1/users/me/delete-account" ||
     path === "/api/users/me/delete-account" ||
@@ -9073,6 +9281,58 @@ async function handleEdgeWebSocket(request, env, ctx) {
   const [client, server] = Object.values(new WebSocketPair());
   server.accept();
 
+  // Validate session expiration and slide 30-day window
+  const url = new URL(request.url);
+  const rawToken = url.searchParams.get("token") || "";
+  if (rawToken && env && env.DB) {
+    try {
+      const tokenHash = await sha256Hex(rawToken);
+      const isTerminated = await env.DB.prepare(
+        "SELECT 1 FROM terminated_sessions WHERE session_token_hash = ? OR session_token_hash = ? LIMIT 1"
+      ).bind(tokenHash, rawToken).first().catch(() => null);
+
+      if (isTerminated) {
+        server.close(1008, "SESSION_EXPIRED");
+        return new Response(null, { status: 101, webSocket: client });
+      }
+
+      const sess = await env.DB.prepare(
+        "SELECT id, user_id, expires_at, last_active_at FROM user_sessions WHERE session_token_hash = ? OR id = ? LIMIT 1"
+      ).bind(tokenHash, rawToken).first().catch(() => null);
+
+      if (sess) {
+        const now = Date.now();
+        const expiresAtMs = sess.expires_at ? new Date(sess.expires_at).getTime() : 0;
+        const lastActiveMs = sess.last_active_at ? new Date(sess.last_active_at).getTime() : 0;
+        const thirtyDaysMs = 30 * 86400 * 1000;
+
+        if ((expiresAtMs > 0 && expiresAtMs <= now) || (lastActiveMs > 0 && (now - lastActiveMs >= thirtyDaysMs))) {
+          await env.DB.prepare("DELETE FROM user_sessions WHERE id = ?").bind(sess.id).run().catch(() => {});
+          if (sess.user_id) {
+            const remaining = await env.DB.prepare(
+              `SELECT 1 FROM user_sessions 
+               WHERE user_id = ? 
+                 AND expires_at > datetime('now') 
+                 AND (last_active_at IS NULL OR last_active_at > datetime('now', '-30 days')) 
+               LIMIT 1`
+            ).bind(sess.user_id).first().catch(() => null);
+            if (!remaining) {
+              await env.DB.prepare("UPDATE users SET fcm_token = NULL WHERE id = ?").bind(sess.user_id).run().catch(() => {});
+            }
+          }
+          server.close(1008, "SESSION_EXPIRED");
+          return new Response(null, { status: 101, webSocket: client });
+        } else {
+          const nowIso = new Date().toISOString();
+          const slideExpiresAt = new Date(Date.now() + thirtyDaysMs).toISOString();
+          env.DB.prepare(
+            "UPDATE user_sessions SET last_active_at = ?, expires_at = ? WHERE id = ?"
+          ).bind(nowIso, slideExpiresAt, sess.id).run().catch(() => {});
+        }
+      }
+    } catch (_) {}
+  }
+
   const authUser = await resolveUserFromRequest(request, env).catch(() => null);
 
   // Initial welcome handshake
@@ -9994,21 +10254,72 @@ export class ConnectoRealtimeRoom {
       return;
     }
     let wsAuthUser = null;
-    // Try edge token first
-    try { wsAuthUser = await verifyEdgeToken(rawToken, this.env); } catch (_) {}
-    // Fallback: check session DB
-    if (!wsAuthUser && this.env && this.env.DB && sessionTokenHash) {
+    let isSessionExpired = false;
+
+    // Check DB session and expiration
+    if (this.env && this.env.DB && (sessionTokenHash || rawToken)) {
       try {
+        const isTerminated = await this.env.DB.prepare(
+          "SELECT 1 FROM terminated_sessions WHERE session_token_hash = ? OR session_token_hash = ? LIMIT 1"
+        ).bind(sessionTokenHash, rawToken).first().catch(() => null);
+
+        if (isTerminated) {
+          server.close(1008, "SESSION_EXPIRED");
+          return;
+        }
+
         const sess = await this.env.DB.prepare(
-          "SELECT user_id FROM user_sessions WHERE (session_token_hash = ? OR id = ?) AND expires_at > datetime('now') LIMIT 1"
-        ).bind(sessionTokenHash, rawToken).first();
-        if (sess && sess.user_id) wsAuthUser = sess.user_id;
+          "SELECT id, user_id, expires_at, last_active_at FROM user_sessions WHERE (session_token_hash = ? OR id = ?) LIMIT 1"
+        ).bind(sessionTokenHash, rawToken).first().catch(() => null);
+
+        if (sess) {
+          const now = Date.now();
+          const expiresAtMs = sess.expires_at ? new Date(sess.expires_at).getTime() : 0;
+          const lastActiveMs = sess.last_active_at ? new Date(sess.last_active_at).getTime() : 0;
+          const thirtyDaysMs = 30 * 86400 * 1000;
+
+          if ((expiresAtMs > 0 && expiresAtMs <= now) || (lastActiveMs > 0 && (now - lastActiveMs >= thirtyDaysMs))) {
+            isSessionExpired = true;
+            await this.env.DB.prepare("DELETE FROM user_sessions WHERE id = ?").bind(sess.id).run().catch(() => {});
+            if (sess.user_id) {
+              const remaining = await this.env.DB.prepare(
+                `SELECT 1 FROM user_sessions 
+                 WHERE user_id = ? 
+                   AND expires_at > datetime('now') 
+                   AND (last_active_at IS NULL OR last_active_at > datetime('now', '-30 days')) 
+                 LIMIT 1`
+              ).bind(sess.user_id).first().catch(() => null);
+              if (!remaining) {
+                await this.env.DB.prepare("UPDATE users SET fcm_token = NULL WHERE id = ?").bind(sess.user_id).run().catch(() => {});
+              }
+            }
+          } else {
+            wsAuthUser = sess.user_id;
+            // Slide 30-day window: update last_active_at = now, expires_at = now + 30 days
+            const nowIso = new Date().toISOString();
+            const slideExpiresAt = new Date(Date.now() + thirtyDaysMs).toISOString();
+            this.env.DB.prepare(
+              "UPDATE user_sessions SET last_active_at = ?, expires_at = ? WHERE id = ?"
+            ).bind(nowIso, slideExpiresAt, sess.id).run().catch(() => {});
+          }
+        }
       } catch (err) {
         console.warn("[DO_WS] session DB lookup error:", err.message);
       }
     }
+
+    if (isSessionExpired) {
+      server.close(1008, "SESSION_EXPIRED");
+      return;
+    }
+
+    // Try edge token first if sess wasn't in DB
     if (!wsAuthUser) {
-      server.close(1008, "Unauthorized");
+      try { wsAuthUser = await verifyEdgeToken(rawToken, this.env); } catch (_) {}
+    }
+
+    if (!wsAuthUser) {
+      server.close(1008, "SESSION_EXPIRED");
       return;
     }
 

@@ -17,6 +17,9 @@ GCP_CLIENT_ID = "764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleuserco
 
 
 
+[triggers]
+crons = ["0 0 * * *"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "connecto-db"

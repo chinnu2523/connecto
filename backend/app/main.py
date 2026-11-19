@@ -191,16 +191,43 @@ async def purge_expired_otp_records():
         return 0
 
 async def purge_expired_user_sessions():
-    """Purges expired user sessions to prevent table bloat."""
+    """Purges expired and inactive user sessions older than 30 days to prevent table bloat and clears orphaned push tokens."""
     try:
         from app.db.session import AsyncSessionLocal
-        from app.db.models.user import UserSession
-        from sqlalchemy import delete
+        from app.db.models.user import UserSession, User
+        from sqlalchemy import delete, select, func, or_
         now = datetime.now(timezone.utc)
+        thirty_days_ago = now - timedelta(days=30)
         async with AsyncSessionLocal() as session:
-            stmt = delete(UserSession).where(UserSession.expires_at < now)
+            # 1. Identify users whose sessions are about to be purged
+            find_users_stmt = select(UserSession.user_id).where(
+                or_(UserSession.expires_at <= now, UserSession.last_active_at <= thirty_days_ago)
+            ).distinct()
+            res_users = await session.execute(find_users_stmt)
+            affected_users = res_users.scalars().all()
+
+            # 2. Delete expired sessions
+            stmt = delete(UserSession).where(
+                or_(UserSession.expires_at <= now, UserSession.last_active_at <= thirty_days_ago)
+            )
             res = await session.execute(stmt)
             deleted = res.rowcount or 0
+
+            # 3. Clear orphaned FCM tokens for users who now have zero active sessions
+            if affected_users:
+                for uid in affected_users:
+                    active_sess_count = (await session.execute(
+                        select(func.count(UserSession.id)).where(
+                            UserSession.user_id == uid,
+                            UserSession.expires_at > now,
+                            UserSession.last_active_at > thirty_days_ago
+                        )
+                    )).scalar() or 0
+                    if active_sess_count == 0:
+                        user = await session.get(User, uid)
+                        if user and user.fcm_token:
+                            user.fcm_token = None
+
             await session.commit()
             if deleted > 0:
                 logger.info(f"[SESSION_CLEANUP] Purged {deleted} expired user sessions.")
