@@ -9707,9 +9707,10 @@ async function handleWallpaperApi(request, url, env, ctx) {
       const fitMode = (body.fit_mode || "crop").trim().toLowerCase();
 
       // Check if existing record had a custom image that should be pruned
+      const targetConvKey = conversationId || '__GLOBAL__';
       const existing = await env.DB.prepare(
-        "SELECT image_url FROM user_wallpapers WHERE user_id = ? AND conversation_id IS ?"
-      ).bind(caller.id, conversationId).first().catch(() => null);
+        "SELECT image_url FROM user_wallpapers WHERE user_id = ? AND COALESCE(conversation_id, '__GLOBAL__') = ?"
+      ).bind(caller.id, targetConvKey).first().catch(() => null);
 
       if (existing && existing.image_url && existing.image_url !== imageUrl) {
         const oldPath = extractWallpaperFilePath(existing.image_url, caller.id);
@@ -9767,9 +9768,11 @@ async function handleWallpaperApi(request, url, env, ctx) {
   // 4. Delete / Reset wallpaper preferences: DELETE /api/wallpapers
   if (method === "DELETE") {
     try {
-      const convParam = url.searchParams.get("conversation_id");
-      const conversationId = (convParam && convParam.trim() && convParam.trim() !== "global") ? convParam.trim() : null;
-      const resetAll = url.searchParams.get("reset_all") === "true";
+      let body = {};
+      try { body = await request.json(); } catch (_) {}
+      const convParam = url.searchParams.get("conversation_id") || body.conversation_id;
+      const conversationId = (convParam && typeof convParam === 'string' && convParam.trim() && convParam.trim() !== "global") ? convParam.trim() : null;
+      const resetAll = url.searchParams.get("reset_all") === "true" || body.reset_all === true;
 
       if (resetAll) {
         // Delete all wallpaper files for this user
@@ -9779,9 +9782,10 @@ async function handleWallpaperApi(request, url, env, ctx) {
       }
 
       // Check if target record had custom image
+      const targetConvKey = conversationId || '__GLOBAL__';
       const existing = await env.DB.prepare(
-        "SELECT image_url FROM user_wallpapers WHERE user_id = ? AND conversation_id IS ?"
-      ).bind(caller.id, conversationId).first().catch(() => null);
+        "SELECT image_url FROM user_wallpapers WHERE user_id = ? AND COALESCE(conversation_id, '__GLOBAL__') = ?"
+      ).bind(caller.id, targetConvKey).first().catch(() => null);
 
       if (existing && existing.image_url) {
         const oldPath = extractWallpaperFilePath(existing.image_url, caller.id);
@@ -9791,8 +9795,8 @@ async function handleWallpaperApi(request, url, env, ctx) {
       }
 
       await env.DB.prepare(
-        "DELETE FROM user_wallpapers WHERE user_id = ? AND conversation_id IS ?"
-      ).bind(caller.id, conversationId).run();
+        "DELETE FROM user_wallpapers WHERE user_id = ? AND COALESCE(conversation_id, '__GLOBAL__') = ?"
+      ).bind(caller.id, targetConvKey).run();
 
       return jsonResponse({
         status: "success",
