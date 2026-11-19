@@ -616,8 +616,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
               downloadHeaders.set("X-Connecto-App", "PDF Studio");
-              downloadHeaders.set("X-Connecto-Version", "v1.5.5");
-              downloadHeaders.set("X-Connecto-Build", "21");
+              downloadHeaders.set("X-Connecto-Version", "v1.5.6");
+              downloadHeaders.set("X-Connecto-Build", "22");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -632,7 +632,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (err) {
         console.error("PDF Studio download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.7.6/pdf-studio.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.7.8/pdf-studio.apk", 302);
     }
 
     // 3b. Cloudflare Global Edge CDN: Direct APK Download Gateway
@@ -2464,14 +2464,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Full PDF editor & creative image editor with typography matching",
         description: "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         category: "Productivity",
-        version_name: "1.5.5",
-        version_code: 21,
-        size_bytes: 67492016,
+        version_name: "1.5.6",
+        version_code: 22,
+        size_bytes: 67524784,
         size_formatted: "64.4 MB",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
         accent_color: "#EF4444",
         changelog: [
+          "Pixel-Level Image Typography & Core Ink Analyzer: Accurate extraction of core ink color avoiding anti-aliasing wash-out, tight ink bounding box calculation eliminating OCR padding distortion, and precision background color sampling with soft edge feathering",
+          "Normalized EXIF Orientation & Percentage Coordinates: Upright bitmap alignment and resolution-independent percentage mapping so interactive tap overlays and canvas rendering remain 100% aligned across all zoom levels",
           "Connecto Elastic Drag-to-Refresh: Tactile OLED floating pill refresh animation with spring overshoot, smooth 180-degree arrow rotation, and haptic snap identical to Connecto and Our Store",
           "Advanced Image Typography & Font Matching: Core ink extraction, statistical font family detection (Roboto Sans, Noto Serif, Monospace), and numeric weight classification (Regular 400, Medium 500, Bold 700, Black 900) replacing generic system text",
           "Vertical Gradient In-Image Text Shading: Multi-stop core ink gradient detection and native LinearGradient shader rendering for true-to-life text replacement",
