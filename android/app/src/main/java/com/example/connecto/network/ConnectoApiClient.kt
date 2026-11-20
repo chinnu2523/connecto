@@ -183,6 +183,12 @@ data class MessageDto(
     val isVaultHidden: Boolean = false
 )
 
+data class MessagesPageDto(
+    val messages: List<MessageDto> = emptyList(),
+    val hasMore: Boolean = false,
+    val nextCursor: String? = null
+)
+
 data class GuestRoomHostDto(
     val username: String,
     val displayName: String,
@@ -548,6 +554,37 @@ object ConnectoApiClient {
 
     @Volatile
     var lastGroupsCacheTime: Long = 0L
+
+    object ConnectoTabSyncStore {
+        private val lastSyncedTimestamps = java.util.concurrent.ConcurrentHashMap<String, Long>()
+        private val staleFlags = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+        const val STALE_THRESHOLD_MS = 30_000L
+
+        @Volatile var cachedFriendsList: List<FriendshipDto> = emptyList()
+        @Volatile var cachedGroupsList: List<GroupDto> = emptyList()
+        @Volatile var cachedChannelsList: List<ChannelDto> = emptyList()
+        @Volatile var cachedCallLogsList: List<CallLogDto> = emptyList()
+        @Volatile var cachedUserProfile: ProfileDataDto? = null
+
+        fun isTabStale(tabName: String): Boolean {
+            if (staleFlags[tabName] == true) return true
+            val lastSync = lastSyncedTimestamps[tabName] ?: 0L
+            return (System.currentTimeMillis() - lastSync) > STALE_THRESHOLD_MS
+        }
+
+        fun markTabSynced(tabName: String) {
+            lastSyncedTimestamps[tabName] = System.currentTimeMillis()
+            staleFlags[tabName] = false
+        }
+
+        fun markTabStale(tabName: String) {
+            staleFlags[tabName] = true
+        }
+
+        fun getLastSynced(tabName: String): Long {
+            return lastSyncedTimestamps[tabName] ?: 0L
+        }
+    }
 
     @Volatile
     var isStealthMode: Boolean = false
@@ -1985,7 +2022,10 @@ object ConnectoApiClient {
         return clean
     }
 
-    suspend fun getChannels(token: String? = null): Result<List<ChannelDto>> = withContext(Dispatchers.IO) {
+    suspend fun getChannels(token: String? = null, forceRefresh: Boolean = false): Result<List<ChannelDto>> = withContext(Dispatchers.IO) {
+        if (!forceRefresh && ConnectoTabSyncStore.cachedChannelsList.isNotEmpty() && !ConnectoTabSyncStore.isTabStale("CHANNELS")) {
+            return@withContext Result.success(ConnectoTabSyncStore.cachedChannelsList)
+        }
         try {
             var response = executeRequest(
                 endpoint = "/api/channels",
@@ -2047,6 +2087,8 @@ object ConnectoApiClient {
                     list.add(ChannelDto("tournaments", "tournaments", "text"))
                 }
 
+                ConnectoTabSyncStore.cachedChannelsList = list
+                ConnectoTabSyncStore.markTabSynced("CHANNELS")
                 Result.success(list)
             } else {
                 Result.failure(response.exceptionOrNull() ?: Exception("Failed to fetch channels"))
@@ -2285,13 +2327,14 @@ object ConnectoApiClient {
         }
     }
 
-    suspend fun getMessages(
+    suspend fun getMessagesPaged(
         token: String? = null,
         channelId: String,
         limit: Int = 50,
         before: String? = null,
+        after: String? = null,
         friendUsername: String? = null
-    ): Result<List<MessageDto>> = withContext(Dispatchers.IO) {
+    ): Result<MessagesPageDto> = withContext(Dispatchers.IO) {
         try {
             val cleanChannel = channelId.trim().lowercase().removePrefix("#")
             val myUser = (currentUsername ?: "").trim().lowercase().removePrefix("@")
@@ -2302,6 +2345,10 @@ object ConnectoApiClient {
             if (!before.isNullOrBlank()) {
                 val encBefore = java.net.URLEncoder.encode(before, "UTF-8")
                 params.append("&before=$encBefore")
+            }
+            if (!after.isNullOrBlank()) {
+                val encAfter = java.net.URLEncoder.encode(after, "UTF-8")
+                params.append("&after=$encAfter")
             }
 
             // Prioritize canonical FastAPI v1 chat endpoint (used by Web & Mobile)
@@ -2335,7 +2382,7 @@ object ConnectoApiClient {
             if (!response.isSuccess) {
                 val err = response.exceptionOrNull()?.message ?: ""
                 if (err.contains("404") || err.contains("not found", ignoreCase = true) || err.contains("code 404")) {
-                    return@withContext Result.success(emptyList<MessageDto>())
+                    return@withContext Result.success(MessagesPageDto())
                 }
                 return@withContext Result.failure(response.exceptionOrNull() ?: Exception("Failed to fetch messages"))
             }
@@ -2343,11 +2390,15 @@ object ConnectoApiClient {
             if (response.isSuccess) {
                 val respText = response.getOrThrow()
                 val list = mutableListOf<MessageDto>()
+                var hasMore = false
+                var nextCursor: String? = null
 
                 var jsonArr = if (respText.trim().startsWith("[")) {
                     JSONArray(respText)
                 } else {
                     val obj = JSONObject(respText)
+                    hasMore = obj.optBoolean("hasMore", false)
+                    nextCursor = if (obj.has("nextCursor") && !obj.isNull("nextCursor")) obj.optString("nextCursor") else null
                     obj.optJSONArray("messages") ?: JSONArray()
                 }
 
@@ -2361,13 +2412,16 @@ object ConnectoApiClient {
                     )
                     if (fallbackResp.isSuccess) {
                         val fbText = fallbackResp.getOrThrow()
-                        val fbArr = if (fbText.trim().startsWith("[")) {
-                            JSONArray(fbText)
+                        if (fbText.trim().startsWith("[")) {
+                            jsonArr = JSONArray(fbText)
                         } else {
-                            JSONObject(fbText).optJSONArray("messages") ?: JSONArray()
-                        }
-                        if (fbArr.length() > 0) {
-                            jsonArr = fbArr
+                            val fbObj = JSONObject(fbText)
+                            hasMore = fbObj.optBoolean("hasMore", false)
+                            nextCursor = if (fbObj.has("nextCursor") && !fbObj.isNull("nextCursor")) fbObj.optString("nextCursor") else null
+                            val candidateArr = fbObj.optJSONArray("messages") ?: JSONArray()
+                            if (candidateArr.length() > 0) {
+                                jsonArr = candidateArr
+                            }
                         }
                     }
                 }
@@ -2486,13 +2540,30 @@ object ConnectoApiClient {
                         )
                     )
                 }
-                Result.success(list)
+                Result.success(
+                    MessagesPageDto(
+                        messages = list,
+                        hasMore = hasMore,
+                        nextCursor = nextCursor
+                    )
+                )
             } else {
                 Result.failure(response.exceptionOrNull() ?: Exception("Failed to fetch messages"))
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    suspend fun getMessages(
+        token: String? = null,
+        channelId: String,
+        limit: Int = 50,
+        before: String? = null,
+        after: String? = null,
+        friendUsername: String? = null
+    ): Result<List<MessageDto>> {
+        return getMessagesPaged(token, channelId, limit, before, after, friendUsername).map { it.messages }
     }
 
     fun parsePollDto(json: JSONObject?): PollDto? {
@@ -3712,7 +3783,7 @@ object ConnectoApiClient {
         try {
             val myUsername = (username ?: currentUsername ?: "guest").trim().lowercase().removePrefix("@")
             val now = System.currentTimeMillis()
-            if (!forceRefresh && myUsername == lastFriendsCacheUser && cachedFriends.isNotEmpty() && (now - lastFriendsCacheTime) < 3500L) {
+            if (!forceRefresh && myUsername == lastFriendsCacheUser && cachedFriends.isNotEmpty() && !ConnectoTabSyncStore.isTabStale("MESSAGES")) {
                 return@withContext Result.success(cachedFriends)
             }
 
@@ -3823,6 +3894,8 @@ object ConnectoApiClient {
                 cachedFriends = list
                 lastFriendsCacheTime = System.currentTimeMillis()
                 lastFriendsCacheUser = myUsername
+                ConnectoTabSyncStore.cachedFriendsList = list
+                ConnectoTabSyncStore.markTabSynced("MESSAGES")
                 Result.success(list)
             } else {
                 Result.failure(response.exceptionOrNull() ?: Exception("Failed to fetch friends"))
@@ -4207,7 +4280,10 @@ object ConnectoApiClient {
         }
     }
 
-    suspend fun getCallLogs(username: String? = null, token: String? = null): Result<List<CallLogDto>> = withContext(Dispatchers.IO) {
+    suspend fun getCallLogs(username: String? = null, token: String? = null, forceRefresh: Boolean = false): Result<List<CallLogDto>> = withContext(Dispatchers.IO) {
+        if (!forceRefresh && cachedCallLogs.isNotEmpty() && !ConnectoTabSyncStore.isTabStale("CALLS")) {
+            return@withContext Result.success(cachedCallLogs)
+        }
         try {
             val user = username ?: currentUsername
             val query = if (!user.isNullOrBlank()) "?username=${java.net.URLEncoder.encode(user, "UTF-8")}" else ""
@@ -4252,6 +4328,8 @@ object ConnectoApiClient {
                     )
                 }
                 cachedCallLogs = list
+                ConnectoTabSyncStore.cachedCallLogsList = list
+                ConnectoTabSyncStore.markTabSynced("CALLS")
                 saveCallLogsCache(applicationContext, list)
                 Result.success(list)
             } else {
@@ -4302,6 +4380,7 @@ object ConnectoApiClient {
                 body = payload.toString(),
                 token = token ?: sessionToken
             )
+            ConnectoTabSyncStore.markTabStale("CALLS")
             Result.success(response.isSuccess)
         } catch (e: Exception) {
             Result.failure(e)
@@ -5445,9 +5524,13 @@ object ConnectoApiClient {
         }
     }
 
-    suspend fun getProfile(username: String? = null, token: String? = null): Result<ProfileDataDto> = withContext(Dispatchers.IO) {
+    suspend fun getProfile(username: String? = null, token: String? = null, forceRefresh: Boolean = false): Result<ProfileDataDto> = withContext(Dispatchers.IO) {
+        val u = username ?: currentUsername ?: "user_99"
+        val isSelf = u.equals(currentUsername, ignoreCase = true)
+        if (!forceRefresh && isSelf && ConnectoTabSyncStore.cachedUserProfile != null && !ConnectoTabSyncStore.isTabStale("PROFILE")) {
+            return@withContext Result.success(ConnectoTabSyncStore.cachedUserProfile!!)
+        }
         try {
-            val u = username ?: currentUsername ?: "user_99"
             val encoded = java.net.URLEncoder.encode(u, "UTF-8")
             var response = executeRequest(
                 endpoint = "/api/user/profile?username=$encoded",
@@ -5544,6 +5627,8 @@ object ConnectoApiClient {
                             fetchE2ESecret()
                         } catch (_: Exception) {}
                     }
+                    ConnectoTabSyncStore.cachedUserProfile = prof
+                    ConnectoTabSyncStore.markTabSynced("PROFILE")
                 }
                 Result.success(prof)
             } else {

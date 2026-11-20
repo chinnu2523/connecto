@@ -12,6 +12,18 @@ export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'chat' | 'academy' | 'careers' | 'profile'>('chat');
+  const [mountedViews, setMountedViews] = useState<Record<string, boolean>>({ chat: true });
+
+  const handleSelectView = (targetView: 'chat' | 'academy' | 'careers' | 'profile') => {
+    if (view === targetView) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      if (!mountedViews[targetView]) {
+        setMountedViews((prev) => ({ ...prev, [targetView]: true }));
+      }
+      setView(targetView);
+    }
+  };
 
   useEffect(() => {
     getProfile()
@@ -40,7 +52,7 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-darkspace flex flex-col justify-between p-4 md:p-6">
       {/* Top Navbar Header */}
       <header className="max-w-7xl w-full mx-auto flex items-center justify-between py-3 mb-2">
-        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('chat')}>
+        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => handleSelectView('chat')}>
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-electric to-cyanglow flex items-center justify-center text-white shadow-lg shadow-electric/30">
             <Shield className="w-6 h-6" />
           </div>
@@ -53,7 +65,7 @@ export const App: React.FC = () => {
         {user && (
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => setView('chat')}
+              onClick={() => handleSelectView('chat')}
               className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
                 view === 'chat'
                   ? 'bg-electric text-white border-electric shadow-lg shadow-electric/25'
@@ -65,7 +77,7 @@ export const App: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setView('academy')}
+              onClick={() => handleSelectView('academy')}
               className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
                 view === 'academy'
                   ? 'bg-gradient-to-r from-electric to-cyanglow text-white border-cyanglow shadow-lg'
@@ -77,7 +89,7 @@ export const App: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setView('careers')}
+              onClick={() => handleSelectView('careers')}
               className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
                 view === 'careers'
                   ? 'bg-gradient-to-r from-electric to-cyanglow text-white border-cyanglow shadow-lg'
@@ -89,7 +101,7 @@ export const App: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setView('profile')}
+              onClick={() => handleSelectView('profile')}
               className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
                 view === 'profile'
                   ? 'bg-electric text-white border-electric shadow-lg'
@@ -106,25 +118,38 @@ export const App: React.FC = () => {
       {/* Main Content Area */}
       <main className="w-full max-w-7xl mx-auto my-2">
         {user ? (
-          view === 'profile' ? (
-            <ProfileDashboard
-              user={user}
-              onUserUpdated={(u) => setUser(u)}
-              onLogout={() => {
-                setUser(null);
-                setView('chat');
-              }}
-            />
-          ) : view === 'academy' ? (
-            <AcademyDashboard />
-          ) : view === 'careers' ? (
-            <CareersPortal currentUser={user} />
-          ) : (
-            <ChatWorkspace
-              currentUser={user}
-              onOpenProfile={() => setView('profile')}
-            />
-          )
+          <>
+            {mountedViews['profile'] && (
+              <div style={{ display: view === 'profile' ? 'block' : 'none' }}>
+                <ProfileDashboard
+                  user={user}
+                  onUserUpdated={(u) => setUser(u)}
+                  onLogout={() => {
+                    setUser(null);
+                    setView('chat');
+                  }}
+                />
+              </div>
+            )}
+            {mountedViews['academy'] && (
+              <div style={{ display: view === 'academy' ? 'block' : 'none' }}>
+                <AcademyDashboard />
+              </div>
+            )}
+            {mountedViews['careers'] && (
+              <div style={{ display: view === 'careers' ? 'block' : 'none' }}>
+                <CareersPortal currentUser={user} />
+              </div>
+            )}
+            {mountedViews['chat'] && (
+              <div style={{ display: view === 'chat' ? 'block' : 'none' }}>
+                <ChatWorkspace
+                  currentUser={user}
+                  onOpenProfile={() => handleSelectView('profile')}
+                />
+              </div>
+            )}
+          </>
         ) : (
           /* HOMEPAGE WITH SIGN UP & LOGIN ONLY */
           <HomepageAuth

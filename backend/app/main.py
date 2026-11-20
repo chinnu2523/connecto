@@ -2631,6 +2631,7 @@ async def get_channel_messages_compat(
     request: Request,
     limit: int = Query(50, ge=1, le=100),
     before: Optional[str] = Query(None),
+    after: Optional[str] = Query(None),
     username: Optional[str] = Query(None),
     user: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db)
@@ -2727,8 +2728,19 @@ async def get_channel_messages_compat(
         except Exception:
             pass
 
-    msg_stmt = msg_stmt.order_by(Message.created_at.desc()).limit(limit)
-    msg_res = list((await db.execute(msg_stmt)).all())
+    if after:
+        try:
+            after_clean = after.replace("Z", "+00:00")
+            after_dt = datetime.fromisoformat(after_clean)
+            msg_stmt = msg_stmt.where(Message.created_at > after_dt)
+        except Exception:
+            pass
+
+    msg_stmt = msg_stmt.order_by(Message.created_at.desc()).limit(limit + 1)
+    raw_res = list((await db.execute(msg_stmt)).all())
+    has_more = len(raw_res) > limit
+    msg_res = raw_res[:limit] if has_more else raw_res
+    next_cursor = str(msg_res[-1][0].created_at) if (msg_res and msg_res[-1][0].created_at) else None
     msg_res.reverse()
     
     now_utc = datetime.now(timezone.utc).isoformat()
@@ -2801,7 +2813,13 @@ async def get_channel_messages_compat(
             "is_read": is_msg_read
         })
     
-    return {"status": "ok", "messages": messages_list}
+    return {
+        "status": "ok",
+        "messages": messages_list,
+        "count": len(messages_list),
+        "hasMore": has_more,
+        "nextCursor": next_cursor
+    }
 
 
 @app.post("/api/messages/purge")
@@ -4598,7 +4616,7 @@ async def get_dm_messages_compat(
             channel = (await db.execute(p_stmt)).scalars().first()
 
     if not channel:
-        return {"status": "ok", "messages": []}
+        return {"status": "ok", "messages": [], "count": 0, "hasMore": False, "nextCursor": None}
     return await get_channel_messages_compat(channel.id, request, limit, before, clean_sender, clean_sender, db)
 
 @app.post("/api/dms/{target_user}/messages")

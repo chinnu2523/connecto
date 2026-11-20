@@ -216,6 +216,7 @@ data class ChannelQuickChip(
 @Composable
 fun ChannelsWorkspaceScreen(
     currentUsername: String = ConnectoApiClient.currentUsername ?: "test1",
+    isTabActive: Boolean = true,
     initialChannelId: String = "general",
     onOpenProfile: () -> Unit = {},
     onOpenNotifications: (() -> Unit)? = null,
@@ -433,7 +434,8 @@ fun ChannelsWorkspaceScreen(
     // Friends list for detecting friend-only private DM reply in channels
     var friendsList by remember { mutableStateOf<List<FriendItem>>(emptyList()) }
 
-    LaunchedEffect(currentUsername) {
+    LaunchedEffect(currentUsername, isTabActive) {
+        if (!isTabActive) return@LaunchedEffect
         withContext(Dispatchers.IO) {
             val cached = dbHelper.getCachedFriends()
             withContext(Dispatchers.Main) {

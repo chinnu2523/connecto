@@ -89,6 +89,8 @@ import com.example.connecto.voice.CallState
 import com.example.connecto.voice.VoiceCallManager
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.example.connecto.ui.designsystem.isCoverPreset
 import com.example.connecto.ui.designsystem.getCoverPreset
@@ -155,6 +157,29 @@ class MainActivity : FragmentActivity() {
         } catch (t: Throwable) {
             android.util.Log.e("MainActivity", "enableEdgeToEdge failed: ${t.message}")
         }
+        // Unlock native high refresh rate (90Hz / 120Hz) on supported displays
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val currentDisplay = display
+                val modes = currentDisplay?.supportedModes ?: emptyArray()
+                val maxRefreshMode = modes.maxByOrNull { it.refreshRate }
+                if (maxRefreshMode != null && maxRefreshMode.refreshRate > 60f) {
+                    val lp = window.attributes
+                    lp.preferredDisplayModeId = maxRefreshMode.modeId
+                    window.attributes = lp
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                @Suppress("DEPRECATION")
+                val currentDisplay = windowManager.defaultDisplay
+                val modes = currentDisplay?.supportedModes ?: emptyArray()
+                val maxRefreshMode = modes.maxByOrNull { it.refreshRate }
+                if (maxRefreshMode != null && maxRefreshMode.refreshRate > 60f) {
+                    val lp = window.attributes
+                    lp.preferredDisplayModeId = maxRefreshMode.modeId
+                    window.attributes = lp
+                }
+            }
+        } catch (_: Throwable) {}
         try {
             com.example.connecto.network.ConnectoApiClient.initSessionFromPrefs(this)
         } catch (t: Throwable) {
@@ -583,54 +608,22 @@ fun ConnectoApp(
         try { ConnectoTab.valueOf(savedTabStr ?: ConnectoTab.HOME.name) } catch (_: Exception) { ConnectoTab.HOME }
     }
     var currentTab by rememberSaveable { mutableStateOf(initialTab) }
-    val tabs = remember { ConnectoTab.values() }
-    val tabPagerState = androidx.compose.foundation.pager.rememberPagerState(
-        initialPage = tabs.indexOf(initialTab).coerceAtLeast(0)
-    ) { tabs.size }
     val coroutineScope = rememberCoroutineScope()
 
-    androidx.compose.runtime.LaunchedEffect(tabPagerState.currentPage) {
-        val newTab = tabs[tabPagerState.currentPage]
-        if (newTab != currentTab) {
-            currentTab = newTab
-            prefs.edit().putString("last_active_tab", newTab.name).apply()
-        }
-    }
-
-    // Auto-settlement recovery guard: prevent pager from ever freezing at fractional offset
-    androidx.compose.runtime.LaunchedEffect(tabPagerState.isScrollInProgress) {
-        if (!tabPagerState.isScrollInProgress) {
-            val offset = tabPagerState.currentPageOffsetFraction
-            if (kotlin.math.abs(offset) > 0.01f) {
-                tabPagerState.animateScrollToPage(
-                    page = tabPagerState.targetPage,
-                    animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing)
-                )
-            }
-        }
-    }
+    // Lazy-Mount + Keep-Alive: mount only initialTab on cold launch; subsequent tabs mount upon first tap
+    var mountedTabNames by rememberSaveable { mutableStateOf(setOf(initialTab.name)) }
 
     val updateCurrentTab: (ConnectoTab) -> Unit = { tab ->
-        currentTab = tab
-        val targetIndex = tabs.indexOf(tab)
-        if (targetIndex != -1 && tabPagerState.currentPage != targetIndex) {
-            coroutineScope.launch {
-                val distance = kotlin.math.abs(targetIndex - tabPagerState.currentPage)
-                if (distance > 1) {
-                    // Non-adjacent tab switch (e.g. Home -> Profile): immediate direct jump!
-                    // Completely skips composing, measuring, and laying out intermediate screens
-                    tabPagerState.scrollToPage(targetIndex)
-                } else {
-                    // Adjacent tab switch: crisp, high-performance snappy transition with ease-in-out curve
-                    tabPagerState.animateScrollToPage(
-                        page = targetIndex,
-                        animationSpec = tween(durationMillis = 220, easing = EaseInOutCubic)
-                    )
-                }
+        if (tab != currentTab) {
+            // Instant Visual Response: update active tab immediately before any background work starts
+            currentTab = tab
+            if (!mountedTabNames.contains(tab.name)) {
+                mountedTabNames = mountedTabNames + tab.name
             }
-        }
-        coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            prefs.edit().putString("last_active_tab", tab.name).apply()
+            // Defer background persistence to IO thread past frame 1
+            coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                prefs.edit().putString("last_active_tab", tab.name).apply()
+            }
         }
     }
     var hasUnreadChats by remember { mutableStateOf(false) }
@@ -1232,123 +1225,135 @@ fun ConnectoApp(
                                     .fillMaxWidth()
                                     .weight(1f)
                             ) {
-                            androidx.compose.foundation.pager.HorizontalPager(
-                                state = tabPagerState,
-                                modifier = Modifier.fillMaxSize(),
-                                userScrollEnabled = !isDirectChatOpen && !isChannelDrawerOpen,
-                                beyondViewportPageCount = 1
-                            ) { pageIndex ->
-                                val pageSelected = tabPagerState.currentPage == pageIndex
-                                val pageAlpha by androidx.compose.animation.core.animateFloatAsState(
-                                    targetValue = if (pageSelected) 1.0f else 0.6f,
-                                    animationSpec = tween(durationMillis = 120, easing = androidx.compose.animation.core.LinearEasing),
-                                    label = "tabContentCrossfade"
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .graphicsLayer { alpha = pageAlpha }
-                                        .clipToBounds()
-                                ) {
-                                    when (tabs[pageIndex]) {
-                                    ConnectoTab.HOME -> {
-                                        HomeChatScreen(
-                                            currentUsername = authenticatedUsername,
-                                            onNavigateToMessages = { updateCurrentTab(ConnectoTab.MESSAGES) },
-                                            onNavigateToProfile = { updateCurrentTab(ConnectoTab.PROFILE) },
-                                            onNavigateToCalls = { updateCurrentTab(ConnectoTab.CALLS) },
-                                            onOpenNotifications = { isNotificationCenterOpen = true },
-                                            unreadNotificationsCount = unreadNotifCount,
-                                            onNavigateToChannel = { channelName ->
-                                                selectedChannelForWorkspace = channelName
-                                                prefs.edit().putString("last_active_channel", channelName).apply()
-                                                updateCurrentTab(ConnectoTab.CHANNELS)
-                                            },
-                                            scrollToTopTrigger = homeScrollToTopTrigger
+                                ConnectoTab.entries.forEach { tab ->
+                                    if (mountedTabNames.contains(tab.name)) {
+                                        val isVisible = (currentTab == tab)
+                                        val tabAlpha by androidx.compose.animation.core.animateFloatAsState(
+                                            targetValue = if (isVisible) 1.0f else 0.0f,
+                                            animationSpec = tween(durationMillis = 80, easing = androidx.compose.animation.core.LinearEasing),
+                                            label = "tabVisibility_${tab.name}"
                                         )
-                                    }
-                                    ConnectoTab.MESSAGES -> {
-                                        CustomizedChatScreen(
-                                            currentUsername = authenticatedUsername,
-                                            onOpenProfile = { updateCurrentTab(ConnectoTab.PROFILE) },
-                                            onUnreadStatusChanged = { hasRemainingUnread ->
-                                                hasUnreadChats = hasRemainingUnread
-                                            },
-                                            onUnreadCountChanged = { count ->
-                                                totalUnreadMessagesCount = count
-                                                hasUnreadChats = count > 0
-                                            },
-                                            onDirectChatStateChanged = { isOpen ->
-                                                isDirectChatOpen = isOpen
-                                            },
-                                            onOpenNotifications = { isNotificationCenterOpen = true },
-                                            unreadNotificationsCount = unreadNotifCount,
-                                            targetChatUserOrChannel = MainActivity.pendingOpenChatTarget,
-                                            onTargetChatHandled = {
-                                                val prevTarget = MainActivity.pendingOpenChatTarget
-                                                if (!prevTarget.isNullOrBlank()) {
-                                                    ConnectoNotificationManager.cancelConversationNotification(prevTarget)
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .zIndex(if (isVisible) 1f else 0f)
+                                                .graphicsLayer {
+                                                    alpha = tabAlpha
                                                 }
-                                                MainActivity.pendingOpenChatTarget = null
-                                            },
-                                            scrollToTopTrigger = messagesScrollToTopTrigger
-                                        )
-                                    }
-                                    ConnectoTab.CHANNELS -> {
-                                        ChannelsWorkspaceScreen(
-                                            currentUsername = authenticatedUsername,
-                                            initialChannelId = selectedChannelForWorkspace,
-                                            onOpenProfile = { updateCurrentTab(ConnectoTab.PROFILE) },
-                                            onOpenNotifications = { isNotificationCenterOpen = true },
-                                            unreadNotificationsCount = unreadNotifCount,
-                                            onNavigateToCalls = { updateCurrentTab(ConnectoTab.CALLS) },
-                                            onDrawerStateChanged = { isOpen -> isChannelDrawerOpen = isOpen },
-                                            scrollToTopTrigger = channelScrollToTopTrigger,
-                                            scrollToBottomTrigger = channelScrollToBottomTrigger
-                                        )
-                                    }
-                                    ConnectoTab.CALLS -> {
-                                        CallsScreen(
-                                            currentUsername = authenticatedUsername,
-                                            onOpenProfile = { updateCurrentTab(ConnectoTab.PROFILE) },
-                                            onOpenNotifications = { isNotificationCenterOpen = true },
-                                            unreadNotificationsCount = unreadNotifCount,
-                                            scrollToTopTrigger = callsScrollToTopTrigger
-                                        )
-                                    }
-                                    ConnectoTab.PROFILE -> {
-                                        ProfileScreen(
-                                            username = authenticatedUsername,
-                                            currentThemeMode = currentThemeMode,
-                                            onSelectThemeMode = onSelectThemeMode,
-                                            isDarkTheme = isDarkTheme,
-                                            onToggleTheme = onToggleTheme,
-                                            glassTransparency = glassTransparency,
-                                            onChangeGlassTransparency = onChangeGlassTransparency,
-                                            onLockApp = { isBiometricOverlayActive = true },
-                                            onOpenNotifications = { isNotificationCenterOpen = true },
-                                            unreadNotificationsCount = unreadNotifCount,
-                                            scrollToTopTrigger = profileScrollToTopTrigger,
-                                            onSubScreenChanged = { isProfileSubScreenOpen = it },
-                                            onSignOut = {
-                                                performCompleteSignOut(context, authenticatedUsername)
-                                                flowState = AppFlowState.AUTH_HOME
-                                            },
-                                            onDeleteAccount = {
-                                                performCompleteSignOut(context, authenticatedUsername, isAccountDeletion = true)
-                                                flowState = AppFlowState.AUTH_HOME
-                                                android.widget.Toast.makeText(
-                                                    context,
-                                                    "Your account and all associated data have been permanently erased from live database and all backups.",
-                                                    android.widget.Toast.LENGTH_LONG
-                                                ).show()
+                                                .layout { measurable, constraints ->
+                                                    val placeable = measurable.measure(constraints)
+                                                    layout(placeable.width, placeable.height) {
+                                                        if (tabAlpha > 0.01f) {
+                                                            placeable.place(0, 0)
+                                                        }
+                                                    }
+                                                }
+                                        ) {
+                                            when (tab) {
+                                                ConnectoTab.HOME -> {
+                                                    HomeChatScreen(
+                                                        currentUsername = authenticatedUsername,
+                                                        isTabActive = isVisible,
+                                                        onNavigateToMessages = { updateCurrentTab(ConnectoTab.MESSAGES) },
+                                                        onNavigateToProfile = { updateCurrentTab(ConnectoTab.PROFILE) },
+                                                        onNavigateToCalls = { updateCurrentTab(ConnectoTab.CALLS) },
+                                                        onOpenNotifications = { isNotificationCenterOpen = true },
+                                                        unreadNotificationsCount = unreadNotifCount,
+                                                        onNavigateToChannel = { channelName ->
+                                                            selectedChannelForWorkspace = channelName
+                                                            prefs.edit().putString("last_active_channel", channelName).apply()
+                                                            updateCurrentTab(ConnectoTab.CHANNELS)
+                                                        },
+                                                        scrollToTopTrigger = homeScrollToTopTrigger
+                                                    )
+                                                }
+                                                ConnectoTab.MESSAGES -> {
+                                                    CustomizedChatScreen(
+                                                        currentUsername = authenticatedUsername,
+                                                        isTabActive = isVisible,
+                                                        onOpenProfile = { updateCurrentTab(ConnectoTab.PROFILE) },
+                                                        onUnreadStatusChanged = { hasRemainingUnread ->
+                                                            hasUnreadChats = hasRemainingUnread
+                                                        },
+                                                        onUnreadCountChanged = { count ->
+                                                            totalUnreadMessagesCount = count
+                                                            hasUnreadChats = count > 0
+                                                        },
+                                                        onDirectChatStateChanged = { isOpen ->
+                                                            isDirectChatOpen = isOpen
+                                                        },
+                                                        onOpenNotifications = { isNotificationCenterOpen = true },
+                                                        unreadNotificationsCount = unreadNotifCount,
+                                                        targetChatUserOrChannel = MainActivity.pendingOpenChatTarget,
+                                                        onTargetChatHandled = {
+                                                            val prevTarget = MainActivity.pendingOpenChatTarget
+                                                            if (!prevTarget.isNullOrBlank()) {
+                                                                ConnectoNotificationManager.cancelConversationNotification(prevTarget)
+                                                            }
+                                                            MainActivity.pendingOpenChatTarget = null
+                                                        },
+                                                        scrollToTopTrigger = messagesScrollToTopTrigger
+                                                    )
+                                                }
+                                                ConnectoTab.CHANNELS -> {
+                                                    ChannelsWorkspaceScreen(
+                                                        currentUsername = authenticatedUsername,
+                                                        isTabActive = isVisible,
+                                                        initialChannelId = selectedChannelForWorkspace,
+                                                        onOpenProfile = { updateCurrentTab(ConnectoTab.PROFILE) },
+                                                        onOpenNotifications = { isNotificationCenterOpen = true },
+                                                        unreadNotificationsCount = unreadNotifCount,
+                                                        onNavigateToCalls = { updateCurrentTab(ConnectoTab.CALLS) },
+                                                        onDrawerStateChanged = { isOpen -> isChannelDrawerOpen = isOpen },
+                                                        scrollToTopTrigger = channelScrollToTopTrigger,
+                                                        scrollToBottomTrigger = channelScrollToBottomTrigger
+                                                    )
+                                                }
+                                                ConnectoTab.CALLS -> {
+                                                    CallsScreen(
+                                                        currentUsername = authenticatedUsername,
+                                                        isTabActive = isVisible,
+                                                        onOpenProfile = { updateCurrentTab(ConnectoTab.PROFILE) },
+                                                        onOpenNotifications = { isNotificationCenterOpen = true },
+                                                        unreadNotificationsCount = unreadNotifCount,
+                                                        scrollToTopTrigger = callsScrollToTopTrigger
+                                                    )
+                                                }
+                                                ConnectoTab.PROFILE -> {
+                                                    ProfileScreen(
+                                                        username = authenticatedUsername,
+                                                        isTabActive = isVisible,
+                                                        currentThemeMode = currentThemeMode,
+                                                        onSelectThemeMode = onSelectThemeMode,
+                                                        isDarkTheme = isDarkTheme,
+                                                        onToggleTheme = onToggleTheme,
+                                                        glassTransparency = glassTransparency,
+                                                        onChangeGlassTransparency = onChangeGlassTransparency,
+                                                        onLockApp = { isBiometricOverlayActive = true },
+                                                        onOpenNotifications = { isNotificationCenterOpen = true },
+                                                        unreadNotificationsCount = unreadNotifCount,
+                                                        scrollToTopTrigger = profileScrollToTopTrigger,
+                                                        onSubScreenChanged = { isProfileSubScreenOpen = it },
+                                                        onSignOut = {
+                                                            performCompleteSignOut(context, authenticatedUsername)
+                                                            flowState = AppFlowState.AUTH_HOME
+                                                        },
+                                                        onDeleteAccount = {
+                                                            performCompleteSignOut(context, authenticatedUsername, isAccountDeletion = true)
+                                                            flowState = AppFlowState.AUTH_HOME
+                                                            android.widget.Toast.makeText(
+                                                                context,
+                                                                "Your account and all associated data have been permanently erased from live database and all backups.",
+                                                                android.widget.Toast.LENGTH_LONG
+                                                            ).show()
+                                                        }
+                                                    )
+                                                }
                                             }
-                                        )
+                                        }
                                     }
                                 }
                             }
-                        }
-                        }
 
                         // Modal for manual verification
                         if (showManualVerifyModal) {

@@ -341,6 +341,8 @@ object VoiceCallManager {
                 return
             }
         }
+        com.example.connecto.network.ConnectoApiClient.ConnectoTabSyncStore.markTabStale("MESSAGES")
+        com.example.connecto.network.ConnectoApiClient.ConnectoTabSyncStore.markTabStale("HOME")
         _incomingChannelMessages.tryEmit(msgDto)
     }
 

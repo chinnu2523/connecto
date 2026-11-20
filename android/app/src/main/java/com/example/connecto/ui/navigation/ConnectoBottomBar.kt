@@ -166,8 +166,8 @@ fun ConnectoBottomBar(
         val animatedCenterX by animateDpAsState(
             targetValue = targetCenterX,
             animationSpec = spring(
-                dampingRatio = 0.78f,
-                stiffness = 400f
+                dampingRatio = 0.85f,
+                stiffness = 900f
             ),
             label = "navPillCenterX"
         )
@@ -223,8 +223,8 @@ fun ConnectoBottomBar(
                 LaunchedEffect(isSelected) {
                     if (isSelected) {
                         iconBounce.snapTo(1.0f)
-                        iconBounce.animateTo(1.18f, tween(100, easing = EaseOutCubic))
-                        iconBounce.animateTo(1.08f, spring(dampingRatio = 0.7f, stiffness = 400f))
+                        iconBounce.animateTo(1.18f, tween(80, easing = EaseOutCubic))
+                        iconBounce.animateTo(1.08f, spring(dampingRatio = 0.7f, stiffness = 600f))
                     } else {
                         iconBounce.snapTo(1.0f)
                     }
@@ -236,7 +236,7 @@ fun ConnectoBottomBar(
                     } else {
                         if (isDark) Color(0xFF7A7F8F) else Color(0xFF64748B)
                     },
-                    animationSpec = tween(200, easing = EaseOutCubic),
+                    animationSpec = tween(80, easing = EaseOutCubic),
                     label = "tabIconColor"
                 )
 
@@ -246,7 +246,7 @@ fun ConnectoBottomBar(
                     } else {
                         if (isDark) Color(0xFF7A7F8F) else Color(0xFF64748B)
                     },
-                    animationSpec = tween(200, easing = EaseOutCubic),
+                    animationSpec = tween(80, easing = EaseOutCubic),
                     label = "tabTextColor"
                 )
 

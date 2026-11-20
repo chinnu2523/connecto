@@ -228,6 +228,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
 
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const isInitialChannelOpenRef = useRef<boolean>(true);
 
   // Quick Action Chips
   const quickChips = [
@@ -693,8 +695,30 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
   };
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    isInitialChannelOpenRef.current = true;
+  }, [activeChannel?.id]);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    if (isInitialChannelOpenRef.current) {
+      isInitialChannelOpenRef.current = false;
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      return;
+    }
+
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const lastMsg = messages[messages.length - 1];
+    const isMine = lastMsg && (
+      lastMsg.sender_id === currentUser.id ||
+      (lastMsg.sender_username && currentUser?.username && lastMsg.sender_username.toLowerCase() === currentUser.username.toLowerCase())
+    );
+
+    if (distanceFromBottom <= 120 || isMine) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, currentUser]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1411,7 +1435,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
             )}
 
             {/* Messages Feed */}
-            <div className="flex-1 min-h-0 p-6 overflow-y-auto space-y-4">
+            <div ref={messagesContainerRef} className="flex-1 min-h-0 p-6 overflow-y-auto space-y-4">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-3 opacity-60">
                   <MessageSquare className="w-12 h-12 text-slate-500" />

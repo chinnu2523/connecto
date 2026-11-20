@@ -197,6 +197,7 @@ private val CANONICAL_CHANNEL_ORDER = listOf(
 @Composable
 fun HomeChatScreen(
     currentUsername: String,
+    isTabActive: Boolean = true,
     onNavigateToMessages: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
     onNavigateToCalls: () -> Unit = {},
@@ -676,7 +677,8 @@ fun HomeChatScreen(
     }
 
     // 1. Instant 0ms cache-first rendering, then parallel network sync
-    LaunchedEffect(currentUsername) {
+    LaunchedEffect(currentUsername, isTabActive) {
+        if (!isTabActive) return@LaunchedEffect
         withContext(Dispatchers.IO) {
             val cachedFriends = dbHelper.getCachedFriends()
             val cachedChannels = dbHelper.getChannels()
@@ -726,7 +728,10 @@ fun HomeChatScreen(
                 }
             }
         }
-        refreshDashboard()
+        if (com.example.connecto.network.ConnectoApiClient.ConnectoTabSyncStore.isTabStale("HOME") || recentConversations.isEmpty()) {
+            refreshDashboard()
+            com.example.connecto.network.ConnectoApiClient.ConnectoTabSyncStore.markTabSynced("HOME")
+        }
     }
 
     // Real-time WebSocket User Presence Listener for Home Direct Messages

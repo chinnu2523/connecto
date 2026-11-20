@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -130,7 +133,11 @@ fun sanitizeAvatarUrl(url: String?): String? {
     return trimmed
 }
 
-private val base64DecodedCache = java.util.concurrent.ConcurrentHashMap<String, android.graphics.Bitmap>()
+private val base64DecodedCache = object : android.util.LruCache<String, android.graphics.Bitmap>(24 * 1024) {
+    override fun sizeOf(key: String, value: android.graphics.Bitmap): Int {
+        return (value.byteCount / 1024).coerceAtLeast(1)
+    }
+}
 
 /**
  * Resolves a model suitable for Coil's AsyncImage from a remote URL, local file path, file URI, or data:base64 URL.
@@ -139,8 +146,10 @@ fun resolveImageModel(url: String?): Any? {
     if (url.isNullOrBlank()) return null
     val sanitized = sanitizeAvatarUrl(url) ?: return null
     if (sanitized.startsWith("data:")) {
-        val cached = base64DecodedCache[sanitized]
-        if (cached != null) return cached
+        synchronized(base64DecodedCache) {
+            val cached = base64DecodedCache.get(sanitized)
+            if (cached != null) return cached
+        }
         try {
             val commaIdx = sanitized.indexOf(",")
             if (commaIdx != -1) {
@@ -149,7 +158,9 @@ fun resolveImageModel(url: String?): Any? {
                 if (decoded != null && decoded.isNotEmpty()) {
                     val bmp = android.graphics.BitmapFactory.decodeByteArray(decoded, 0, decoded.size)
                     if (bmp != null) {
-                        base64DecodedCache[sanitized] = bmp
+                        synchronized(base64DecodedCache) {
+                            base64DecodedCache.put(sanitized, bmp)
+                        }
                         return bmp
                     }
                 }
@@ -268,8 +279,24 @@ fun ConnectoAvatar(
             )
             val imageModel = resolveImageModel(avatarUrl) ?: sanitizedUrl
             if (imageModel != null) {
+                val context = LocalContext.current
+                val density = LocalDensity.current
+                val sizePx = remember(effectiveSizeDp, density) {
+                    with(density) { effectiveSizeDp.roundToPx().coerceIn(36, 128) }
+                }
+                val imageRequest = remember(imageModel, sizePx) {
+                    coil.request.ImageRequest.Builder(context)
+                        .data(imageModel)
+                        .size(sizePx, sizePx)
+                        .precision(coil.size.Precision.EXACT)
+                        .memoryCachePolicy(coil.request.CachePolicy.ENABLED)
+                        .diskCachePolicy(coil.request.CachePolicy.ENABLED)
+                        .crossfade(false)
+                        .memoryCacheKey("avatar_${avatarUrl ?: name}_$sizePx")
+                        .build()
+                }
                 AsyncImage(
-                    model = imageModel,
+                    model = imageRequest,
                     contentDescription = "$name's avatar",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

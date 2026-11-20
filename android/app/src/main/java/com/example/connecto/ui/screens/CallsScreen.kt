@@ -27,6 +27,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import kotlin.math.roundToInt
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -79,8 +80,10 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import com.example.connecto.ui.designsystem.ConnectoSettingsSection
@@ -340,6 +343,7 @@ private fun mapCallLogDtoToItem(
 @Composable
 fun CallsScreen(
     currentUsername: String = "Member",
+    isTabActive: Boolean = true,
     onOpenProfile: () -> Unit = {},
     onOpenNotifications: (() -> Unit)? = null,
     unreadNotificationsCount: Int = 0,
@@ -637,13 +641,19 @@ fun CallsScreen(
 
     val callState by VoiceCallManager.callState.collectAsState()
 
-    LaunchedEffect(Unit) {
-        refreshCallLogs()
-        while (isActive) {
-            delay(12000L)
-            // Never re-poll and mutate call history while the user is actively calling
-            if (VoiceCallManager.callState.value == CallState.IDLE) {
+    LaunchedEffect(isTabActive) {
+        if (isTabActive) {
+            if (com.example.connecto.network.ConnectoApiClient.ConnectoTabSyncStore.isTabStale("CALLS") || liveCallLogs.isEmpty()) {
                 refreshCallLogs()
+                com.example.connecto.network.ConnectoApiClient.ConnectoTabSyncStore.markTabSynced("CALLS")
+            }
+            while (isActive && isTabActive) {
+                delay(15000L)
+                // Never re-poll and mutate call history while the user is actively calling or inactive
+                if (isTabActive && VoiceCallManager.callState.value == CallState.IDLE) {
+                    refreshCallLogs()
+                    com.example.connecto.network.ConnectoApiClient.ConnectoTabSyncStore.markTabSynced("CALLS")
+                }
             }
         }
     }
@@ -898,7 +908,7 @@ fun CallsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 90.dp)
             ) {
                 if (!isCallSearchActive) {
@@ -906,7 +916,7 @@ fun CallsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 12.dp, top = 8.dp, bottom = 4.dp, end = 4.dp),
+                                .padding(start = 12.dp, top = 8.dp, bottom = 10.dp, end = 4.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -1050,214 +1060,245 @@ fun CallsScreen(
                         }
                     }
                 } else {
-                    item(key = "calls_grouped_card") {
-                        ConnectoSettingsCard {
-                            groupedLogs.forEachIndexed { idx, grouped ->
-                                StaggeredReveal(index = idx, staggerMs = 25L, initialOffsetY = 8f) {
-                                val log = grouped.primaryLog
-                                val displayName = if (grouped.count > 1) "${log.callerName} (${grouped.count})" else log.callerName
-                                var swipeOffsetX by remember(log.id) { mutableFloatStateOf(0f) }
-                                val animatedSwipeOffset by animateFloatAsState(
-                                    targetValue = swipeOffsetX,
-                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy),
-                                    label = "callRowSwipe"
-                                )
+                    itemsIndexed(
+                        items = groupedLogs,
+                        key = { _, grouped -> grouped.primaryLog.id },
+                        contentType = { _, _ -> "call_log_item" }
+                    ) { idx, grouped ->
+                        val shape = when {
+                            groupedLogs.size == 1 -> RoundedCornerShape(18.dp)
+                            idx == 0 -> RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
+                            idx == groupedLogs.size - 1 -> RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp)
+                            else -> RectangleShape
+                        }
+                        val cardBg = when {
+                            colors.isGlass -> colors.surface.copy(alpha = if (colors.isDark) 0.70f else 0.88f)
+                            colors.isDark -> colors.surface
+                            else -> Color.White
+                        }
+                        val borderColor = when {
+                            colors.isGlass -> Color.White.copy(alpha = if (colors.isDark) 0.18f else 0.50f)
+                            colors.isDark -> colors.borderSubtle.copy(alpha = 0.45f)
+                            else -> Color(0xFFE2E8F0)
+                        }
 
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .pointerInput(log.id) {
-                                            detectHorizontalDragGestures(
-                                                onDragEnd = {
-                                                    if (swipeOffsetX < -80f) {
-                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                        logPendingDelete = log
-                                                    }
-                                                    swipeOffsetX = 0f
-                                                },
-                                                onDragCancel = {
-                                                    swipeOffsetX = 0f
-                                                },
-                                                onHorizontalDrag = { _, dragAmount ->
-                                                    if (dragAmount < 0 || swipeOffsetX < 0) {
-                                                        swipeOffsetX = (swipeOffsetX + dragAmount).coerceIn(-120f, 0f)
-                                                    }
-                                                }
-                                            )
-                                        }
-                                ) {
-                                    if (animatedSwipeOffset < -10f) {
-                                        Box(
-                                            modifier = Modifier
-                                                .matchParentSize()
-                                                .background(Color(0xFFEF4444).copy(alpha = 0.2f))
-                                                .padding(end = 20.dp),
-                                            contentAlignment = Alignment.CenterEnd
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.DeleteOutline,
-                                                contentDescription = "Delete",
-                                                tint = Color(0xFFEF4444),
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    }
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .animateItem(),
+                            shape = shape,
+                            color = cardBg,
+                            border = BorderStroke(
+                                width = if (colors.isGlass) 1.dp else 0.75.dp,
+                                color = borderColor
+                            )
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                StaggeredReveal(index = idx.coerceAtMost(10), staggerMs = 20L, initialOffsetY = 6f) {
+                                    val log = grouped.primaryLog
+                                    val displayName = if (grouped.count > 1) "${log.callerName} (${grouped.count})" else log.callerName
+                                    var swipeOffsetX by remember(log.id) { mutableFloatStateOf(0f) }
+                                    val animatedSwipeOffset by animateFloatAsState(
+                                        targetValue = swipeOffsetX,
+                                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+                                        label = "callRowSwipe"
+                                    )
 
-                                    Row(
+                                    Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .offset { IntOffset(animatedSwipeOffset.roundToInt(), 0) }
-                                            .background(if (colors.isDark) Color(0xFF0A0B10) else Color.White)
-                                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            // Caller Initial or Profile Avatar with guaranteed bold initial fallback
-                                            val hasRemotePhoto = !log.avatarUrl.isNullOrBlank() &&
-                                                log.avatarUrl != "null" &&
-                                                log.avatarUrl != "default" &&
-                                                (log.avatarUrl.startsWith("http://") || log.avatarUrl.startsWith("https://") || log.avatarUrl.startsWith("content://"))
-
-                                            val cleanInitial = log.initial.ifBlank {
-                                                log.callerName.trimStart { !it.isLetterOrDigit() }.take(1).uppercase().ifBlank { "C" }
+                                            .pointerInput(log.id) {
+                                                detectHorizontalDragGestures(
+                                                    onDragEnd = {
+                                                        if (swipeOffsetX < -80f) {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            logPendingDelete = log
+                                                        }
+                                                        swipeOffsetX = 0f
+                                                    },
+                                                    onDragCancel = {
+                                                        swipeOffsetX = 0f
+                                                    },
+                                                    onHorizontalDrag = { _, dragAmount ->
+                                                        if (dragAmount < 0 || swipeOffsetX < 0) {
+                                                            swipeOffsetX = (swipeOffsetX + dragAmount).coerceIn(-120f, 0f)
+                                                        }
+                                                    }
+                                                )
                                             }
-
+                                    ) {
+                                        if (animatedSwipeOffset < -10f) {
                                             Box(
                                                 modifier = Modifier
-                                                    .size(44.dp)
-                                                    .clip(CircleShape)
-                                                    .background(
-                                                        if (log.isMissed) colors.error.copy(alpha = 0.15f)
-                                                        else getCallAvatarColor(log.callerName)
-                                                    ),
-                                                contentAlignment = Alignment.Center
+                                                    .matchParentSize()
+                                                    .background(Color(0xFFEF4444).copy(alpha = 0.2f))
+                                                    .padding(end = 20.dp),
+                                                contentAlignment = Alignment.CenterEnd
                                             ) {
-                                                Text(
-                                                    text = cleanInitial,
-                                                    fontSize = 17.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (log.isMissed) colors.error else Color.White
+                                                Icon(
+                                                    imageVector = Icons.Rounded.DeleteOutline,
+                                                    contentDescription = "Delete",
+                                                    tint = Color(0xFFEF4444),
+                                                    modifier = Modifier.size(20.dp)
                                                 )
-                                                if (hasRemotePhoto) {
-                                                    val imgModel = resolveImageModel(log.avatarUrl)
-                                                    AsyncImage(
-                                                        model = imgModel,
-                                                        contentDescription = log.callerName,
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .clip(CircleShape),
-                                                        contentScale = ContentScale.Crop
-                                                    )
-                                                }
                                             }
+                                        }
 
-                                            Spacer(modifier = Modifier.width(14.dp))
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .offset { IntOffset(animatedSwipeOffset.roundToInt(), 0) }
+                                                .background(if (colors.isDark) Color(0xFF0A0B10) else Color.White)
+                                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                // Caller Initial or Profile Avatar with guaranteed bold initial fallback
+                                                val hasRemotePhoto = !log.avatarUrl.isNullOrBlank() &&
+                                                    log.avatarUrl != "null" &&
+                                                    log.avatarUrl != "default" &&
+                                                    (log.avatarUrl.startsWith("http://") || log.avatarUrl.startsWith("https://") || log.avatarUrl.startsWith("content://"))
 
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                if (callSearchQuery.isNotBlank() && displayName.contains(callSearchQuery, ignoreCase = true)) {
-                                                    SubstringHighlightedText(
-                                                        text = displayName,
-                                                        query = callSearchQuery,
-                                                        style = TextStyle(
-                                                            fontSize = 15.sp,
-                                                            fontWeight = FontWeight.SemiBold,
-                                                            color = colors.textPrimary
-                                                        ),
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis
-                                                    )
-                                                } else {
-                                                    Text(
-                                                        text = displayName,
-                                                        fontSize = 15.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = colors.textPrimary,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis
-                                                    )
+                                                val cleanInitial = log.initial.ifBlank {
+                                                    log.callerName.trimStart { !it.isLetterOrDigit() }.take(1).uppercase().ifBlank { "C" }
                                                 }
-                                                Spacer(modifier = Modifier.height(2.dp))
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    val isCancelled = log.isOutgoing && log.durationSeconds == 0 && !log.isMissed
-                                                    Icon(
-                                                        imageVector = if (log.isMissed) Icons.AutoMirrored.Filled.CallMissed else if (log.isOutgoing) Icons.AutoMirrored.Filled.CallMade else Icons.AutoMirrored.Filled.CallReceived,
-                                                        contentDescription = null,
-                                                        tint = if (log.isMissed) colors.error else if (isCancelled) colors.textDisabled else OnlineGreen,
-                                                        modifier = Modifier.size(13.dp)
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(44.dp)
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                            if (log.isMissed) colors.error.copy(alpha = 0.15f)
+                                                            else getCallAvatarColor(log.callerName)
+                                                        ),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = cleanInitial,
+                                                        fontSize = 17.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (log.isMissed) colors.error else Color.White
                                                     )
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    val statusText = when {
-                                                        log.isMissed -> "Missed"
-                                                        log.isOutgoing && log.durationSeconds > 0 -> "Outgoing"
-                                                        log.isOutgoing -> "Cancelled"
-                                                        else -> "Incoming"
+                                                    if (hasRemotePhoto) {
+                                                        val imgModel = resolveImageModel(log.avatarUrl)
+                                                        AsyncImage(
+                                                            model = imgModel,
+                                                            contentDescription = log.callerName,
+                                                            modifier = Modifier
+                                                                .fillMaxSize()
+                                                                .clip(CircleShape),
+                                                            contentScale = ContentScale.Crop
+                                                        )
                                                     }
-                                                    val durStr = formatCallDuration(log.durationSeconds)
-                                                    val displaySubtext = if (durStr.isNotBlank()) {
-                                                        "$statusText • ${log.timeAgo} • $durStr"
-                                                    } else {
-                                                        "$statusText • ${log.timeAgo}"
-                                                    }
-                                                    if (callSearchQuery.isNotBlank() && displaySubtext.contains(callSearchQuery, ignoreCase = true)) {
+                                                }
+
+                                                Spacer(modifier = Modifier.width(14.dp))
+
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    if (callSearchQuery.isNotBlank() && displayName.contains(callSearchQuery, ignoreCase = true)) {
                                                         SubstringHighlightedText(
-                                                            text = displaySubtext,
+                                                            text = displayName,
                                                             query = callSearchQuery,
                                                             style = TextStyle(
-                                                                fontSize = 12.sp,
-                                                                color = if (log.isMissed) colors.error else colors.textSecondary
+                                                                fontSize = 15.sp,
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                color = colors.textPrimary
                                                             ),
                                                             maxLines = 1,
                                                             overflow = TextOverflow.Ellipsis
                                                         )
                                                     } else {
                                                         Text(
-                                                            text = displaySubtext,
-                                                            fontSize = 12.sp,
-                                                            color = if (log.isMissed) colors.error else colors.textSecondary,
+                                                            text = displayName,
+                                                            fontSize = 15.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = colors.textPrimary,
                                                             maxLines = 1,
                                                             overflow = TextOverflow.Ellipsis
                                                         )
                                                     }
+                                                    Spacer(modifier = Modifier.height(2.dp))
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        val isCancelled = log.isOutgoing && log.durationSeconds == 0 && !log.isMissed
+                                                        Icon(
+                                                            imageVector = if (log.isMissed) Icons.AutoMirrored.Filled.CallMissed else if (log.isOutgoing) Icons.AutoMirrored.Filled.CallMade else Icons.AutoMirrored.Filled.CallReceived,
+                                                            contentDescription = null,
+                                                            tint = if (log.isMissed) colors.error else if (isCancelled) colors.textDisabled else OnlineGreen,
+                                                            modifier = Modifier.size(13.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        val statusText = when {
+                                                            log.isMissed -> "Missed"
+                                                            log.isOutgoing && log.durationSeconds > 0 -> "Outgoing"
+                                                            log.isOutgoing -> "Cancelled"
+                                                            else -> "Incoming"
+                                                        }
+                                                        val durStr = formatCallDuration(log.durationSeconds)
+                                                        val displaySubtext = if (durStr.isNotBlank()) {
+                                                            "$statusText • ${log.timeAgo} • $durStr"
+                                                        } else {
+                                                            "$statusText • ${log.timeAgo}"
+                                                        }
+                                                        if (callSearchQuery.isNotBlank() && displaySubtext.contains(callSearchQuery, ignoreCase = true)) {
+                                                            SubstringHighlightedText(
+                                                                text = displaySubtext,
+                                                                query = callSearchQuery,
+                                                                style = TextStyle(
+                                                                    fontSize = 12.sp,
+                                                                    color = if (log.isMissed) colors.error else colors.textSecondary
+                                                                ),
+                                                                maxLines = 1,
+                                                                overflow = TextOverflow.Ellipsis
+                                                            )
+                                                        } else {
+                                                            Text(
+                                                                text = displaySubtext,
+                                                                fontSize = 12.sp,
+                                                                color = if (log.isMissed) colors.error else colors.textSecondary,
+                                                                maxLines = 1,
+                                                                overflow = TextOverflow.Ellipsis
+                                                            )
+                                                        }
+                                                    }
                                                 }
                                             }
-                                        }
 
-                                        // Single clean phone icon button on the right (#161822 circular fill in dark mode)
-                                        val phoneButtonBg = if (colors.isDark) Color(0xFF161822) else Color(0xFFF1F5F9)
-                                        val phoneIconTint = if (colors.isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B)
-                                        Box(
-                                            modifier = Modifier
-                                                .size(36.dp)
-                                                .clip(CircleShape)
-                                                .background(phoneButtonBg)
-                                                .pressScaleEffect(
-                                                    onClick = {
-                                                        val dialTarget = if (log.friendUsername.isNotBlank()) log.friendUsername else log.callerName
-                                                        initiateDirectCall(
-                                                            target = dialTarget,
-                                                            displayName = log.callerName,
-                                                            avatarUrl = log.avatarUrl
-                                                        )
-                                                    }
-                                                ),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Call,
-                                                contentDescription = "Voice Call",
-                                                tint = phoneIconTint,
-                                                modifier = Modifier.size(16.dp)
-                                            )
+                                            // Single clean phone icon button on the right (#161822 circular fill in dark mode)
+                                            val phoneButtonBg = if (colors.isDark) Color(0xFF161822) else Color(0xFFF1F5F9)
+                                            val phoneIconTint = if (colors.isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B)
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .clip(CircleShape)
+                                                    .background(phoneButtonBg)
+                                                    .pressScaleEffect(
+                                                        onClick = {
+                                                            val dialTarget = if (log.friendUsername.isNotBlank()) log.friendUsername else log.callerName
+                                                            initiateDirectCall(
+                                                                target = dialTarget,
+                                                                displayName = log.callerName,
+                                                                avatarUrl = log.avatarUrl
+                                                            )
+                                                        }
+                                                    ),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Call,
+                                                    contentDescription = "Voice Call",
+                                                    tint = phoneIconTint,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
-                                    if (idx < groupedLogs.size - 1) {
-                                        ConnectoSettingsDivider(startIndent = 74.dp)
-                                    }
+                                if (idx < groupedLogs.size - 1) {
+                                    ConnectoSettingsDivider(startIndent = 74.dp)
                                 }
                             }
                         }

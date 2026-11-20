@@ -346,6 +346,7 @@ enum class ProfileSubPage(
 @Composable
 fun ProfileScreen(
     username: String = "Gamer",
+    isTabActive: Boolean = true,
     currentThemeMode: com.example.connecto.ui.designsystem.ThemeMode = com.example.connecto.ui.designsystem.ThemeMode.NOIR,
     onSelectThemeMode: (com.example.connecto.ui.designsystem.ThemeMode) -> Unit = {},
     isDarkTheme: Boolean = currentThemeMode.isDark,

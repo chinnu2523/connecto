@@ -3,19 +3,41 @@ package com.example.connecto
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
 import java.io.PrintWriter
 import java.io.StringWriter
 
 /**
  * ConnectoApplication sets up global uncaught exception catching to capture cold-start
- * and runtime crashes before the process dies, persisting them to SharedPreferences
- * for diagnostic display and copying on the subsequent launch.
+ * and runtime crashes before the process dies, and configures a high-performance
+ * in-memory LRU cache and disk cache for contact avatars and images.
  */
-class ConnectoApplication : Application() {
+class ConnectoApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
         installGlobalCrashCatcher()
+    }
+
+    override fun newImageLoader(): ImageLoader {
+        return ImageLoader.Builder(this)
+            .memoryCache {
+                MemoryCache.Builder(this)
+                    .maxSizePercent(0.25)
+                    .strongReferencesEnabled(true)
+                    .build()
+            }
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(cacheDir.resolve("image_cache"))
+                    .maxSizeBytes(60L * 1024 * 1024)
+                    .build()
+            }
+            .respectCacheHeaders(false)
+            .build()
     }
 
     private fun installGlobalCrashCatcher() {

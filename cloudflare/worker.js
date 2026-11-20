@@ -6473,11 +6473,30 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           } catch (_) {}
         }
 
-        querySql += ` ORDER BY m.created_at ASC LIMIT 100 `;
+        const limitParam = parseInt(url.searchParams.get("limit") || "50", 10);
+        const limit = isNaN(limitParam) ? 50 : Math.min(Math.max(limitParam, 1), 100);
+        const before = url.searchParams.get("before") || url.searchParams.get("cursor");
+
+        if (before) {
+          querySql += ` AND (m.created_at < ? OR m.id = ?) `;
+          queryBindings.push(before, before);
+        }
+
+        querySql += ` ORDER BY m.created_at DESC LIMIT ? `;
+        queryBindings.push(limit + 1);
+
+        let hasMore = false;
+        let nextCursor = null;
 
         try {
           const res = await env.DB.prepare(querySql).bind(...queryBindings).all();
-          messages = (res.results || []).map(r => {
+          const rawResults = res.results || [];
+          hasMore = rawResults.length > limit;
+          const pageResults = hasMore ? rawResults.slice(0, limit) : rawResults;
+          nextCursor = pageResults.length > 0 ? pageResults[pageResults.length - 1].created_at : null;
+          // Reverse back to ascending order (oldest to newest)
+          pageResults.reverse();
+          messages = pageResults.map(r => {
             let att = {};
             try {
               if (r.attachments && typeof r.attachments === 'string' && r.attachments.startsWith('{')) {
@@ -6536,7 +6555,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         status: "ok",
         channel_id: canonicalChannel,
         messages: messages,
-        count: messages.length
+        count: messages.length,
+        hasMore: hasMore,
+        nextCursor: nextCursor
       });
     }
 
