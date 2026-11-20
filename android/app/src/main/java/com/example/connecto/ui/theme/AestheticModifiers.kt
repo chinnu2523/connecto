@@ -567,17 +567,24 @@ fun Modifier.liquidGlassCard(
 
     val alpha = colors.glassAlpha
 
-    // Pure 0% opacity transparent liquid glass
+    // Pure transparent liquid glass with obsidian foundation
     if (isLiquid && alpha <= 0.005f) {
+        val baseSurface = if (backgroundColor != Color.Transparent) backgroundColor else Color(0xD90A0B10)
         return this
+            .shadow(
+                elevation = 2.dp,
+                shape = shape,
+                ambientColor = Color.Black.copy(alpha = 0.45f),
+                spotColor = Color.Transparent
+            )
             .clip(shape)
-            .background(Color.Transparent)
+            .background(baseSurface)
             .border(
                 width = borderWidth,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.65f), // Crisp specular reflection on top edge
-                        Color.White.copy(alpha = 0.22f), // Optical glass lateral rim
+                        Color.White.copy(alpha = 0.40f), // Crisp specular reflection on top edge
+                        Color.White.copy(alpha = 0.18f), // Optical glass lateral rim
                         Color.White.copy(alpha = 0.08f)  // Translucent bottom edge
                     ),
                     start = Offset.Zero,
@@ -587,26 +594,27 @@ fun Modifier.liquidGlassCard(
             )
     }
 
-    // Specular top glare & neutral glass body tint (zero foreign colors)
-    val glareColor = Color.White.copy(alpha = (0.85f - alpha * 0.25f).coerceIn(0.40f, 0.85f))
+    // Specular top glare & neutral obsidian glass body tint
+    val glareColor = Color.White.copy(alpha = if (isLiquid) (0.35f + (1f - alpha) * 0.15f).coerceIn(0.25f, 0.55f) else (0.85f - alpha * 0.25f).coerceIn(0.40f, 0.85f))
+    val baseSurface = if (backgroundColor != Color.Transparent) backgroundColor else Color(0xD90A0B10)
     val topTint = if (isLiquid) {
-        Color.White.copy(alpha = (alpha * 0.60f).coerceIn(0.0f, 0.70f))
+        baseSurface.copy(alpha = (0.80f + alpha * 0.15f).coerceIn(0.70f, 0.95f))
     } else if (alpha < 0.35f) {
         Color.White.copy(alpha = (alpha * 0.95f).coerceIn(0.10f, 0.32f))
     } else {
-        backgroundColor.copy(alpha = (alpha * 0.75f).coerceIn(0.25f, 0.75f))
+        baseSurface.copy(alpha = (alpha * 0.75f).coerceIn(0.25f, 0.75f))
     }
     val bottomTint = if (isLiquid) {
-        Color.White.copy(alpha = (alpha * 0.35f).coerceIn(0.0f, 0.45f))
+        Color(0xEE0E1017)
     } else {
-        backgroundColor
+        baseSurface
     }
 
     val rimColor = if (isLiquid) Color.White else borderColor
     val borderColors = listOf(
         glareColor,                                              // Specular glare reflection on top rim
-        rimColor.copy(alpha = (0.65f - alpha * 0.20f).coerceIn(0.25f, 0.70f)), // Pure white rim glow
-        rimColor.copy(alpha = (0.25f - alpha * 0.10f).coerceIn(0.08f, 0.25f))  // Translucent subtle bottom edge
+        rimColor.copy(alpha = if (isLiquid) 0.18f else (0.65f - alpha * 0.20f).coerceIn(0.25f, 0.70f)), // Pure white rim glow
+        rimColor.copy(alpha = if (isLiquid) 0.08f else (0.25f - alpha * 0.10f).coerceIn(0.08f, 0.25f))  // Translucent subtle bottom edge
     )
 
     return this

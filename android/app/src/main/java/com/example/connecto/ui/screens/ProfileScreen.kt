@@ -1262,7 +1262,7 @@ fun ProfileScreen(
                                     .then(
                                         Modifier.liquidGlassCard(
                                             shape = avatarCardShape,
-                                            backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                            backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                                                 else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                                                 else MaterialTheme.colorScheme.surface.copy(
                                                     alpha = if (isThemeDark) 0.72f else 0.85f
@@ -1977,7 +1977,7 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                                                     else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                                                     else MaterialTheme.colorScheme.surface,
                                                 borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
@@ -2260,7 +2260,7 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                                                     else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                                                     else MaterialTheme.colorScheme.surface,
                                                 borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
@@ -2673,7 +2673,7 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                                                     else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                                                     else MaterialTheme.colorScheme.surface,
                                                 borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
@@ -2880,7 +2880,7 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                                                     else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                                                     else if (stealthModeEnabled) ConnectoTheme.colors.info.copy(alpha = 0.08f)
                                                     else MaterialTheme.colorScheme.surface,
@@ -2969,7 +2969,7 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                                                     else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                                                     else MaterialTheme.colorScheme.surface,
                                                 borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
@@ -3060,7 +3060,7 @@ fun ProfileScreen(
                                                 .fillMaxWidth()
                                                 .liquidGlassCard(
                                                     shape = RoundedCornerShape(20.dp),
-                                                    backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                    backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                                                         else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                                                         else MaterialTheme.colorScheme.surface,
                                                     borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
@@ -3276,7 +3276,7 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                                                     else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                                                     else MaterialTheme.colorScheme.surface,
                                                 borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
@@ -3458,7 +3458,7 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                                                     else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                                                     else MaterialTheme.colorScheme.surface,
                                                 borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
@@ -3761,7 +3761,7 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                                                     else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                                                     else MaterialTheme.colorScheme.surface,
                                                 borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
@@ -4175,7 +4175,7 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(22.dp),
-                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                                                     else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                                                     else MaterialTheme.colorScheme.surface,
                                                 borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
@@ -4595,7 +4595,7 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                                                     else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                                                     else MaterialTheme.colorScheme.surface,
                                                 borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
@@ -4790,7 +4790,7 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                                                     else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                                                     else MaterialTheme.colorScheme.surface,
                                                 borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
@@ -6690,7 +6690,7 @@ private fun VoiceAudioSettingsCard(
             .fillMaxWidth()
             .liquidGlassCard(
                 shape = RoundedCornerShape(20.dp),
-                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                backgroundColor = if (themeColors.isLiquidGlass) Color(0xD90A0B10)
                     else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
                     else themeColors.surface,
                 borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
@@ -8572,7 +8572,7 @@ private fun ProfileNavigationMenuButton(
             .then(
                 Modifier.liquidGlassCard(
                     shape = cardShape,
-                    backgroundColor = if (isLiquidGlass) Color.Transparent
+                    backgroundColor = if (isLiquidGlass) Color(0xD90A0B10)
                         else if (hasCoverPhoto) Color.Black.copy(alpha = 0.30f)
                         else MaterialTheme.colorScheme.surface.copy(
                             alpha = if (ConnectoTheme.colors.isDark) 0.72f else 0.88f

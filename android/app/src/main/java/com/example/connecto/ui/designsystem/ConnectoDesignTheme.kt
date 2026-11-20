@@ -56,6 +56,14 @@ object ConnectoTheme {
     val glassAlpha: Float
         @Composable
         get() = LocalConnectoColors.current.glassAlpha
+
+    val accent: Color
+        @Composable
+        get() = LocalConnectoColors.current.accent
+
+    val accentLight: Color
+        @Composable
+        get() = LocalConnectoColors.current.accentLight
 }
 
 /**
@@ -94,6 +102,8 @@ fun ConnectoDesignTheme(
     val animatedWarning by animateColorAsState(rawColors.warning, animSpec, label = "warningColor")
     val animatedError by animateColorAsState(rawColors.error, animSpec, label = "errorColor")
     val animatedInfo by animateColorAsState(rawColors.info, animSpec, label = "infoColor")
+    val animatedAccent by animateColorAsState(rawColors.accent, animSpec, label = "accentColor")
+    val animatedAccentLight by animateColorAsState(rawColors.accentLight, animSpec, label = "accentLightColor")
 
     val connectoColors = rawColors.copy(
         primary = animatedPrimary,
@@ -114,7 +124,9 @@ fun ConnectoDesignTheme(
         success = animatedSuccess,
         warning = animatedWarning,
         error = animatedError,
-        info = animatedInfo
+        info = animatedInfo,
+        accent = animatedAccent,
+        accentLight = animatedAccentLight
     )
 
     val m3ColorScheme = if (connectoColors.isDark) {

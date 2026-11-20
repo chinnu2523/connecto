@@ -140,8 +140,8 @@ fun ConnectoBottomBar(
     }
 
     val isDark = colors.isDark
-    val barBg = if (isDark) Color(0xE00E1016) else Color(0xE6FFFFFF)
-    val topBorderColor = if (isDark) Color(0x14FFFFFF) else Color(0x14000000)
+    val barBg = if (isDark) Color(0xF20A0B10) else Color(0xE6FFFFFF)
+    val topBorderColor = if (isDark) Color(0x1AFFFFFF) else Color(0x14000000)
 
     BoxWithConstraints(
         modifier = modifier
@@ -175,7 +175,7 @@ fun ConnectoBottomBar(
         val pillWidth = 20.dp
         val pillHeight = 3.dp
 
-        // Soft radial ambient glow directly under the top indicator pill (rgba(255, 255, 255, 0.12), blur(10px))
+        // Soft radial ambient glow directly under the top indicator pill with subtle Electric Indigo tint
         Box(
             modifier = Modifier
                 .offset(x = animatedCenterX - 24.dp, y = 0.dp)
@@ -183,7 +183,7 @@ fun ConnectoBottomBar(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            (if (isDark) Color.White else Color(0xFF0F172A)).copy(alpha = 0.12f),
+                            (if (isDark) Color(0xFF6366F1) else Color(0xFF4F46E5)).copy(alpha = if (isDark) 0.28f else 0.16f),
                             Color.Transparent
                         ),
                         center = Offset(48f, 0f),
@@ -192,13 +192,16 @@ fun ConnectoBottomBar(
                 )
         )
 
-        // Sliding Top Pill Indicator (20px wide, 3px tall, rounded) with spring physics
+        // Sliding Top Pill Indicator (22px wide, 3px tall, rounded) with spring physics and electric indigo sheen
         Box(
             modifier = Modifier
                 .offset(x = animatedCenterX - (pillWidth / 2), y = 0.dp)
                 .size(width = pillWidth, height = pillHeight)
                 .clip(RoundedCornerShape(bottomStart = 1.5.dp, bottomEnd = 1.5.dp))
-                .background(if (isDark) Color.White else Color(0xFF0F172A))
+                .background(
+                    if (isDark) Brush.horizontalGradient(listOf(Color(0xFF818CF8), Color(0xFF6366F1)))
+                    else Brush.horizontalGradient(listOf(Color(0xFF6366F1), Color(0xFF4F46E5)))
+                )
         )
 
         Row(

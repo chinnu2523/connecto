@@ -1394,20 +1394,20 @@ private fun QuickActionChip(
         modifier = Modifier
             .pressScaleEffect(onClick = onClick, targetScale = 0.94f)
             .clip(chipShape)
-            .background(if (isDark) Color(0xFF161922) else Color(0xFFFFFFFF))
-            .then(
-                if (isDark) {
-                    Modifier.drawBehind {
-                        drawLine(
-                            color = Color(0x12FFFFFF), // rgba(255, 255, 255, 0.07) top-edge highlight
-                            start = Offset(0f, 0f),
-                            end = Offset(size.width, 0f),
-                            strokeWidth = 1.dp.toPx()
-                        )
-                    }
-                } else {
-                    Modifier.border(1.dp, Color(0xFFE2E8F0), chipShape)
-                }
+            .background(if (isDark) Color(0xD9141622) else Color(0xFFFFFFFF))
+            .border(
+                width = 0.8.dp,
+                brush = Brush.linearGradient(
+                    colors = if (isDark) listOf(
+                        Color(0x3DFFFFFF),
+                        Color(0x1F6366F1),
+                        Color(0x14FFFFFF)
+                    ) else listOf(
+                        Color(0xFFE2E8F0),
+                        Color(0xFFCBD5E1)
+                    )
+                ),
+                shape = chipShape
             )
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -1415,7 +1415,7 @@ private fun QuickActionChip(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (isDark) Color.White else Color(0xFF0F172A),
+            tint = if (isDark) Color(0xFF818CF8) else Color(0xFF6366F1),
             modifier = Modifier.size(16.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
