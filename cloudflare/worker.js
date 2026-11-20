@@ -2266,8 +2266,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         category: "Services",
         version_name: "2.2.0",
         version_code: 69,
-        size_bytes: 18977830,
-        size_formatted: "18.1 MB",
+        size_bytes: 17107461,
+        size_formatted: "16.3 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
@@ -2323,7 +2323,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "Non-Blocking Background Sync: Real-time top edge progress shimmer and continuous refresh while keeping catalog interactive"
         ],
         is_essential: true,
-        updated_at: "2026-11-15T13:40:00Z"
+        screenshots: [
+          { url: "https://connecto.fun/static/img/previews/ourstore_1.png", caption: "Curated Ecosystem Catalog", tag: "STOREFRONT" },
+          { url: "https://connecto.fun/static/img/previews/ourstore_2.png", caption: "Autonomous 1-Tap Updates", tag: "UPDATES" },
+          { url: "https://connecto.fun/static/img/previews/ourstore_3.png", caption: "Profile & Security Vault", tag: "ACCOUNT" },
+          { url: "https://connecto.fun/static/img/previews/ourstore_4.png", caption: "Native In-App Installations", tag: "DETAILS" }
+        ],
+        updated_at: "2026-11-20T11:20:00Z"
       },
       {
         id: "connecto",
@@ -2448,7 +2454,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "120fps Gesture Responsiveness: Non-blocking deferred preview gestures, hardware accelerated rendering, and ultra-smooth spring animations"
         ],
         is_essential: true,
-        updated_at: "2026-11-19T13:38:00Z"
+        screenshots: [
+          { url: "https://connecto.fun/static/img/previews/connecto_1.png", caption: "End-to-End Encrypted Chat", tag: "MESSAGES" },
+          { url: "https://connecto.fun/static/img/previews/connecto_2.png", caption: "Studio HD Voice Lounge & WebRTC", tag: "VOICE CALLS" },
+          { url: "https://connecto.fun/static/img/previews/connecto_3.png", caption: "Workspace Channels & Feed", tag: "COMMUNITIES" },
+          { url: "https://connecto.fun/static/img/previews/connecto_4.png", caption: "Biometric Keystore Vault & Privacy", tag: "SECURITY" }
+        ],
+        updated_at: "2026-11-20T11:20:00Z"
       },
       {
         id: "jarvis",
@@ -2474,6 +2486,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "Settings Accessibility Status: Added real-time ACTIVE/REQUIRED service status pill and direct system shortcut"
         ],
         is_essential: true,
+        screenshots: [
+          { url: "https://connecto.fun/static/img/previews/jarvis_1.png", caption: "Neural Conversational Assistant", tag: "INTELLIGENCE" },
+          { url: "https://connecto.fun/static/img/previews/jarvis_2.png", caption: "Zero-Leak On-Device Memory Vault", tag: "MEMORY VAULT" },
+          { url: "https://connecto.fun/static/img/previews/jarvis_3.png", caption: "Multi-Cloud AI Engine & Personality", tag: "SETTINGS" }
+        ],
         updated_at: "2026-10-31T15:20:00Z"
       },
       {
@@ -2534,7 +2551,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "Organize Pages: Reorder, rotate, or delete pages losslessly"
         ],
         is_essential: false,
-        updated_at: "2026-11-17T11:35:00Z"
+        screenshots: [
+          { url: "https://connecto.fun/static/img/previews/pdfstudio_1.png", caption: "Same-Font In-Place Editor", tag: "EDITOR" },
+          { url: "https://connecto.fun/static/img/previews/pdfstudio_2.png", caption: "Photo & Image to PDF Studio", tag: "CONVERTER" },
+          { url: "https://connecto.fun/static/img/previews/pdfstudio_3.png", caption: "Lossless Multi-Document Merger", tag: "MERGER" }
+        ],
+        updated_at: "2026-11-20T11:20:00Z"
       }
     ];
 
@@ -2558,7 +2580,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "2.1.4",
+      store_version: "2.2.0",
       total_apps: appsToReturn.length,
       is_admin: isAdmin,
       apps: appsToReturn

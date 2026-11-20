@@ -20084,6 +20084,35 @@ html[data-theme="ivory"] .mobile-drawer-btn.nav-cta-shimmer {
   margin-top: 2px;
 }
 .members-sidebar-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+
+/* App Store Preview Carousel & Lightbox Thumbnail */
+.store-preview-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+.store-preview-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+.store-preview-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.store-preview-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+}
+.store-preview-thumb {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.store-preview-thumb:hover {
+  transform: translateY(-3px) scale(1.03);
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7);
+}
 </style>
 <style>
 /* ==================== AESTHETIC SIGN-IN & AUTH UPGRADES ==================== */
@@ -27897,7 +27926,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="magic-border-beam" aria-hidden="true"></div>
               <div class="android-release-tag-row">
                 <span class="android-release-badge animated-shiny-text" style="background:rgba(56,189,248,0.15); border-color:rgba(56,189,248,0.4); color:#38bdf8;">
-                  <span class="pulse-emerald-dot" style="background:#38bdf8;"></span> v2.0.9 (Build 58) • Standalone Client
+                  <span class="pulse-emerald-dot" style="background:#38bdf8;"></span> v2.2.0 (Build 69) • Standalone Client
                 </span>
                 <span class="android-release-device-chip" style="border-color:rgba(56,189,248,0.3); color:#38bdf8;"><i data-lucide="cpu" class="lucide-xs"></i> Native PackageInstaller IPC</span>
                 <span class="android-release-device-chip"><i data-lucide="shield-check" class="lucide-xs"></i> SHA-256 Verified</span>
@@ -27910,7 +27939,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
               <div class="android-specs-row">
                 <div class="android-spec-item">
-                  <span class="android-spec-val" style="color:#38bdf8;">18.1 MB</span>
+                  <span class="android-spec-val" style="color:#38bdf8;">16.3 MB</span>
                   <span class="android-spec-lbl">Client Size</span>
                 </div>
                 <div class="android-spec-item">
@@ -27951,7 +27980,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
                 <div class="android-feat-card" style="border-color: rgba(168, 85, 247, 0.4); background: rgba(168, 85, 247, 0.08);">
                   <div class="android-feat-card-top">
-                    <div class="feat-product-snippet"><span class="fps-tag">Sync Daemon</span><div class="fps-line">Installed: v2.0.9 &bull; Release: Verified Active</div></div><div>
+                    <div class="feat-product-snippet"><span class="fps-tag">Sync Daemon</span><div class="fps-line">Installed: v2.2.0 &bull; Release: Verified Active</div></div><div>
                       <span class="android-feat-card-title" style="color:#d8b4fe;">Autonomous Background Watcher</span>
                       <span style="font-size:11px; color:#c084fc; display:block; font-weight:700;">Zero-Effort Version Intelligence</span>
                     </div>
@@ -27959,11 +27988,11 @@ html[data-theme="dark"] #saveProfileBtn {
                   <div class="android-feat-card-desc">Continuously discovers newly released builds, compares semantic versioning, and notifies you when updates are available with 1-tap bulk upgrades.</div>
                 </div>
 
-                <div class="android-feat-card" style="border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08);">
+                <div class="android-feat-card" style="border-color: rgba(56, 189, 248, 0.35); background: rgba(56, 189, 248, 0.08);">
                   <div class="android-feat-card-top">
-                    <div class="feat-product-snippet"><span class="fps-tag">Theme Engine</span><div class="fps-line">Pure OLED Black &amp; Ivory Paper Instant Switch</div></div><div>
-                      <span class="android-feat-card-title" style="color:#fde68a;">Pure Black OLED & Light Themes</span>
-                      <span style="font-size:11px; color:#fbbf24; display:block; font-weight:700;">Modern Tactile Jetpack Compose UI</span>
+                    <div class="feat-product-snippet"><span class="fps-tag">Theme Engine</span><div class="fps-line">Pure OLED Black &amp; Pristine White Instant Switch</div></div><div>
+                      <span class="android-feat-card-title" style="color:#38bdf8;">Pure Black OLED & Pristine White</span>
+                      <span style="font-size:11px; color:#7dd3fc; display:block; font-weight:700;">Zero-Orange Tactile Jetpack Compose UI</span>
                     </div>
                   </div>
                   <div class="android-feat-card-desc">High-performance Material 3 interface featuring instant dark/light switching, fluid spring-physics transitions, and zero background analytics or telemetry.</div>
@@ -27972,16 +28001,16 @@ html[data-theme="dark"] #saveProfileBtn {
 
               <!-- Download Action Row -->
               <div class="android-cta-row" style="margin-top:20px;">
-                <a href="/downloads/our-store.apk" download="our-store.apk" class="android-primary-download-btn magic-shimmer-btn" style="background:linear-gradient(135deg, #2563eb, #0284c7); border-color:#38bdf8;">
+                <a href="/downloads/our-store.apk" download="our-store.apk" class="android-primary-download-btn magic-shimmer-btn btn-animated-feedback" style="background:linear-gradient(135deg, #2563eb, #0284c7); border-color:#38bdf8;">
                   <i data-lucide="download" class="lucide-sm"></i>
-                  <span>Download Our Store APK (v2.0.9 • 18.1 MB)</span>
+                  <span>Download Our Store APK (v2.2.0 • 16.3 MB)</span>
                 </a>
               </div>
 
               <div class="android-security-note" style="margin-top:14px; padding:12px 14px; background:rgba(15, 23, 42, 0.85); border:1px solid rgba(255, 255, 255, 0.08); border-radius:10px; display:flex; flex-direction:column; gap:6px;">
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                   <span style="display:flex; align-items:center; gap:6px; color:#38bdf8; font-weight:700; font-size:12px;">
-                    <i data-lucide="check-circle-2" class="lucide-xs"></i> Official Verified Store Release • Package: com.connecto.store (v2.0.9)
+                    <i data-lucide="check-circle-2" class="lucide-xs"></i> Official Verified Store Release • Package: com.connecto.store (v2.2.0)
                   </span>
                   <span style="font-size:11px; color:#94a3b8;">
                     Android 8.0 to 16+ • Native In-App Package Installer &amp; Auto-Update Engine
@@ -28000,7 +28029,7 @@ html[data-theme="dark"] #saveProfileBtn {
                     </div>
                     <div>
                       <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #fff;">Our Store Client</h4>
-                      <span style="font-size: 11px; color: #94a3b8;">Autonomous Package Manager • v2.0.9</span>
+                      <span style="font-size: 11px; color: #94a3b8;">Autonomous Package Manager • v2.2.0</span>
                     </div>
                   </div>
                   <span style="background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); color: #38bdf8; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 20px;">
@@ -28008,52 +28037,45 @@ html[data-theme="dark"] #saveProfileBtn {
                   </span>
                 </div>
 
-                <!-- Highlight Card 1: Native In-App PackageInstaller -->
-                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                  <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); display: flex; align-items: center; justify-content: center;">
-                      <i data-lucide="cpu" style="color: #38bdf8; width: 20px; height: 20px;"></i>
+                <!-- Live Application Screenshot Previews: Our Store -->
+                <div>
+                  <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                    <span style="display: flex; align-items: center; gap: 6px;">
+                      <i data-lucide="smartphone" class="lucide-xs" style="color: #38bdf8;"></i>
+                      <span>Client Interface Previews</span>
+                    </span>
+                    <span style="font-size: 10px; color: #38bdf8; font-weight: 600;">Tap to enlarge</span>
+                  </div>
+                  <div class="store-preview-scroll">
+                    <div class="store-preview-thumb" onclick="openLightbox('/img/previews/ourstore_1.png')" style="flex: 0 0 105px; height: 185px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); background: #000;">
+                      <img src="/img/previews/ourstore_1.png" alt="Curated Ecosystem Catalog" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                      <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                        <span style="font-size: 8px; font-weight: 800; color: #38bdf8; letter-spacing: 0.5px; display: block;">STOREFRONT</span>
+                        <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Curated Catalog</span>
+                      </div>
                     </div>
-                    <div>
-                      <div style="font-size: 13px; font-weight: 700; color: #fff;">1-Tap Session Installer</div>
-                      <div style="font-size: 10.5px; color: #94a3b8;">Native OS PackageInstaller IPC</div>
+                    <div class="store-preview-thumb" onclick="openLightbox('/img/previews/ourstore_2.png')" style="flex: 0 0 105px; height: 185px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); background: #000;">
+                      <img src="/img/previews/ourstore_2.png" alt="Autonomous 1-Tap Updates" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                      <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                        <span style="font-size: 8px; font-weight: 800; color: #34d399; letter-spacing: 0.5px; display: block;">UPDATES</span>
+                        <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">1-Tap Upgrades</span>
+                      </div>
+                    </div>
+                    <div class="store-preview-thumb" onclick="openLightbox('/img/previews/ourstore_3.png')" style="flex: 0 0 105px; height: 185px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); background: #000;">
+                      <img src="/img/previews/ourstore_3.png" alt="Profile & Security Vault" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                      <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                        <span style="font-size: 8px; font-weight: 800; color: #a855f7; letter-spacing: 0.5px; display: block;">ACCOUNT</span>
+                        <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Security Vault</span>
+                      </div>
+                    </div>
+                    <div class="store-preview-thumb" onclick="openLightbox('/img/previews/ourstore_4.png')" style="flex: 0 0 105px; height: 185px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); background: #000;">
+                      <img src="/img/previews/ourstore_4.png" alt="Native In-App Installations" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                      <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                        <span style="font-size: 8px; font-weight: 800; color: #f59e0b; letter-spacing: 0.5px; display: block;">DETAILS</span>
+                        <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Native Details</span>
+                      </div>
                     </div>
                   </div>
-                  <span style="font-size: 11px; font-weight: 700; color: #38bdf8; background: rgba(56,189,248,0.1); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(56,189,248,0.25);">
-                    Zero Browser
-                  </span>
-                </div>
-
-                <!-- Highlight Card 2: SHA-256 Integrity Verification -->
-                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                  <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center;">
-                      <i data-lucide="shield-check" style="color: #34d399; width: 20px; height: 20px;"></i>
-                    </div>
-                    <div>
-                      <div style="font-size: 13px; font-weight: 700; color: #fff;">Cryptographic Integrity</div>
-                      <div style="font-size: 10.5px; color: #94a3b8;">Strict SHA-256 Digest Validation</div>
-                    </div>
-                  </div>
-                  <span style="font-size: 11px; font-weight: 700; color: #34d399; background: rgba(16,185,129,0.1); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(16,185,129,0.25);">
-                    Tamper-Proof
-                  </span>
-                </div>
-
-                <!-- Highlight Card 3: Autonomous Background Engine -->
-                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                  <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); display: flex; align-items: center; justify-content: center;">
-                      <i data-lucide="refresh-cw" style="color: #c084fc; width: 20px; height: 20px;"></i>
-                    </div>
-                    <div>
-                      <div style="font-size: 13px; font-weight: 700; color: #fff;">Automated Update Checks</div>
-                      <div style="font-size: 10.5px; color: #94a3b8;">Instant Notification & 1-Tap Upgrade</div>
-                    </div>
-                  </div>
-                  <span style="font-size: 11px; font-weight: 700; color: #c084fc; background: rgba(168,85,247,0.1); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(168,85,247,0.25);">
-                    Autonomous
-                  </span>
                 </div>
 
                 <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
@@ -28071,9 +28093,9 @@ html[data-theme="dark"] #saveProfileBtn {
                   </div>
                 </div>
 
-                <a href="/downloads/our-store.apk" download="our-store.apk" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background: linear-gradient(135deg, #2563eb, #0284c7); border-radius: 10px; color: #fff; font-size: 13px; font-weight: 800; text-decoration: none; box-shadow: 0 4px 14px rgba(37,99,235,0.4);">
+                <a href="/downloads/our-store.apk" download="our-store.apk" class="btn-animated-feedback" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background: linear-gradient(135deg, #2563eb, #0284c7); border-radius: 10px; color: #fff; font-size: 13px; font-weight: 800; text-decoration: none; box-shadow: 0 4px 14px rgba(37,99,235,0.4);">
                   <i data-lucide="download" class="lucide-sm"></i>
-                  <span>Download Our Store APK (v2.0.9 • 18.1 MB)</span>
+                  <span>Download Our Store APK (v2.2.0 • 16.3 MB)</span>
                 </a>
               </div>
             </div>
@@ -28100,7 +28122,7 @@ html[data-theme="dark"] #saveProfileBtn {
                       <img src="/favicon.svg" alt="Connecto" style="width: 44px; height: 44px; border-radius: 12px; background: #000; padding: 6px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
                       <div>
                         <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #fff;">Connecto</h4>
-                        <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">com.connecto.app • v5.0.0 (b125)</span>
+                        <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">com.connecto.app • v5.8.5 (b192)</span>
                       </div>
                     </div>
                     <span style="background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 20px;">
@@ -28110,9 +28132,50 @@ html[data-theme="dark"] #saveProfileBtn {
                   <p style="margin: 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
                     Private encrypted messaging, WebRTC P2P voice rooms, 9 signature luxury themes, biometric vault, and AGSL GPU shaders.
                   </p>
+
+                  <!-- Preview Carousel: Connecto -->
+                  <div style="margin: 12px 0 6px 0;">
+                    <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                      <span style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="smartphone" class="lucide-xs" style="color: #6366f1;"></i>
+                        <span>Interface Previews</span>
+                      </span>
+                      <span style="font-size: 10px; color: #6366f1; font-weight: 600;">Tap to enlarge</span>
+                    </div>
+                    <div class="store-preview-scroll">
+                      <div class="store-preview-thumb" onclick="openLightbox('/img/previews/connecto_1.png')" style="flex: 0 0 100px; height: 175px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.12); background: #000;">
+                        <img src="/img/previews/connecto_1.png" alt="End-to-End Encrypted Chat" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                          <span style="font-size: 8px; font-weight: 800; color: #818cf8; letter-spacing: 0.5px; display: block;">MESSAGES</span>
+                          <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Encrypted Chat</span>
+                        </div>
+                      </div>
+                      <div class="store-preview-thumb" onclick="openLightbox('/img/previews/connecto_2.png')" style="flex: 0 0 100px; height: 175px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.12); background: #000;">
+                        <img src="/img/previews/connecto_2.png" alt="Studio HD Voice Lounge & WebRTC" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                          <span style="font-size: 8px; font-weight: 800; color: #34d399; letter-spacing: 0.5px; display: block;">VOICE CALLS</span>
+                          <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Studio HD Voice</span>
+                        </div>
+                      </div>
+                      <div class="store-preview-thumb" onclick="openLightbox('/img/previews/connecto_3.png')" style="flex: 0 0 100px; height: 175px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.12); background: #000;">
+                        <img src="/img/previews/connecto_3.png" alt="Workspace Channels & Feed" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                          <span style="font-size: 8px; font-weight: 800; color: #38bdf8; letter-spacing: 0.5px; display: block;">COMMUNITIES</span>
+                          <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Workspaces</span>
+                        </div>
+                      </div>
+                      <div class="store-preview-thumb" onclick="openLightbox('/img/previews/connecto_4.png')" style="flex: 0 0 100px; height: 175px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.12); background: #000;">
+                        <img src="/img/previews/connecto_4.png" alt="Biometric Keystore Vault & Privacy" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                          <span style="font-size: 8px; font-weight: 800; color: #a855f7; letter-spacing: 0.5px; display: block;">SECURITY</span>
+                          <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Biometric Vault</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
-                  <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">36.2 MB • Android 7.0+</span>
+                  <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">36.7 MB • Android 7.0+</span>
                   <a href="/download/apk" download="connecto-fun.apk" class="android-primary-download-btn" style="padding: 7px 14px; font-size: 12px; background: linear-gradient(135deg, #10b981, #059669); border-color: #34d399;">
                     <i data-lucide="download" class="lucide-xs"></i> <span>Download APK</span>
                   </a>
@@ -28127,7 +28190,7 @@ html[data-theme="dark"] #saveProfileBtn {
                       <img src="/pdf_studio_logo.png" alt="PDF Studio" style="width: 44px; height: 44px; border-radius: 12px; object-fit: contain; background: #fff; padding: 4px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 4px 12px rgba(239,68,68,0.3);">
                       <div>
                         <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #fff;">PDF Studio</h4>
-                        <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">com.app.pdfstudio • v1.5.6 (b22)</span>
+                        <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">com.app.pdfstudio • v1.9.1 (b27)</span>
                       </div>
                     </div>
                     <span style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 20px;">
@@ -28137,9 +28200,43 @@ html[data-theme="dark"] #saveProfileBtn {
                   <p style="margin: 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
                     Professional on-device PDF editor & Creative Image Studio with typography matching, drawing brush, text annotations, vector shapes, crop & tone filters.
                   </p>
+
+                  <!-- Preview Carousel: PDF Studio -->
+                  <div style="margin: 12px 0 6px 0;">
+                    <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                      <span style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="smartphone" class="lucide-xs" style="color: #ef4444;"></i>
+                        <span>Interface Previews</span>
+                      </span>
+                      <span style="font-size: 10px; color: #ef4444; font-weight: 600;">Tap to enlarge</span>
+                    </div>
+                    <div class="store-preview-scroll">
+                      <div class="store-preview-thumb" onclick="openLightbox('/img/previews/pdfstudio_1.png')" style="flex: 0 0 100px; height: 175px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.12); background: #000;">
+                        <img src="/img/previews/pdfstudio_1.png" alt="Same-Font In-Place Editor" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                          <span style="font-size: 8px; font-weight: 800; color: #f87171; letter-spacing: 0.5px; display: block;">EDITOR</span>
+                          <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Font Matching</span>
+                        </div>
+                      </div>
+                      <div class="store-preview-thumb" onclick="openLightbox('/img/previews/pdfstudio_2.png')" style="flex: 0 0 100px; height: 175px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.12); background: #000;">
+                        <img src="/img/previews/pdfstudio_2.png" alt="Photo & Image to PDF Studio" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                          <span style="font-size: 8px; font-weight: 800; color: #38bdf8; letter-spacing: 0.5px; display: block;">CONVERTER</span>
+                          <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Photos to PDF</span>
+                        </div>
+                      </div>
+                      <div class="store-preview-thumb" onclick="openLightbox('/img/previews/pdfstudio_3.png')" style="flex: 0 0 100px; height: 175px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.12); background: #000;">
+                        <img src="/img/previews/pdfstudio_3.png" alt="Lossless Multi-Document Merger" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                          <span style="font-size: 8px; font-weight: 800; color: #34d399; letter-spacing: 0.5px; display: block;">MERGER</span>
+                          <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Lossless Merge</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
-                  <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">64.4 MB • Android 8.0+</span>
+                  <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">64.5 MB • Android 8.0+</span>
                   <a href="/downloads/pdf-studio.apk" download="pdf-studio.apk" class="android-primary-download-btn" style="padding: 7px 14px; font-size: 12px; background: linear-gradient(135deg, #ef4444, #b91c1c); border-color: #f87171;">
                     <i data-lucide="download" class="lucide-xs"></i> <span>Download APK</span>
                   </a>
@@ -28154,7 +28251,7 @@ html[data-theme="dark"] #saveProfileBtn {
                       <img src="/img/jarvis_icon.png" alt="JARVIS AI" style="width: 44px; height: 44px; border-radius: 12px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 4px 12px rgba(168,85,247,0.3);">
                       <div>
                         <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #fff;">JARVIS AI</h4>
-                        <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">com.connecto.jarvis • v2.1.0 (b42)</span>
+                        <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">com.omni.assistant • v2.0.0 (b2)</span>
                       </div>
                     </div>
                     <span style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #c084fc; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 20px;">
@@ -28164,9 +28261,43 @@ html[data-theme="dark"] #saveProfileBtn {
                   <p style="margin: 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
                     Autonomous on-device AI assistant with neural reasoning, local vector recall, voice actions, and hardware privacy isolation. Restricted to administrative operators.
                   </p>
+
+                  <!-- Preview Carousel: JARVIS AI -->
+                  <div style="margin: 12px 0 6px 0;">
+                    <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                      <span style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="smartphone" class="lucide-xs" style="color: #a855f7;"></i>
+                        <span>Interface Previews</span>
+                      </span>
+                      <span style="font-size: 10px; color: #a855f7; font-weight: 600;">Tap to enlarge</span>
+                    </div>
+                    <div class="store-preview-scroll">
+                      <div class="store-preview-thumb" onclick="openLightbox('/img/previews/jarvis_1.png')" style="flex: 0 0 100px; height: 175px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.12); background: #000;">
+                        <img src="/img/previews/jarvis_1.png" alt="Neural Conversational Assistant" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                          <span style="font-size: 8px; font-weight: 800; color: #c084fc; letter-spacing: 0.5px; display: block;">INTELLIGENCE</span>
+                          <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Neural Assistant</span>
+                        </div>
+                      </div>
+                      <div class="store-preview-thumb" onclick="openLightbox('/img/previews/jarvis_2.png')" style="flex: 0 0 100px; height: 175px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.12); background: #000;">
+                        <img src="/img/previews/jarvis_2.png" alt="Zero-Leak On-Device Memory Vault" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                          <span style="font-size: 8px; font-weight: 800; color: #38bdf8; letter-spacing: 0.5px; display: block;">MEMORY VAULT</span>
+                          <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Memory Vault</span>
+                        </div>
+                      </div>
+                      <div class="store-preview-thumb" onclick="openLightbox('/img/previews/jarvis_3.png')" style="flex: 0 0 100px; height: 175px; border-radius: 10px; overflow: hidden; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.12); background: #000;">
+                        <img src="/img/previews/jarvis_3.png" alt="Multi-Cloud AI Engine & Personality" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%); padding: 6px 4px 4px;">
+                          <span style="font-size: 8px; font-weight: 800; color: #34d399; letter-spacing: 0.5px; display: block;">SETTINGS</span>
+                          <span style="font-size: 9px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">AI Settings</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
-                  <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">24.8 MB • Android 9.0+</span>
+                  <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">126 MB • Android 9.0+</span>
                   <a href="/downloads/jarvis-ai-official.apk" download="jarvis-ai-official.apk" class="android-primary-download-btn" style="padding: 7px 14px; font-size: 12px; background: linear-gradient(135deg, #8b5cf6, #6d28d9); border-color: #a78bfa;">
                     <i data-lucide="download" class="lucide-xs"></i> <span>Download APK</span>
                   </a>

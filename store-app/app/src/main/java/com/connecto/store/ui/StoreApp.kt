@@ -1954,15 +1954,15 @@ private fun getAppPreviews(appId: String): List<AppScreenshotPreview> = when (ap
         AppScreenshotPreview("previews/ourstore_4.png", "Native In-App Installations", "DETAILS")
     )
     "connecto" -> listOf(
-        AppScreenshotPreview("previews/connecto_1.png", "Private End-to-End Chat", "MESSAGES"),
-        AppScreenshotPreview("previews/connecto_2.png", "Channels & Communities", "DISCOVER"),
-        AppScreenshotPreview("previews/connecto_3.png", "Guest Sandbox Profile", "GUEST MODE"),
-        AppScreenshotPreview("previews/connecto_4.png", "Offline Direct Mesh Hub", "LOCAL MESH")
+        AppScreenshotPreview("previews/connecto_1.png", "End-to-End Encrypted Chat", "MESSAGES"),
+        AppScreenshotPreview("previews/connecto_2.png", "Studio HD Voice Lounge & WebRTC", "VOICE CALLS"),
+        AppScreenshotPreview("previews/connecto_3.png", "Workspace Channels & Feed", "COMMUNITIES"),
+        AppScreenshotPreview("previews/connecto_4.png", "Biometric Keystore Vault & Privacy", "SECURITY")
     )
     "pdfstudio" -> listOf(
         AppScreenshotPreview("previews/pdfstudio_1.png", "Same-Font In-Place Editor", "EDITOR"),
-        AppScreenshotPreview("previews/pdfstudio_2.png", "Photo & Image to PDF", "CONVERTER"),
-        AppScreenshotPreview("previews/pdfstudio_3.png", "Lossless Multi-Document Merge", "MERGER")
+        AppScreenshotPreview("previews/pdfstudio_2.png", "Photo & Image to PDF Studio", "CONVERTER"),
+        AppScreenshotPreview("previews/pdfstudio_3.png", "Lossless Multi-Document Merger", "MERGER")
     )
     "jarvis" -> listOf(
         AppScreenshotPreview("previews/jarvis_1.png", "Neural Conversational Assistant", "INTELLIGENCE"),
