@@ -653,21 +653,21 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.6/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.5/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.4/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.3/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.2/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.4/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.3/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.5-b192-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.6-b193-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.8.5");
-          res.headers.set("X-Connecto-Build", "192");
+          res.headers.set("X-Connecto-Version", "v5.8.6");
+          res.headers.set("X-Connecto-Build", "193");
           return res;
         }
 
@@ -703,8 +703,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.8.5");
-              downloadHeaders.set("X-Connecto-Build", "192");
+              downloadHeaders.set("X-Connecto-Version", "v5.8.6");
+              downloadHeaders.set("X-Connecto-Build", "193");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2339,14 +2339,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.5",
-        version_code: 192,
+        version_name: "5.8.6",
+        version_code: 193,
         size_bytes: 38473489,
         size_formatted: "36.7 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Direct Chat Smooth Scrolling & General Channel Isolation Architecture (v5.8.6): Fully restored smooth vertical scrolling in Personal Direct Chat by replacing multi-axis drag slop interception with detectHorizontalDragGestures and removing touch-consuming spacer boxes from message bubbles. Stopped background delta polling from auto-scrolling upward-scrolled chats by checking scroll progress. Hardened Workspace Channels against cross-contamination: added LaunchedEffect(initialChannelId) to immediately switch channels, isolated message state with immediate pre-fetch clearing, and blocked public community channels ('general', 'announcements', etc.) from being overwritten or mapped to private DM aliases in SQLite, channelCache, and Cloudflare D1.",
           "Lazy-Mount Keep-Alive Bottom Navigation, 120Hz Fast Visual Response & 30s Stale-While-Revalidate Sync (v5.8.5): Fully eliminated tab switching latency and frame drops across Android 15 by introducing a lazy-mounted persistent tab host that preserves view hierarchies and scroll state across tabs. Upgraded bottom navigation touch feedback to instantaneous 120Hz response with zero-drag tab re-selection protection. Integrated ConnectoTabSyncStore with 30-second stale-while-revalidate caching and paused inactive background polling to maximize battery life and maintain silky smooth 60/120fps UI performance.",
           "Focused Search State, Android 15 Status Bar Insets & Search Engine Isolation (v5.8.4): Relocated Android 15 edge-to-edge statusBarsPadding permanently onto the outer non-collapsing screen root, keeping search input and cancel buttons perfectly placed 10px below status bar icons with zero clock/battery overlap during header collapse animations. Centered search pill and cancel button with 16px screen padding and 12px separation. Isolated active search mode by hiding inbox segmented tabs (All/Direct/Groups), section headers, and floating purple + action button on focus. Implemented dedicated search container with category chips (All, People, Messages, Channels), suggested quick contacts for empty queries, live grouped matches with substring highlighting, and centered empty state for zero-result queries. Hardened search preferences against partial keystrokes (min 2 chars, keyboard Done / result tap trigger only, case-insensitive deduplication, 5 max items, Secret Vault code exclusion).",
           "Clean-Slate Direct Chat Scaffold Rebuild & Message Loading Pipeline (v5.8.3): Fully rebuilt the Personal Direct Chat screen on Jetpack Compose using a dedicated 3-slot Scaffold (pinned header in topBar, pinned composer in bottomBar with navigationBarsPadding and imePadding, and bounded center viewport) eliminating composer float-up bug. Implemented Obsidian shimmer skeleton message feed during loading, calm empty state with starter chips, and Obsidian error recovery card with retry trigger. Web direct chat layout locked to bounded viewport height (100dvh). Cloudflare D1 message query hardened with defensive attribute projection and sanitized cleared_at checks.",
@@ -6390,12 +6391,18 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     }
 
     // Resolve canonical channel name if UUID or alias was passed
+    const PUBLIC_COMMUNITY_CHANNELS = new Set(["general", "announcements", "gaming", "tournaments", "clips", "voice-lounge", "dev-chat", "war-room"]);
+    const cleanLowerInput = (channelId || "").toLowerCase().trim().replace(/^#/, "");
     let canonicalChannel = channelId;
     let resolvedChannelId = channelId;
-    if (env.DB) {
+
+    if (PUBLIC_COMMUNITY_CHANNELS.has(cleanLowerInput)) {
+      canonicalChannel = cleanLowerInput;
+      resolvedChannelId = cleanLowerInput;
+    } else if (env.DB) {
       try {
         const chRow = await env.DB.prepare(
-          "SELECT id, name FROM channels WHERE id = ? OR lower(name) = ? OR lower(id) = ? LIMIT 1"
+          "SELECT id, name FROM channels WHERE (id = ? OR lower(name) = ? OR lower(id) = ?) AND id NOT IN ('general', 'announcements', 'gaming', 'tournaments', 'clips', 'voice-lounge') LIMIT 1"
         ).bind(channelId, channelId.toLowerCase(), channelId.toLowerCase()).first();
         if (chRow) {
           if (chRow.name) canonicalChannel = chRow.name;

@@ -267,7 +267,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             val db = writableDatabase
             db.delete(
                 TABLE_CHANNELS,
-                "$COL_CH_TYPE = 'dm' AND ($COL_CH_ID LIKE 'grp-%' OR $COL_CH_ID LIKE 'grp_%' OR $COL_CH_ID LIKE 'group-%' OR $COL_CH_NAME LIKE 'grp-%' OR $COL_CH_NAME LIKE 'grp_%' OR $COL_CH_NAME LIKE 'group-%')",
+                "$COL_CH_TYPE = 'dm' AND ($COL_CH_ID LIKE 'grp-%' OR $COL_CH_ID LIKE 'grp_%' OR $COL_CH_ID LIKE 'group-%' OR $COL_CH_NAME LIKE 'grp-%' OR $COL_CH_NAME LIKE 'grp_%' OR $COL_CH_NAME LIKE 'group-%' OR lower($COL_CH_ID) IN ('general', 'announcements', 'gaming', 'tournaments', 'clips', 'voice-lounge', 'random', 'voice', 'dev-chat', 'war-room') OR lower($COL_CH_NAME) IN ('general', 'announcements', 'gaming', 'tournaments', 'clips', 'voice-lounge', 'random', 'voice', 'dev-chat', 'war-room'))",
                 null
             )
         } catch (_: Exception) {}
@@ -426,8 +426,9 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             } catch (_: Exception) {}
         }
         val cv = ContentValues().apply {
+            val ch = (msg.channelId ?: "").trim().lowercase().removePrefix("#")
             put(COL_MSG_ID, msg.id)
-            put(COL_MSG_CHANNEL, (msg.channelId ?: "general").trim().lowercase().removePrefix("#"))
+            put(COL_MSG_CHANNEL, if (ch.isNotBlank()) ch else "direct")
             put(COL_MSG_AUTHOR_ID, msg.authorId)
             put(COL_MSG_AUTHOR_NAME, msg.authorName)
             put(COL_MSG_CONTENT, msg.content)
@@ -871,8 +872,10 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
     fun saveDmChannel(canonicalName: String, channelId: String) {
         val cleanId = channelId.trim().lowercase().removePrefix("#")
         val cleanName = canonicalName.trim().lowercase().removePrefix("#")
+        val publicChannels = setOf("general", "announcements", "gaming", "tournaments", "clips", "voice-lounge", "random", "voice", "dev-chat", "war-room")
         if (cleanId.startsWith("grp-") || cleanId.startsWith("grp_") || cleanId.startsWith("group-") ||
-            cleanName.startsWith("grp-") || cleanName.startsWith("grp_") || cleanName.startsWith("group-")) {
+            cleanName.startsWith("grp-") || cleanName.startsWith("grp_") || cleanName.startsWith("group-") ||
+            cleanId in publicChannels || cleanName in publicChannels) {
             return
         }
         try {
@@ -891,7 +894,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             val db = readableDatabase
             val c = canonicalName.trim().lowercase().removePrefix("#")
             val cursor = db.rawQuery(
-                "SELECT $COL_CH_ID FROM $TABLE_CHANNELS WHERE lower($COL_CH_NAME) = ? AND $COL_CH_TYPE = 'dm' AND $COL_CH_ID NOT LIKE 'grp-%' AND $COL_CH_ID NOT LIKE 'grp_%' AND $COL_CH_ID NOT LIKE 'group-%' LIMIT 1",
+                "SELECT $COL_CH_ID FROM $TABLE_CHANNELS WHERE lower($COL_CH_NAME) = ? AND $COL_CH_TYPE = 'dm' AND $COL_CH_ID NOT LIKE 'grp-%' AND $COL_CH_ID NOT LIKE 'grp_%' AND $COL_CH_ID NOT LIKE 'group-%' AND lower($COL_CH_ID) NOT IN ('general', 'announcements', 'gaming', 'tournaments', 'clips', 'voice-lounge', 'random', 'voice', 'dev-chat', 'war-room') LIMIT 1",
                 arrayOf(c)
             )
             cursor.use {

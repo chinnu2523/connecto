@@ -1487,6 +1487,11 @@ fun CustomizedChatScreen(
         val target = targetChatUserOrChannel?.trim()
         if (!target.isNullOrBlank()) {
             val clean = target.lowercase().removePrefix("@").removePrefix("#").removePrefix("dm-").removePrefix("dm_")
+            val publicChannels = setOf("general", "announcements", "gaming", "tournaments", "clips", "voice-lounge", "random", "voice", "dev-chat", "war-room")
+            if (clean in publicChannels) {
+                onTargetChatHandled?.invoke()
+                return@LaunchedEffect
+            }
             val matchingFriend = friendsList.firstOrNull {
                 it.id.equals(clean, ignoreCase = true) ||
                 it.handle.removePrefix("@").equals(clean, ignoreCase = true) ||
@@ -2779,13 +2784,16 @@ fun CustomizedChatScreen(
 
             if (isForCurrentChat && currentFriend != null) {
                 isLoadingMessages = false
-                val isGrpCh = dto.channelId.orEmpty().startsWith("grp-") || dto.channelId.orEmpty().startsWith("grp_") || dto.channelId.orEmpty().startsWith("group-")
-                if (activeDmChannelId == null && !dto.channelId.isNullOrBlank() && !dto.channelId.startsWith("dm-") && !dto.channelId.startsWith("dm_") && !isGrpCh) {
-                    activeDmChannelId = dto.channelId
+                val publicChannels = setOf("general", "announcements", "gaming", "tournaments", "clips", "voice-lounge", "random", "voice", "dev-chat", "war-room")
+                val cleanDtoCh = dto.channelId.orEmpty().trim().lowercase().removePrefix("#")
+                val isGrpCh = cleanDtoCh.startsWith("grp-") || cleanDtoCh.startsWith("grp_") || cleanDtoCh.startsWith("group-")
+                val rawDtoCh = dto.channelId
+                if (activeDmChannelId == null && !rawDtoCh.isNullOrBlank() && cleanDtoCh.isNotBlank() && !cleanDtoCh.startsWith("dm-") && !cleanDtoCh.startsWith("dm_") && !isGrpCh && cleanDtoCh !in publicChannels) {
+                    activeDmChannelId = rawDtoCh
                     if (currentCanonical != null) {
-                        ConnectoApiClient.channelCache[currentCanonical.lowercase()] = dto.channelId
+                        ConnectoApiClient.channelCache[currentCanonical.lowercase()] = rawDtoCh
                         coroutineScope.launch(Dispatchers.IO) {
-                            try { dbHelper.saveDmChannel(currentCanonical, dto.channelId) } catch (_: Exception) {}
+                            try { dbHelper.saveDmChannel(currentCanonical, rawDtoCh) } catch (_: Exception) {}
                         }
                     }
                 }
@@ -3304,9 +3312,12 @@ fun CustomizedChatScreen(
                             isLoadingMessages = false
                             if (unexpiredList.isNotEmpty()) {
                                 // Learn channel UUID if returned in message DTOs
+                                val publicChannels = setOf("general", "announcements", "gaming", "tournaments", "clips", "voice-lounge", "random", "voice", "dev-chat", "war-room")
                                 val serverChId = unexpiredList.firstOrNull {
-                                    !it.channelId.isNullOrBlank() && !it.channelId.startsWith("dm-") && !it.channelId.startsWith("dm_") &&
-                                    !it.channelId.startsWith("grp-") && !it.channelId.startsWith("grp_") && !it.channelId.startsWith("group-")
+                                    val cClean = it.channelId.orEmpty().trim().lowercase().removePrefix("#")
+                                    cClean.isNotBlank() && !cClean.startsWith("dm-") && !cClean.startsWith("dm_") &&
+                                    !cClean.startsWith("grp-") && !cClean.startsWith("grp_") && !cClean.startsWith("group-") &&
+                                    cClean !in publicChannels
                                 }?.channelId
                                 if (serverChId != null && !friend.isGroup) {
                                     if (activeDmChannelId == null) activeDmChannelId = serverChId
@@ -3509,8 +3520,8 @@ fun CustomizedChatScreen(
         }
     }
 
-    // Auto-scroll on new messages, initial open, or input focus (ensures always landing on latest messages)
-    LaunchedEffect(friendMessages.size, isInputFocused, selectedFriend?.id) {
+    // Auto-scroll on new messages or initial open (never fight user scrolling upward or typing)
+    LaunchedEffect(friendMessages.size, selectedFriend?.id) {
         if (selectedFriend != null && friendMessages.isNotEmpty()) {
             val targetIdx = friendMessages.size
             if (lastScrolledFriendId != selectedFriend?.id) {
@@ -3522,7 +3533,8 @@ fun CustomizedChatScreen(
             } else {
                 val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
                 val isNearBottom = lastVisible >= (targetIdx - 3).coerceAtLeast(0)
-                if (isNearBottom || isInputFocused) {
+                // Auto-scroll ONLY when user was already near the bottom AND is not actively dragging/scrolling
+                if (isNearBottom && !listState.isScrollInProgress) {
                     try { listState.animateScrollToItem(targetIdx) } catch (_: Exception) {}
                 }
             }
@@ -6946,56 +6958,38 @@ fun CustomizedChatScreen(
                                         val msgBubbleTranslateY = if (isRecentMsg) 14f * (1f - popInAnim.value) else 0f
 
                                         val isMsgSelected = isMultiSelectMode && selectedMultiMessageIds.contains(msg.id)
-                                        var totalDeltaX by remember(msg.id) { mutableStateOf(0f) }
-                                        var totalDeltaY by remember(msg.id) { mutableStateOf(0f) }
-                                        var isSwipingRight by remember(msg.id) { mutableStateOf(false) }
-
                                         val dragModifier = if (!isMultiSelectMode) {
                                             Modifier.pointerInput(msg.id) {
-                                                detectDragGestures(
+                                                detectHorizontalDragGestures(
                                                     onDragStart = {
-                                                        totalDeltaX = 0f
-                                                        totalDeltaY = 0f
-                                                        isSwipingRight = false
+                                                        dragOffsetX = 0f
+                                                        hasTriggeredHaptic = false
                                                     },
                                                     onDragEnd = {
-                                                        if (dragOffsetX >= 52f) {
+                                                        if (dragOffsetX >= 44f) {
                                                             editingMessage = null
                                                             replyingTo = msg
                                                             try { messageInputFocusRequester.requestFocus() } catch (_: Exception) {}
                                                         }
                                                         dragOffsetX = 0f
                                                         hasTriggeredHaptic = false
-                                                        isSwipingRight = false
                                                     },
                                                     onDragCancel = {
                                                         dragOffsetX = 0f
                                                         hasTriggeredHaptic = false
-                                                        isSwipingRight = false
                                                     },
-                                                    onDrag = { change, dragAmount ->
-                                                        if (!isSwipingRight) {
-                                                            totalDeltaX += dragAmount.x
-                                                            totalDeltaY += dragAmount.y
-                                                            // Only lock into horizontal swipe when deltaX > 12px AND deltaX > Math.abs(deltaY) * 1.5
-                                                            if (totalDeltaX > 12f && totalDeltaX > kotlin.math.abs(totalDeltaY) * 1.5f) {
-                                                                isSwipingRight = true
-                                                                change.consume()
-                                                            }
-                                                        } else {
+                                                    onHorizontalDrag = { change, dragAmount ->
+                                                        if (dragAmount > 0f || dragOffsetX > 0f) {
+                                                            val resistance = (1f - (dragOffsetX / 90f).coerceIn(0f, 0.85f))
+                                                            val nextOffset = dragOffsetX + dragAmount * 0.45f * resistance
+                                                            dragOffsetX = nextOffset.coerceIn(0f, 68f)
                                                             change.consume()
-                                                            // Strict Single-Direction Swipe (Swipe Right --> ONLY) for ALL messages
-                                                            if (dragAmount.x > 0f || dragOffsetX > 0f) {
-                                                                val resistance = (1f - (dragOffsetX / 90f).coerceIn(0f, 0.85f))
-                                                                val nextOffset = dragOffsetX + dragAmount.x * 0.45f * resistance
-                                                                dragOffsetX = nextOffset.coerceIn(0f, 68f)
-                                                            }
-                                                            if (dragOffsetX >= 52f && !hasTriggeredHaptic) {
-                                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                                hasTriggeredHaptic = true
-                                                            } else if (dragOffsetX < 52f) {
-                                                                hasTriggeredHaptic = false
-                                                            }
+                                                        }
+                                                        if (dragOffsetX >= 44f && !hasTriggeredHaptic) {
+                                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            hasTriggeredHaptic = true
+                                                        } else if (dragOffsetX < 44f) {
+                                                            hasTriggeredHaptic = false
                                                         }
                                                     }
                                                 )
@@ -9526,20 +9520,7 @@ fun CustomChatBubble(
         verticalAlignment = Alignment.Bottom
     ) {
         if (message.isMe) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .defaultMinSize(minHeight = 44.dp)
-                    .pointerInput(message.id) {
-                        detectTapGestures(
-                            onTap = { onMessageClick?.invoke() },
-                            onLongPress = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onMessageLongPress(message)
-                            }
-                        )
-                    }
-            )
+            Spacer(modifier = Modifier.weight(1f))
         }
 
         if (!message.isMe) {
@@ -10015,20 +9996,7 @@ fun CustomChatBubble(
             }
         }
         if (!message.isMe) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .defaultMinSize(minHeight = 44.dp)
-                    .pointerInput(message.id) {
-                        detectTapGestures(
-                            onTap = { onMessageClick?.invoke() },
-                            onLongPress = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onMessageLongPress(message)
-                            }
-                        )
-                    }
-            )
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }

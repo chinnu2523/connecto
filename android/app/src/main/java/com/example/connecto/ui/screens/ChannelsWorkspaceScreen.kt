@@ -245,6 +245,14 @@ fun ChannelsWorkspaceScreen(
     val savedChannelId = remember { sharedPrefs.getString("last_active_channel", initialChannelId) ?: initialChannelId }
     var selectedChannelId by rememberSaveable { mutableStateOf(savedChannelId) }
 
+    LaunchedEffect(initialChannelId) {
+        val cleanInitial = initialChannelId.trim().lowercase().removePrefix("#")
+        val currentClean = selectedChannelId.trim().lowercase().removePrefix("#")
+        if (cleanInitial.isNotBlank() && cleanInitial != currentClean) {
+            selectedChannelId = cleanInitial
+        }
+    }
+
     // Sync active channel conversation with ConnectoNotificationManager for foreground suppression and tray cleanup
     androidx.compose.runtime.DisposableEffect(selectedChannelId) {
         val cleanChan = selectedChannelId.trim().lowercase().removePrefix("#")
@@ -575,10 +583,13 @@ fun ChannelsWorkspaceScreen(
         val cleanCh = cleanSelectedChannel
         sharedPrefs.edit().putString("last_active_channel", cleanCh).apply()
 
+        // ALWAYS clear stale messages from the previous channel immediately so old chat never lingers or morphs
+        messages.clear()
+        isLoadingMessages = true
+
         if (isGuest) {
             isLoadingMessages = false
             val mockMessages = getGuestChannelMockMessages(cleanCh)
-            messages.clear()
             messages.addAll(mockMessages)
             pinnedMessageForChannel = getGuestPinnedMessage(cleanCh)
             try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
@@ -590,18 +601,16 @@ fun ChannelsWorkspaceScreen(
         val currentDeletedSet = sharedPrefs.getStringSet("deleted_for_me_$currentUsername", emptySet())
             ?.toSet() ?: emptySet()
 
-        // Fallback: If messages was empty at composition, try reading from local SQLite
-        if (messages.isEmpty()) {
-            withContext(Dispatchers.IO) {
-                val cached = dbHelper.getMessagesForChannel(cleanCh, limit = 100)
-                if (cached.isNotEmpty()) {
-                    val distinctCached = cached.distinctBy { it.id }.filterNot { currentDeletedSet.contains(it.id) }
-                    withContext(Dispatchers.Main) {
-                        if (messages.isEmpty()) {
-                            messages.addAll(distinctCached)
-                            isLoadingMessages = false
-                            try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
-                        }
+        // Load local SQLite cached messages for THIS channel immediately on Frame 0
+        withContext(Dispatchers.IO) {
+            val cached = dbHelper.getMessagesForChannel(cleanCh, limit = 100)
+            if (cached.isNotEmpty()) {
+                val distinctCached = cached.distinctBy { it.id }.filterNot { currentDeletedSet.contains(it.id) }
+                withContext(Dispatchers.Main) {
+                    if (cleanSelectedChannel == cleanCh && messages.isEmpty()) {
+                        messages.addAll(distinctCached)
+                        isLoadingMessages = false
+                        try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
                     }
                 }
             }
@@ -614,20 +623,22 @@ fun ChannelsWorkspaceScreen(
                 if (serverPinRes.isSuccess) {
                     val serverPin = serverPinRes.getOrNull()
                     withContext(Dispatchers.Main) {
-                        if (serverPin != null) {
-                            pinnedMessageForChannel = serverPin
-                            sharedPrefs.edit()
-                                .putString("pinned_msg_ch_$cleanCh", serverPin.messageId)
-                                .putString("pinned_content_ch_$cleanCh", serverPin.content)
-                                .putString("pinned_author_ch_$cleanCh", serverPin.authorName)
-                                .apply()
-                        } else {
-                            pinnedMessageForChannel = null
-                            sharedPrefs.edit()
-                                .remove("pinned_msg_ch_$cleanCh")
-                                .remove("pinned_content_ch_$cleanCh")
-                                .remove("pinned_author_ch_$cleanCh")
-                                .apply()
+                        if (cleanSelectedChannel == cleanCh) {
+                            if (serverPin != null) {
+                                pinnedMessageForChannel = serverPin
+                                sharedPrefs.edit()
+                                    .putString("pinned_msg_ch_$cleanCh", serverPin.messageId)
+                                    .putString("pinned_content_ch_$cleanCh", serverPin.content)
+                                    .putString("pinned_author_ch_$cleanCh", serverPin.authorName)
+                                    .apply()
+                            } else {
+                                pinnedMessageForChannel = null
+                                sharedPrefs.edit()
+                                    .remove("pinned_msg_ch_$cleanCh")
+                                    .remove("pinned_content_ch_$cleanCh")
+                                    .remove("pinned_author_ch_$cleanCh")
+                                    .apply()
+                            }
                         }
                     }
                 }
@@ -636,41 +647,32 @@ fun ChannelsWorkspaceScreen(
             try {
                 val res = ConnectoApiClient.getMessages(channelId = cleanCh, limit = 100)
                 withContext(Dispatchers.Main) {
-                    isLoadingMessages = false
+                    if (cleanSelectedChannel == cleanCh) {
+                        isLoadingMessages = false
+                    }
                 }
                 if (res.isSuccess) {
                     val fresh = res.getOrThrow().distinctBy { it.id }.filterNot { currentDeletedSet.contains(it.id) }
                     withContext(Dispatchers.Main) {
-                        val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                        val wasNearBottom = messages.isEmpty() || lastVisible >= (messages.size - 3).coerceAtLeast(0)
+                        if (cleanSelectedChannel == cleanCh && fresh.isNotEmpty()) {
+                            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                            val wasNearBottom = messages.isEmpty() || lastVisible >= (messages.size - 3).coerceAtLeast(0)
 
-                        // Only reconcile if fresh messages were actually returned from the network.
-                        // NEVER purge local SQLite cached messages if the network returns an empty list
-                        // (e.g. D1 quota exhaustion, offline fallback, or transient network error)
-                        if (fresh.isNotEmpty()) {
-                            for (i in fresh.indices) {
-                                if (i < messages.size) {
-                                    if (messages[i] != fresh[i]) {
-                                        messages[i] = fresh[i]
-                                    }
-                                } else {
-                                    messages.add(fresh[i])
-                                }
-                            }
-                            while (messages.size > fresh.size) {
-                                messages.removeAt(messages.size - 1)
-                            }
+                            messages.clear()
+                            messages.addAll(fresh)
                             dbHelper.saveMessages(cleanCh, fresh)
-                        }
 
-                        if (wasNearBottom && fresh.isNotEmpty()) {
-                            try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
+                            if (wasNearBottom) {
+                                try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
+                            }
                         }
                     }
                 }
             } catch (_: Exception) {
                 withContext(Dispatchers.Main) {
-                    isLoadingMessages = false
+                    if (cleanSelectedChannel == cleanCh) {
+                        isLoadingMessages = false
+                    }
                 }
             }
         }
@@ -929,7 +931,8 @@ fun ChannelsWorkspaceScreen(
                             withContext(Dispatchers.IO) {
                                 dbHelper.saveMessage(serverMsg)
                                 dbHelper.saveMessages(canonicalDmId, listOf(serverMsg))
-                                if (!serverMsg.channelId.isNullOrBlank() && serverMsg.channelId != canonicalDmId) {
+                                val publicChs = setOf("general", "announcements", "gaming", "tournaments", "clips", "voice-lounge", "random", "voice", "dev-chat", "war-room")
+                                if (!serverMsg.channelId.isNullOrBlank() && serverMsg.channelId != canonicalDmId && serverMsg.channelId.trim().lowercase().removePrefix("#") !in publicChs) {
                                     dbHelper.saveMessages(serverMsg.channelId, listOf(serverMsg))
                                     dbHelper.saveDmChannel(canonicalDmId, serverMsg.channelId)
                                 }
