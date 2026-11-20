@@ -1145,7 +1145,7 @@ fun ConnectoApp(
                     var showManualVerifyModal by rememberSaveable { mutableStateOf(false) }
                     var isProfileSubScreenOpen by rememberSaveable { mutableStateOf(false) }
 
-                    val showBottomBar = !(currentTab == ConnectoTab.MESSAGES && isDirectChatOpen) && currentTab != ConnectoTab.CHANNELS && !(currentTab == ConnectoTab.PROFILE && isProfileSubScreenOpen) && !isImeVisible
+                    val showBottomBar = !(currentTab == ConnectoTab.MESSAGES && isDirectChatOpen) && !(currentTab == ConnectoTab.PROFILE && isProfileSubScreenOpen) && !isImeVisible
 
                     val activity = context as? android.app.Activity
                     androidx.activity.compose.BackHandler(enabled = true) {

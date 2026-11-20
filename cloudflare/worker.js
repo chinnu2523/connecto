@@ -653,21 +653,20 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.7/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.6/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.5/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.4/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.3/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.5/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.6-b193-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.7-b194-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.8.6");
-          res.headers.set("X-Connecto-Build", "193");
+          res.headers.set("X-Connecto-Version", "v5.8.7");
+          res.headers.set("X-Connecto-Build", "194");
           return res;
         }
 
@@ -703,8 +702,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.8.6");
-              downloadHeaders.set("X-Connecto-Build", "193");
+              downloadHeaders.set("X-Connecto-Version", "v5.8.7");
+              downloadHeaders.set("X-Connecto-Build", "194");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2339,14 +2338,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.6",
-        version_code: 193,
+        version_name: "5.8.7",
+        version_code: 194,
         size_bytes: 38473489,
         size_formatted: "36.7 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FAFAFA",
         changelog: [
+          "Channel Tab Architecture & General Channel D1 Restoration (v5.8.7): Fully implemented and restored the Channels tab bottom navigation architecture on Android by eliminating the tab-hiding restriction in Scaffold bottomBar, ensuring the 5-tier navigation dock remains anchored and interactive across Channels. Fixed critical Edge Worker ReferenceError ('hasMore is not defined') that previously crashed the /api/channels/:id/messages endpoint into static fallback mock data. Cleaned and migrated leaked direct messages from #general into their proper private channels in Cloudflare D1, hardened real-time WebSocket routing to guard against unassigned DMs falling back to general, and restored authentic real-time community chat history.",
           "Direct Chat Smooth Scrolling & General Channel Isolation Architecture (v5.8.6): Fully restored smooth vertical scrolling in Personal Direct Chat by replacing multi-axis drag slop interception with detectHorizontalDragGestures and removing touch-consuming spacer boxes from message bubbles. Stopped background delta polling from auto-scrolling upward-scrolled chats by checking scroll progress. Hardened Workspace Channels against cross-contamination: added LaunchedEffect(initialChannelId) to immediately switch channels, isolated message state with immediate pre-fetch clearing, and blocked public community channels ('general', 'announcements', etc.) from being overwritten or mapped to private DM aliases in SQLite, channelCache, and Cloudflare D1.",
           "Lazy-Mount Keep-Alive Bottom Navigation, 120Hz Fast Visual Response & 30s Stale-While-Revalidate Sync (v5.8.5): Fully eliminated tab switching latency and frame drops across Android 15 by introducing a lazy-mounted persistent tab host that preserves view hierarchies and scroll state across tabs. Upgraded bottom navigation touch feedback to instantaneous 120Hz response with zero-drag tab re-selection protection. Integrated ConnectoTabSyncStore with 30-second stale-while-revalidate caching and paused inactive background polling to maximize battery life and maintain silky smooth 60/120fps UI performance.",
           "Focused Search State, Android 15 Status Bar Insets & Search Engine Isolation (v5.8.4): Relocated Android 15 edge-to-edge statusBarsPadding permanently onto the outer non-collapsing screen root, keeping search input and cancel buttons perfectly placed 10px below status bar icons with zero clock/battery overlap during header collapse animations. Centered search pill and cancel button with 16px screen padding and 12px separation. Isolated active search mode by hiding inbox segmented tabs (All/Direct/Groups), section headers, and floating purple + action button on focus. Implemented dedicated search container with category chips (All, People, Messages, Channels), suggested quick contacts for empty queries, live grouped matches with substring highlighting, and centered empty state for zero-result queries. Hardened search preferences against partial keystrokes (min 2 chars, keyboard Done / result tap trigger only, case-insensitive deduplication, 5 max items, Secret Vault code exclusion).",
@@ -6413,6 +6413,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
     if (method === "GET" || method === "HEAD") {
       let messages = [];
+      let hasMore = false;
+      let nextCursor = null;
       const caller = await resolveUserFromRequest(request, env);
       const isDmChannel = canonicalChannel.startsWith("dm-") || canonicalChannel.startsWith("dm_") || channelId.startsWith("dm-") || channelId.startsWith("dm_");
       
@@ -6515,8 +6517,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         querySql += ` ORDER BY m.created_at DESC LIMIT ? `;
         queryBindings.push(limit + 1);
 
-        let hasMore = false;
-        let nextCursor = null;
+        hasMore = false;
+        nextCursor = null;
 
         try {
           const res = await env.DB.prepare(querySql).bind(...queryBindings).all();
@@ -12500,7 +12502,18 @@ export class ConnectoRealtimeRoom {
           const rawContent = data.content || data.text || "";
           if (!rawContent.trim()) return;
 
-          const targetCh = (data.channel_id || data.channelId || data.channel || "general").toLowerCase().trim();
+          let targetCh = (data.channel_id || data.channelId || data.channel || "").toLowerCase().trim();
+          if (!targetCh) {
+            const explicitTarget = (data.recipient || data.target || "").toLowerCase().trim().replace(/^@/, "");
+            if (explicitTarget && explicitTarget !== "general") {
+              const myU = (meta.username || "").toLowerCase();
+              const minU = myU < explicitTarget ? myU : explicitTarget;
+              const maxU = myU < explicitTarget ? explicitTarget : myU;
+              targetCh = `dm-${minU}-${maxU}`;
+            } else {
+              targetCh = "general";
+            }
+          }
 
           // SEC-W03 FIX: Validate DM channel participant authorization before broadcasting/persisting
           if (targetCh.startsWith("dm-") || targetCh.startsWith("dm_")) {

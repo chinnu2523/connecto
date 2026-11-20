@@ -270,6 +270,12 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 "$COL_CH_TYPE = 'dm' AND ($COL_CH_ID LIKE 'grp-%' OR $COL_CH_ID LIKE 'grp_%' OR $COL_CH_ID LIKE 'group-%' OR $COL_CH_NAME LIKE 'grp-%' OR $COL_CH_NAME LIKE 'grp_%' OR $COL_CH_NAME LIKE 'group-%' OR lower($COL_CH_ID) IN ('general', 'announcements', 'gaming', 'tournaments', 'clips', 'voice-lounge', 'random', 'voice', 'dev-chat', 'war-room') OR lower($COL_CH_NAME) IN ('general', 'announcements', 'gaming', 'tournaments', 'clips', 'voice-lounge', 'random', 'voice', 'dev-chat', 'war-room'))",
                 null
             )
+            // Clean up any leaked direct messages from the public community table
+            db.delete(
+                TABLE_MESSAGES,
+                "$COL_MSG_CHANNEL = 'general' AND $COL_MSG_ID IN ('msg_e4m22n8m', 'msg_7a3u0l47', 'msg_3kivw2a3', 'msg_6zhahffh', 'msg_044k9wve', 'msg_xnumok5t', 'msg_2a3cumht', 'msg_1fmpmccm')",
+                null
+            )
         } catch (_: Exception) {}
     }
 
