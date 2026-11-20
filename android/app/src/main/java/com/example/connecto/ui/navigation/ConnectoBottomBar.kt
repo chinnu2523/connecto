@@ -175,7 +175,7 @@ fun ConnectoBottomBar(
         val pillWidth = 20.dp
         val pillHeight = 3.dp
 
-        // Soft radial ambient glow directly under the top indicator pill with subtle Electric Indigo tint
+        // Soft radial ambient glow directly under the top indicator pill (Monochrome soft glow)
         Box(
             modifier = Modifier
                 .offset(x = animatedCenterX - 24.dp, y = 0.dp)
@@ -183,7 +183,7 @@ fun ConnectoBottomBar(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            (if (isDark) Color(0xFF6366F1) else Color(0xFF4F46E5)).copy(alpha = if (isDark) 0.28f else 0.16f),
+                            (if (isDark) Color.White else Color(0xFF0F172A)).copy(alpha = if (isDark) 0.16f else 0.08f),
                             Color.Transparent
                         ),
                         center = Offset(48f, 0f),
@@ -192,16 +192,13 @@ fun ConnectoBottomBar(
                 )
         )
 
-        // Sliding Top Pill Indicator (22px wide, 3px tall, rounded) with spring physics and electric indigo sheen
+        // Sliding Top Pill Indicator (20px wide, 3px tall, rounded) - Solid White in Dark Mode, Zero Color Gradients
         Box(
             modifier = Modifier
                 .offset(x = animatedCenterX - (pillWidth / 2), y = 0.dp)
                 .size(width = pillWidth, height = pillHeight)
                 .clip(RoundedCornerShape(bottomStart = 1.5.dp, bottomEnd = 1.5.dp))
-                .background(
-                    if (isDark) Brush.horizontalGradient(listOf(Color(0xFF818CF8), Color(0xFF6366F1)))
-                    else Brush.horizontalGradient(listOf(Color(0xFF6366F1), Color(0xFF4F46E5)))
-                )
+                .background(if (isDark) Color.White else Color(0xFF0F172A))
         )
 
         Row(

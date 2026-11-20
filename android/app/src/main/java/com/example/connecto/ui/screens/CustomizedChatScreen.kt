@@ -8622,14 +8622,14 @@ fun CustomizedChatScreen(
                                     modifier = Modifier
                                         .size(44.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFF6366F1))
+                                        .background(Color.White)
                                         .shadow(6.dp, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.MeetingRoom,
                                         contentDescription = "New Guest Room",
-                                        tint = Color.White,
+                                        tint = Color.Black,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -8673,14 +8673,14 @@ fun CustomizedChatScreen(
                                     modifier = Modifier
                                         .size(44.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFF10B981))
+                                        .background(Color.White)
                                         .shadow(6.dp, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.RecordVoiceOver,
                                         contentDescription = "New Voice Group",
-                                        tint = Color.White,
+                                        tint = Color.Black,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -8724,14 +8724,14 @@ fun CustomizedChatScreen(
                                     modifier = Modifier
                                         .size(44.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFF6366F1))
+                                        .background(Color.White)
                                         .shadow(6.dp, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.GroupAdd,
                                         contentDescription = "New Group Chat",
-                                        tint = Color.White,
+                                        tint = Color.Black,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -8775,14 +8775,14 @@ fun CustomizedChatScreen(
                                     modifier = Modifier
                                         .size(44.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFF0284C7))
+                                        .background(Color.White)
                                         .shadow(6.dp, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.PersonAdd,
                                         contentDescription = "New Direct Chat",
-                                        tint = Color.White,
+                                        tint = Color.Black,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -8790,7 +8790,7 @@ fun CustomizedChatScreen(
                         }
                     }
 
-                    // 3. Primary Floating Action Button (Rotates 45deg from + to x with 200ms spring)
+                    // 3. Primary Floating Action Button (Solid White Button with Black Icon)
                     val haptic = LocalHapticFeedback.current
                     val fabInteraction = remember { MutableInteractionSource() }
                     val isFabPressed by fabInteraction.collectIsPressedAsState()
@@ -8818,12 +8818,12 @@ fun CustomizedChatScreen(
                             .shadow(
                                 elevation = 10.dp,
                                 shape = CircleShape,
-                                ambientColor = Color(0x592563EB),
-                                spotColor = Color(0x592563EB)
+                                ambientColor = Color(0x40000000),
+                                spotColor = Color(0x40000000)
                             )
                             .clip(CircleShape)
-                            .background(Color(0xFF4F46E5))
-                            .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
+                            .background(Color.White)
+                            .border(1.dp, Color(0x26000000), CircleShape)
                             .clickable(
                                 interactionSource = fabInteraction,
                                 indication = null
@@ -8836,7 +8836,7 @@ fun CustomizedChatScreen(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = if (isFabExpanded) "Close options" else "Start conversation",
-                            tint = Color.White,
+                            tint = Color.Black,
                             modifier = Modifier
                                 .size(26.dp)
                                 .graphicsLayer {

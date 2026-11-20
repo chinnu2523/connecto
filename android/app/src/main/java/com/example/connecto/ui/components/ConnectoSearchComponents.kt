@@ -159,16 +159,16 @@ fun ConnectoAnimatedSearchBar(
     val isQueryActive = query.isNotEmpty()
     val isSearchActive = isFocused || isQueryActive
 
-    // Border transitions smoothly from subtle rgba(255,255,255,0.08) to active accent rgba(99, 102, 241, 0.55)
+    // Border transitions smoothly from subtle rgba(255,255,255,0.08) to active crisp white
     val borderColor by animateColorAsState(
-        targetValue = if (isFocused) Color(0x8C6366F1) else (if (isDark) Color(0x14FFFFFF) else Color(0x1A000000)),
+        targetValue = if (isFocused) Color(0x66FFFFFF) else (if (isDark) Color(0x14FFFFFF) else Color(0x1A000000)),
         animationSpec = tween(220, easing = EaseOutCubic),
         label = "searchBorderColor"
     )
 
-    // Icon tint transitions smoothly to active accent #818CF8
+    // Icon tint transitions smoothly to active white
     val iconTint by animateColorAsState(
-        targetValue = if (isFocused) Color(0xFF818CF8) else (if (isDark) Color(0xFF8E929F) else Color(0xFF64748B)),
+        targetValue = if (isFocused) (if (isDark) Color.White else Color(0xFF0F172A)) else (if (isDark) Color(0xFF8E929F) else Color(0xFF64748B)),
         animationSpec = tween(220, easing = EaseOutCubic),
         label = "searchIconTint"
     )
@@ -373,13 +373,13 @@ fun RecentSearchesAndFilterChips(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
                         .background(
-                            if (isSelected) Color(0xFF6366F1)
+                            if (isSelected) (if (isDark) Color.White else Color(0xFF0F172A))
                             else if (isDark) Color(0xFF161822)
                             else Color(0xFFE2E8F0)
                         )
                         .border(
                             1.dp,
-                            if (isSelected) Color(0xFF818CF8)
+                            if (isSelected) (if (isDark) Color.White else Color(0xFF0F172A))
                             else (if (isDark) Color(0x14FFFFFF) else Color(0x1A000000)),
                             RoundedCornerShape(12.dp)
                         )
@@ -394,7 +394,8 @@ fun RecentSearchesAndFilterChips(
                         text = tab,
                         fontSize = 12.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isSelected) Color.White else (if (isDark) Color(0xFF94A3B8) else Color(0xFF475569))
+                        color = if (isSelected) (if (isDark) Color.Black else Color.White)
+                                else (if (isDark) Color(0xFF94A3B8) else Color(0xFF475569))
                     )
                 }
             }
@@ -494,7 +495,7 @@ fun SubstringHighlightedText(
                     val matchEnd = matchIndex + cleanQ.length
                     pushStyle(
                         SpanStyle(
-                            background = Color(0x476366F1), // rgba(99, 102, 241, 0.28)
+                            background = Color(0x33FFFFFF),
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White
                         )
@@ -536,18 +537,14 @@ fun SearchEmptyState(
             modifier = Modifier
                 .size(68.dp)
                 .clip(CircleShape)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(Color(0x336366F1), Color(0x056366F1), Color.Transparent)
-                    )
-                )
-                .border(1.dp, Color(0x266366F1), CircleShape),
+                .background(Color(0xFF161822))
+                .border(1.dp, Color(0x26FFFFFF), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = null,
-                tint = Color(0xFF818CF8),
+                tint = if (isDark) Color.White else Color(0xFF0F172A),
                 modifier = Modifier.size(28.dp)
             )
         }
@@ -610,7 +607,7 @@ fun InlineChatSearchBar(
                 .height(38.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(if (isDark) Color(0xFF161822) else Color(0xFFE2E8F0))
-                .border(1.dp, Color(0x336366F1), RoundedCornerShape(12.dp))
+                .border(1.dp, if (isDark) Color(0x26FFFFFF) else Color(0x33000000), RoundedCornerShape(12.dp))
                 .padding(horizontal = 10.dp),
             contentAlignment = Alignment.CenterStart
         ) {
@@ -621,7 +618,7 @@ fun InlineChatSearchBar(
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
-                    tint = Color(0xFF818CF8),
+                    tint = if (isDark) Color.White else Color(0xFF0F172A),
                     modifier = Modifier.size(16.dp)
                 )
 

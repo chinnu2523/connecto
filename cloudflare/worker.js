@@ -653,21 +653,21 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.9/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.8/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.7/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.6/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.5/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.6/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.8-b195-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.9-b196-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.8.8");
-          res.headers.set("X-Connecto-Build", "195");
+          res.headers.set("X-Connecto-Version", "v5.8.9");
+          res.headers.set("X-Connecto-Build", "196");
           return res;
         }
 
@@ -703,8 +703,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.8.8");
-              downloadHeaders.set("X-Connecto-Build", "195");
+              downloadHeaders.set("X-Connecto-Version", "v5.8.9");
+              downloadHeaders.set("X-Connecto-Build", "196");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2339,14 +2339,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.8",
-        version_code: 195,
-        size_bytes: 38473314,
+        version_name: "5.8.9",
+        version_code: 196,
+        size_bytes: 38473099,
         size_formatted: "36.7 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
-        accent_color: "#6366F1",
+        accent_color: "#FFFFFF",
         changelog: [
+          "Monochrome Pure Dark Theme & White Button System (v5.8.9): Removed color gradients across the entire Connecto application UI in favor of a pure dark OLED design system with solid white buttons and high-contrast typography. Elevated primary action buttons, FABs, speed-dial action buttons, dialog confirmations, and filter chips to solid white (#FFFFFF) with deep black text and icons (#000000). Harmonized bottom navigation with monochrome soft ambient glow and solid white sliding indicator pill. Converted modal dialogs, email verification, and action sheets to flat, high-contrast monochrome components adhering strictly to Stitch MCP pure black noir specifications.",
           "Obsidian & Liquid Glass Design System Overhaul (v5.8.8): Implemented a complete 5-tab ecosystem UI/UX overhaul on Android Native Jetpack Compose. Synchronized OLED 0-nit pitch black surfaces (#0A0B0E) with soft frosted liquid glass cards and crisp Electric Indigo (#6366F1) / (#818CF8) specular highlights. Re-architected Liquid Glass token resolution to ensure permanent legibility across all backgrounds by grounding glass cards on translucent obsidian foundations rather than transparent cutouts. Elevated the 5-tier navigation dock with subtle Electric Indigo radial ambient glow, high-precision sliding indicator pill with spring physics, and tactile micro-press response. Harmonized Quick Action chips, Friend Request cards, and Pinned Favourites on Home; refined channel header capsules and docked composers in Channels; polished Call history cards with emerald/crimson indicators; and streamlined inset grouped cards across Profile & Settings.",
           "Channel Tab Architecture & General Channel D1 Restoration (v5.8.7): Fully implemented and restored the Channels tab bottom navigation architecture on Android by eliminating the tab-hiding restriction in Scaffold bottomBar, ensuring the 5-tier navigation dock remains anchored and interactive across Channels. Fixed critical Edge Worker ReferenceError ('hasMore is not defined') that previously crashed the /api/channels/:id/messages endpoint into static fallback mock data. Cleaned and migrated leaked direct messages from #general into their proper private channels in Cloudflare D1, hardened real-time WebSocket routing to guard against unassigned DMs falling back to general, and restored authentic real-time community chat history.",
           "Direct Chat Smooth Scrolling & General Channel Isolation Architecture (v5.8.6): Fully restored smooth vertical scrolling in Personal Direct Chat by replacing multi-axis drag slop interception with detectHorizontalDragGestures and removing touch-consuming spacer boxes from message bubbles. Stopped background delta polling from auto-scrolling upward-scrolled chats by checking scroll progress. Hardened Workspace Channels against cross-contamination: added LaunchedEffect(initialChannelId) to immediately switch channels, isolated message state with immediate pre-fetch clearing, and blocked public community channels ('general', 'announcements', etc.) from being overwritten or mapped to private DM aliases in SQLite, channelCache, and Cloudflare D1.",

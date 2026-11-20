@@ -2748,8 +2748,8 @@ fun ProfileScreen(
                                                     },
                                                     shape = RoundedCornerShape(10.dp),
                                                     colors = ButtonDefaults.buttonColors(
-                                                        containerColor = Color(0xFF6366F1),
-                                                        contentColor = Color.White
+                                                        containerColor = Color.White,
+                                                        contentColor = Color.Black
                                                     ),
                                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                                                 ) {
@@ -6376,9 +6376,12 @@ fun ProfileScreen(
                                 }
                                 Toast.makeText(context, "Secret Vault code saved and backed up to cloud! 🔒", Toast.LENGTH_SHORT).show()
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black
+                            )
                         ) {
-                            Text("Save Code", color = Color.White)
+                            Text("Save Code", color = Color.Black, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

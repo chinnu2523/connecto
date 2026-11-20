@@ -53,9 +53,9 @@ val TextPrimaryColor = DarkConnectoColors.textPrimary
 val TextSecondaryColor = DarkConnectoColors.textSecondary
 val TextDisabledColor = DarkConnectoColors.textDisabled
 
-// Accent Gradients (Pure OLED Monochrome & Parchment Slate)
-val DarkAccentGradientColors = listOf(Color(0xFFFFFFFF), Color(0xFFA1A1AA))
-val LightAccentGradientColors = listOf(Color(0xFF0F172A), Color(0xFF334155))
+// Accent Gradients (Pure OLED Monochrome & Parchment Slate - Flat Solid Fills, Zero Color Gradients)
+val DarkAccentGradientColors = listOf(Color(0xFFFFFFFF), Color(0xFFFFFFFF))
+val LightAccentGradientColors = listOf(Color(0xFF0F172A), Color(0xFF0F172A))
 
 val AccentGradientColors = DarkAccentGradientColors
 val AccentGradient = Brush.linearGradient(AccentGradientColors)
@@ -77,14 +77,13 @@ val FramerMotionSpring = androidx.compose.animation.core.spring<Float>(
     dampingRatio = 0.85f
 )
 
-// Theme-Aware Dynamic Gradient Helper
+// Theme-Aware Dynamic Gradient Helper (Zero Gradient - Pure Solid White in Dark Theme)
 @Composable
 fun getDynamicAccentGradientColors(): List<Color> {
-    val primaryColor = com.example.connecto.ui.designsystem.ConnectoTheme.colors.primary
     return if (isAppInLightTheme()) {
-        listOf(primaryColor, Color(0xFF292524))
+        listOf(Color(0xFF0F172A), Color(0xFF0F172A))
     } else {
-        listOf(primaryColor, Color(0xFFA1A1AA))
+        listOf(Color(0xFFFFFFFF), Color(0xFFFFFFFF))
     }
 }
 
@@ -96,5 +95,5 @@ fun isAppInLightTheme(): Boolean {
 
 @Composable
 fun getContentColorOnAccentGradient(): Color {
-    return if (isAppInLightTheme()) Color.White else Color(0xFF09090B)
+    return if (isAppInLightTheme()) Color.White else Color(0xFF000000)
 }

@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -176,9 +177,8 @@ fun EmailVerificationModal(
                     modifier = Modifier
                         .size(60.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(listOf(Color(0xFF6366F1), Color(0xFF3B82F6)))
-                        ),
+                        .background(Color(0xFF161822))
+                        .border(1.dp, Color(0x26FFFFFF), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -233,7 +233,8 @@ fun EmailVerificationModal(
                         enabled = !isSendingOtp,
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF6366F1)
+                            containerColor = Color.White,
+                            contentColor = Color.Black
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -242,13 +243,13 @@ fun EmailVerificationModal(
                         if (isSendingOtp) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
-                                color = Color.White,
+                                color = Color.Black,
                                 strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Sending Code...", fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Sending Code...", fontWeight = FontWeight.Bold, color = Color.Black)
                         } else {
-                            Text("Send 6-Digit Code ✉️", fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Send 6-Digit Code ✉️", fontWeight = FontWeight.Bold, color = Color.Black)
                         }
                     }
                 } else {
@@ -267,7 +268,7 @@ fun EmailVerificationModal(
                             onDone = { focusManager.clearFocus() }
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF6366F1),
+                            focusedBorderColor = Color.White,
                             unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White
@@ -303,7 +304,8 @@ fun EmailVerificationModal(
                         enabled = !isVerifying && otpCode.trim().length == 6,
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF10B981)
+                            containerColor = Color.White,
+                            contentColor = Color.Black
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -312,13 +314,13 @@ fun EmailVerificationModal(
                         if (isVerifying) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
-                                color = Color.White,
+                                color = Color.Black,
                                 strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Verifying...", fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Verifying...", fontWeight = FontWeight.Bold, color = Color.Black)
                         } else {
-                            Text("Confirm & Unlock ➔", fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Confirm & Unlock ➔", fontWeight = FontWeight.Bold, color = Color.Black)
                         }
                     }
 

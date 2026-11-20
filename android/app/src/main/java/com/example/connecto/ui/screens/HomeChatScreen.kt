@@ -1397,16 +1397,7 @@ private fun QuickActionChip(
             .background(if (isDark) Color(0xD9141622) else Color(0xFFFFFFFF))
             .border(
                 width = 0.8.dp,
-                brush = Brush.linearGradient(
-                    colors = if (isDark) listOf(
-                        Color(0x3DFFFFFF),
-                        Color(0x1F6366F1),
-                        Color(0x14FFFFFF)
-                    ) else listOf(
-                        Color(0xFFE2E8F0),
-                        Color(0xFFCBD5E1)
-                    )
-                ),
+                color = if (isDark) Color(0x26FFFFFF) else Color(0x33000000),
                 shape = chipShape
             )
             .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -1415,7 +1406,7 @@ private fun QuickActionChip(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (isDark) Color(0xFF818CF8) else Color(0xFF6366F1),
+            tint = if (isDark) Color.White else Color(0xFF0F172A),
             modifier = Modifier.size(16.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
@@ -1484,12 +1475,12 @@ private fun FriendRequestCard(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(colors.primaryContainer)
+                        .background(if (colors.isDark) Color.White else Color(0xFF0F172A))
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = "Accept",
-                        tint = colors.primary,
+                        tint = if (colors.isDark) Color.Black else Color.White,
                         modifier = Modifier.size(18.dp)
                     )
                 }

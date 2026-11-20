@@ -464,7 +464,7 @@ fun PhotoLightboxDialog(
                             }
                         }
 
-                        // Primary Button: "Change Photo" (accent fill #6366F1, camera icon, full text)
+                        // Primary Button: "Change Photo" (Solid White Button with Black Icon/Text)
                         if (onChangePhoto != null) {
                             Button(
                                 onClick = {
@@ -472,8 +472,8 @@ fun PhotoLightboxDialog(
                                     onChangePhoto()
                                 },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF6366F1),
-                                    contentColor = Color.White
+                                    containerColor = Color.White,
+                                    contentColor = Color.Black
                                 ),
                                 shape = RoundedCornerShape(28.dp),
                                 modifier = Modifier
@@ -483,14 +483,14 @@ fun PhotoLightboxDialog(
                                 Icon(
                                     imageVector = Icons.Default.CameraAlt,
                                     contentDescription = "Change",
-                                    tint = Color.White,
+                                    tint = Color.Black,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = if (isBanner) "Change Cover" else "Change Photo",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.Black,
+                                    fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp,
                                     maxLines = 1
                                 )

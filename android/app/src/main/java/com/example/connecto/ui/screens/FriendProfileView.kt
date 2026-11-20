@@ -802,14 +802,14 @@ fun FriendProfileScreen(
                                             .height(46.dp),
                                         shape = RoundedCornerShape(14.dp),
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFF6366F1),
-                                            contentColor = Color.White
+                                            containerColor = Color.White,
+                                            contentColor = Color.Black
                                         )
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.AddPhotoAlternate,
                                             contentDescription = null,
-                                            tint = Color.White,
+                                            tint = Color.Black,
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -817,7 +817,7 @@ fun FriendProfileScreen(
                                             text = if (customWallpaperUri != null) "Change Photo" else "Pick From Gallery",
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color.White
+                                            color = Color.Black
                                         )
                                     }
 

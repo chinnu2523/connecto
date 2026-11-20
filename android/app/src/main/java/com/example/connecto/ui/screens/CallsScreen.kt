@@ -1390,7 +1390,7 @@ fun CallsScreen(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Option 1: Ephemeral Zero-Install Guest Room (Indigo #6366F1)
+            // Option 1: Ephemeral Zero-Install Guest Room (Solid White Button)
             ExtendedFloatingActionButton(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1423,7 +1423,7 @@ fun CallsScreen(
                     Icon(
                         imageVector = Icons.Default.MeetingRoom,
                         contentDescription = "Create Guest Room",
-                        tint = Color.White
+                        tint = Color.Black
                     )
                 },
                 text = {
@@ -1431,15 +1431,15 @@ fun CallsScreen(
                         text = "Guest Room",
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp,
-                        color = Color.White
+                        color = Color.Black
                     )
                 },
-                containerColor = Color(0xFF6366F1),
-                contentColor = Color.White,
+                containerColor = Color.White,
+                contentColor = Color.Black,
                 shape = RoundedCornerShape(16.dp)
             )
 
-            // Option 2: Group Voice Call (Emerald #10B981)
+            // Option 2: Group Voice Call (Solid White Button)
             ExtendedFloatingActionButton(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1449,7 +1449,7 @@ fun CallsScreen(
                     Icon(
                         imageVector = Icons.Default.GroupAdd,
                         contentDescription = "New Group Call",
-                        tint = Color.White
+                        tint = Color.Black
                     )
                 },
                 text = {
@@ -1457,11 +1457,11 @@ fun CallsScreen(
                         text = "Group Voice Call",
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.5.sp,
-                        color = Color.White
+                        color = Color.Black
                     )
                 },
-                containerColor = Color(0xFF10B981),
-                contentColor = Color.White,
+                containerColor = Color.White,
+                contentColor = Color.Black,
                 shape = RoundedCornerShape(16.dp)
             )
         }

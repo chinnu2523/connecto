@@ -40,8 +40,8 @@ data class ConnectoColors(
     val isGlass: Boolean = true,
     val isLiquidGlass: Boolean = true,
     val glassAlpha: Float = 0.20f,
-    val accent: Color = Color(0xFF6366F1),
-    val accentLight: Color = Color(0xFF818CF8)
+    val accent: Color = Color(0xFFFFFFFF),
+    val accentLight: Color = Color(0xFFE2E8F0)
 )
 
 enum class ThemeMode(val id: String, val displayName: String, val subtitle: String, val iconEmoji: String) {
@@ -112,10 +112,10 @@ val LightConnectoColors = ConnectoColors(
 )
 
 val DarkConnectoColors = ConnectoColors(
-    primary = Color(0xFFFAFAFA),          // Pure Crisp Monochrome White / Platinum Accent (#FAFAFA)
+    primary = Color(0xFFFFFFFF),          // Pure Crisp Monochrome White Accent (#FFFFFF)
     onPrimary = Color(0xFF000000),        // Deep Obsidian Ink for high-contrast text on white accent
-    primaryContainer = Color(0xFF161822), // Interactive Elevated Pill Container (#161822)
-    onPrimaryContainer = Color(0xFFFAFAFA), // Crisp White
+    primaryContainer = Color(0xFFFFFFFF), // Solid White Button / Elevated Container (#FFFFFF)
+    onPrimaryContainer = Color(0xFF000000), // Deep Obsidian Ink
     background = Color(0xFF000000),       // Pure 0-nit OLED Black Canvas (#000000)
     onBackground = Color(0xFFFAFAFA),
     surface = Color(0xFF0A0B10),          // Grouped Surface Card Container (#0A0B10)
@@ -133,24 +133,26 @@ val DarkConnectoColors = ConnectoColors(
     onWarning = Color(0xFF451A03),
     error = Color(0xFFEF4444),            // Crimson Red (#EF4444)
     onError = Color(0xFF450A0A),
-    info = Color(0xFF38BDF8),             // Sky Azure / Cool Ice (#38BDF8)
-    onInfo = Color(0xFF082F49),
+    info = Color(0xFFFFFFFF),             // Monochrome White Info Accent (#FFFFFF)
+    onInfo = Color(0xFF000000),
     isDark = true,
     isGlass = false,
     isLiquidGlass = false,
-    glassAlpha = 1.0f
+    glassAlpha = 1.0f,
+    accent = Color(0xFFFFFFFF),
+    accentLight = Color(0xFFE2E8F0)
 )
 
 val LiquidGlassConnectoColors = ConnectoColors(
-    primary = Color(0xFFFAFAFA),          // Pure Crisp Specular White (Neutral glass)
+    primary = Color(0xFFFFFFFF),          // Pure Crisp Specular White (#FFFFFF)
     onPrimary = Color(0xFF000000),
-    primaryContainer = Color(0xFF1E1B4B), // Electric Indigo subtle sheen container (#1E1B4B)
-    onPrimaryContainer = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFFFFFFF), // Solid White Button Container
+    onPrimaryContainer = Color(0xFF000000),
     background = Color(0xFF000000),       // Pure deep obsidian canvas (0-nit, no blue cast)
     onBackground = Color(0xFFFFFFFF),
     surface = Color(0xD90A0B10),          // Translucent Obsidian slate (#0A0B10 @ 85% alpha)
     onSurface = Color(0xFFFFFFFF),
-    surfaceVariant = Color(0x1F6366F1),   // Translucent Electric Indigo layer (12% alpha)
+    surfaceVariant = Color(0xFF161822),   // Neutral Dark Obsidian Surface
     onSurfaceVariant = Color(0xFFCBD5E1), // Crisp Platinum / Frosted Silver Text
     textPrimary = Color(0xFFFFFFFF),      // Pure Pristine White
     textSecondary = Color(0xFFCBD5E1),    // Frosted Platinum
@@ -163,14 +165,14 @@ val LiquidGlassConnectoColors = ConnectoColors(
     onWarning = Color(0xFF451A03),
     error = Color(0xFFEF4444),            // Coral Red
     onError = Color(0xFF4C0519),
-    info = Color(0xFF6366F1),             // Electric Indigo
-    onInfo = Color(0xFFFFFFFF),
+    info = Color(0xFFFFFFFF),             // Monochrome White
+    onInfo = Color(0xFF000000),
     isDark = true,
     isGlass = true,
     isLiquidGlass = true,
     glassAlpha = 0.20f,
-    accent = Color(0xFF6366F1),
-    accentLight = Color(0xFF818CF8)
+    accent = Color(0xFFFFFFFF),
+    accentLight = Color(0xFFE2E8F0)
 )
 
 val CyberpunkConnectoColors = ConnectoColors(
@@ -269,8 +271,8 @@ fun getLiquidGlassColors(glassAlpha: Float = 0.20f): ConnectoColors {
     val clampedAlpha = glassAlpha.coerceIn(0.0f, 1.0f)
 
     val surfaceColor = Color(0xD90A0B10)
-    val surfaceVariantColor = Color(0x1F6366F1)
-    val primaryContainerColor = Color(0x2E6366F1)
+    val surfaceVariantColor = Color(0xFF161822)
+    val primaryContainerColor = Color(0xFFFFFFFF)
 
     // Specular border glare: crisp pure white specular rim, no color cast
     val rimAlpha = (0.22f + clampedAlpha * 0.18f).coerceIn(0.18f, 0.45f)
@@ -281,11 +283,12 @@ fun getLiquidGlassColors(glassAlpha: Float = 0.20f): ConnectoColors {
         surface = surfaceColor,
         surfaceVariant = surfaceVariantColor,
         primaryContainer = primaryContainerColor,
+        onPrimaryContainer = Color(0xFF000000),
         border = borderCol,
         borderSubtle = borderSubtleCol,
         glassAlpha = clampedAlpha,
-        accent = Color(0xFF6366F1),
-        accentLight = Color(0xFF818CF8)
+        accent = Color(0xFFFFFFFF),
+        accentLight = Color(0xFFE2E8F0)
     )
 }
 
