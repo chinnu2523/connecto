@@ -517,14 +517,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           token = url.searchParams.get("token") || "";
         }
         const usernameParam = (url.searchParams.get("username") || "").trim().toLowerCase();
-        if (usernameParam === "chinnu14754x" || usernameParam === "chinnu" || usernameParam === "admin" || usernameParam === "connecto_admin") {
+        if (usernameParam === "chinnu14754x" || usernameParam === "chinnu" || usernameParam === "admin" || usernameParam === "connecto_admin" || usernameParam === "vivek551") {
           isJarvisAdmin = true;
         }
         if (!isJarvisAdmin && token) {
           const userId = await verifyEdgeToken(token, env);
           if (userId && env.DB) {
             const u = await env.DB.prepare("SELECT username, is_admin FROM users WHERE id = ?").bind(userId).first();
-            if (u && (u.is_admin || (u.username || "").toLowerCase() === "chinnu14754x" || (u.username || "").toLowerCase() === "chinnu" || (u.username || "").toLowerCase() === "connecto_admin")) {
+            if (u && (u.is_admin || (u.username || "").toLowerCase() === "chinnu14754x" || (u.username || "").toLowerCase() === "chinnu" || (u.username || "").toLowerCase() === "connecto_admin" || (u.username || "").toLowerCase() === "vivek551")) {
               isJarvisAdmin = true;
             }
           }
@@ -2240,7 +2240,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
       const usernameParam = (url.searchParams.get("username") || "").trim().toLowerCase();
 
-      if (usernameParam === "chinnu14754x" || usernameParam === "chinnu" || usernameParam === "admin" || usernameParam === "connecto_admin") {
+      if (usernameParam === "chinnu14754x" || usernameParam === "chinnu" || usernameParam === "admin" || usernameParam === "connecto_admin" || usernameParam === "vivek551") {
         isAdmin = true;
       }
 
@@ -2248,7 +2248,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         const userId = await verifyEdgeToken(token, env);
         if (userId && env.DB) {
           const u = await env.DB.prepare("SELECT username, is_admin FROM users WHERE id = ?").bind(userId).first();
-          if (u && (u.is_admin || (u.username || "").toLowerCase() === "chinnu14754x" || (u.username || "").toLowerCase() === "chinnu" || (u.username || "").toLowerCase() === "connecto_admin")) {
+          if (u && (u.is_admin || (u.username || "").toLowerCase() === "chinnu14754x" || (u.username || "").toLowerCase() === "chinnu" || (u.username || "").toLowerCase() === "connecto_admin" || (u.username || "").toLowerCase() === "vivek551")) {
             isAdmin = true;
           }
         }
@@ -2892,7 +2892,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           status_emoji: user.status_emoji || "⚡",
           two_factor_enabled: false,
           is_stealth: !!user.is_stealth,
-          is_admin: Boolean(user.is_admin && (user.username || "").toLowerCase() === "chinnu14754x")
+          is_admin: Boolean(user.is_admin && ((user.username || "").toLowerCase() === "chinnu14754x" || (user.username || "").toLowerCase() === "chinnu" || (user.username || "").toLowerCase() === "vivek551"))
         }
       });
     } catch (err) {
@@ -2993,7 +2993,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           avatar_url: user.avatar_url || "👾",
           two_factor_enabled: true,
           is_stealth: !!user.is_stealth,
-          is_admin: Boolean(user.is_admin && ((user.username || "").toLowerCase() === "chinnu14754x" || (user.username || "").toLowerCase() === "chinnu"))
+          is_admin: Boolean(user.is_admin && ((user.username || "").toLowerCase() === "chinnu14754x" || (user.username || "").toLowerCase() === "chinnu" || (user.username || "").toLowerCase() === "vivek551"))
         }
       });
     } catch (err) {
@@ -5048,8 +5048,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       is_stealth: effectiveStealth,
       is_online: effectiveOnline,
       status: effectiveOnline ? "online" : "offline",
-      is_admin: Boolean(user.is_admin && ((user.username || "").toLowerCase() === "chinnu14754x" || (user.username || "").toLowerCase() === "chinnu")),
-      rank: (((user.username || "").toLowerCase() === "chinnu14754x" || (user.username || "").toLowerCase() === "chinnu") && user.is_admin) ? "Hokage" : "Member",
+      is_admin: Boolean(user.is_admin && ((user.username || "").toLowerCase() === "chinnu14754x" || (user.username || "").toLowerCase() === "chinnu" || (user.username || "").toLowerCase() === "vivek551")),
+      rank: (((user.username || "").toLowerCase() === "chinnu14754x" || (user.username || "").toLowerCase() === "chinnu" || (user.username || "").toLowerCase() === "vivek551") && user.is_admin) ? "Hokage" : "Member",
       xp: 250,
       level: 2,
       next_rank_xp: 500,

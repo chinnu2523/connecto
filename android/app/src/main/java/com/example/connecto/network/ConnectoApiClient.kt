@@ -771,7 +771,7 @@ object ConnectoApiClient {
                 val savedBanner = securePrefs.getString("banner_url", null) ?: legacyPrefs.getString("banner_url", null) ?: pPrefs.getString("banner_uri_$savedUsername", null)
                 updateBannerState(savedBanner)
                 val cleanUser = savedUsername.trim().lowercase().removePrefix("@")
-                val isAdmin = securePrefs.getBoolean("is_admin", false) || legacyPrefs.getBoolean("is_admin", false) || (cleanUser in listOf("chinnu14754x", "chinnu"))
+                val isAdmin = securePrefs.getBoolean("is_admin", false) || legacyPrefs.getBoolean("is_admin", false) || (cleanUser in listOf("chinnu14754x", "chinnu", "vivek551"))
                 updateAdminState(isAdmin)
                 if (isAdmin) {
                     try {
@@ -1435,7 +1435,7 @@ object ConnectoApiClient {
                     currentUsername = authResult.username
                     currentUserEmail = authResult.email
                     currentUserDisplayName = authResult.displayName
-                    val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || jsonObj.optBoolean("is_admin", false) || (jsonObj.optInt("is_admin", 0) == 1) || (authResult.username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu"))
+                    val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || jsonObj.optBoolean("is_admin", false) || (jsonObj.optInt("is_admin", 0) == 1) || (authResult.username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu", "vivek551"))
                     updateAdminState(isAdmin)
                     try {
                         applicationContext?.let { getSessionPrefs(it) }?.edit()?.putBoolean("is_admin", isAdmin)?.apply()
@@ -1517,7 +1517,7 @@ object ConnectoApiClient {
                 currentUsername = authResult.username
                 currentUserEmail = authResult.email
                 currentUserDisplayName = authResult.displayName
-                val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || (authResult.username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu"))
+                val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || (authResult.username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu", "vivek551"))
                 updateAdminState(isAdmin)
                 try {
                     applicationContext?.let { getSessionPrefs(it) }?.edit()?.putBoolean("is_admin", isAdmin)?.apply()
@@ -1652,7 +1652,7 @@ object ConnectoApiClient {
                 currentUsername = authResult.username
                 currentUserEmail = authResult.email
                 currentUserDisplayName = authResult.displayName
-                val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || (authResult.username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu"))
+                val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || (authResult.username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu", "vivek551"))
                 updateAdminState(isAdmin)
                 try {
                     applicationContext?.let { getSessionPrefs(it) }?.edit()?.putBoolean("is_admin", isAdmin)?.apply()
@@ -5616,7 +5616,7 @@ object ConnectoApiClient {
                     updateBannerState(prof.bannerUrl)
                     updateStealthModeState(prof.isStealth)
                     updateVerificationState(isVerified, isBlocked, daysLeft, deadlineStr)
-                    val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || (u.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu"))
+                    val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || (u.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu", "vivek551"))
                     updateAdminState(isAdmin)
                     try {
                         applicationContext?.let { getSessionPrefs(it) }

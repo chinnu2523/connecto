@@ -70,7 +70,7 @@ object ScreenSecurityManager {
         if (com.example.connecto.network.ConnectoApiClient.currentUserIsAdminState.value) return true
         if (com.example.connecto.network.ConnectoNetworkConfig.isUserAdmin) return true
         val uname = (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
-        if (uname.isNotEmpty() && (uname == "chinnu14754x" || uname == "chinnu")) {
+        if (uname.isNotEmpty() && (uname == "chinnu14754x" || uname == "chinnu" || uname == "vivek551")) {
             return true
         }
         val ctx = context ?: activeActivityRef?.get()
@@ -79,7 +79,7 @@ object ScreenSecurityManager {
                 for (prefsName in listOf("connecto_session_prefs", "connecto_secure_session_prefs", "connecto_auth_prefs", "connecto_user_profile_prefs")) {
                     val p = ctx.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
                     val savedUname = p.getString("username", null)?.trim()?.lowercase()?.removePrefix("@") ?: ""
-                    if (savedUname == "chinnu14754x" || savedUname == "chinnu") {
+                    if (savedUname == "chinnu14754x" || savedUname == "chinnu" || savedUname == "vivek551") {
                         return true
                     }
                     if (p.getBoolean("is_admin", false) || p.getInt("is_admin", 0) == 1) {

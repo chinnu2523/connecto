@@ -616,6 +616,7 @@ fun HomeScreen(
                     val loggedInUsername = remember { sessionPrefs.getString("username", "user") ?: "user" }
                     val isUserAdmin = loggedInUsername.equals("chinnu14754x", ignoreCase = true) ||
                                       loggedInUsername.equals("chinnu", ignoreCase = true) ||
+                                      loggedInUsername.equals("vivek551", ignoreCase = true) ||
                                       sessionPrefs.getBoolean("is_admin", false)
                     val canPostInChannel = !activeChannel.isReadOnly || isUserAdmin
                     if (canPostInChannel) {
