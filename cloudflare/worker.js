@@ -569,6 +569,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalPdfUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.14/pdf-studio.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.7.9/pdf-studio.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.7.6/pdf-studio.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.0/pdf-studio.apk",
@@ -579,7 +580,7 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.5/pdf-studio.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.9.1-b27-erase-patch-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.9.2-b28-autofit-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -587,8 +588,8 @@ Sitemap: https://connecto.fun/sitemap.xml
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
           res.headers.set("X-Connecto-Package", "com.app.pdfstudio");
           res.headers.set("X-Connecto-App", "PDF Studio");
-          res.headers.set("X-Connecto-Version", "v1.9.1");
-          res.headers.set("X-Connecto-Build", "27");
+          res.headers.set("X-Connecto-Version", "v1.9.2");
+          res.headers.set("X-Connecto-Build", "28");
           return res;
         }
 
@@ -623,8 +624,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
               downloadHeaders.set("X-Connecto-App", "PDF Studio");
-              downloadHeaders.set("X-Connecto-Version", "v1.9.1");
-              downloadHeaders.set("X-Connecto-Build", "27");
+              downloadHeaders.set("X-Connecto-Version", "v1.9.2");
+              downloadHeaders.set("X-Connecto-Build", "28");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -639,7 +640,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (err) {
         console.error("PDF Studio download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.7.9/pdf-studio.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.8.14/pdf-studio.apk", 302);
     }
 
     // 3b. Cloudflare Global Edge CDN: Direct APK Download Gateway
@@ -2510,14 +2511,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Full PDF editor & creative image editor with typography matching",
         description: "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         category: "Productivity",
-        version_name: "1.9.1",
-        version_code: 27,
-        size_bytes: 67688624,
-        size_formatted: "64.5 MB",
+        version_name: "1.9.2",
+        version_code: 28,
+        size_bytes: 75867300,
+        size_formatted: "72.3 MB",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
         accent_color: "#EF4444",
         changelog: [
+          "Images & PDF Text Inpainting, Auto-Fit Width Scaling & Authentic Typography: Fixed root cause where first-page text extraction ran with null bitmap due to uncommitted Compose snapshot, preventing true visible color sampling and causing colored text (e.g. green headings) to fallback to black; added overrideBitmap directly into initial page extraction pipeline; resolved page rotation dimension mismatch on rotated PDF slides; added intelligent dynamic text auto-fitting (textScaleX clamping) so replacement text seamlessly fits into the original word/line slot without overlapping neighboring text or table cells; expanded inpaint erase patches to dynamically cover the full painted width of replacement text preventing background bleeding; prioritized direct disk TrueType file loading (/system/fonts/Roboto-Bold.ttf) over platform families to strictly prevent OEM cursive/handwriting device themes from hijacking typography; initialized PdfEngine in Application onCreate; optimized images text inpainting in Creative Image Editor.",
           "Image Text Replacement & Opaque Background Erase Patch: Enforced strict 3-layer rendering order in both live preview and high-res export canvas (Base image -> 100% Opaque Erase Patch expanded by 3.5px -> Replacement text), completely preventing old OCR letters from peeking underneath; robust full-resolution bitmap border ring background sampling with vertical linear gradient transition when perimeter colors vary; interactive dual-swatch color picker popover in bottom style bar (Text Color & Background Fill with live Eyedropper sampling); clean OCR overlays with ultra-subtle outlines and auto-hiding unselected boxes during editing; floating + Add Text button intelligently hidden while style bar is active; letter spacing safely clamped to prevent text crushing.",
           "My Documents File Management System: Complete high-craft Obsidian file manager on Home screen with zero-clutter adaptive header (hidden controls when empty, muted count pill with 0ms inline search morph and compact filter/sort chips when populated); scannable 16px-radius #13161F document cards with 60fps lossy WebP cached page thumbnails, format badges (PDF, PNG, JPG), bold truncated titles, and single overflow ⋮ action; 1-tap direct editing into PDF Editor or Creative Image Editor; 24px top-radius contextual bottom sheet with safe rename (locked extension badge & path sanitization), 1-tap duplicate, system share, MediaStore Downloads export (Downloads/PDF Studio), and 4-second undo snackbar deletion; fluid long-press multi-select mode with floating bottom action dock for batch Merge PDFs (2+ PDFs), batch To PDF (1+ Images), batch Share, and guarded Batch Delete; background self-healing verification silently purging orphaned thumbnails and leftover temp files.",
           "Photos to PDF Visual Page Grid: Zero-friction entry with immediate native multi-image picker and borderless fallback screen; responsive 2-column WYSIWYG page grid framed in target aspect ratio (Fit Image, A4, Letter); clutter-free card overlays with live page number pill and quick ✕ remove; 60fps fluid drag-to-reorder with tactile haptic tick; quick tap page actions (Rotate 90°, Clean Doc contrast pass, Remove); progressive disclosure Layout Bottom Sheet; bottom dock with + Add pill and Create PDF handoff to Save Sheet.",
