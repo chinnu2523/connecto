@@ -429,6 +429,14 @@ fun FullScreenCallUI(
     val callPartner by VoiceCallManager.activeCallPartner.collectAsState()
     val activePartnerUsername by VoiceCallManager.activeCallPartnerUsername.collectAsState()
 
+    androidx.activity.compose.BackHandler(enabled = true) {
+        if (callState == CallState.CONNECTED) {
+            onMinimize?.invoke()
+        } else {
+            onEndCall()
+        }
+    }
+
     var resolvedAvatar by remember(avatarUrl, managerAvatar) {
         mutableStateOf(avatarUrl ?: managerAvatar)
     }
@@ -2042,6 +2050,10 @@ fun FullScreenGroupCallUI(
     val formattedTime = String.format("%02d:%02d", minutes, seconds)
 
     val isNetworkUnstable = callStats?.let { it.roundTripTimeMs > 300.0 || it.packetLossPct > 7.0 } == true
+
+    androidx.activity.compose.BackHandler(enabled = true) {
+        onMinimize?.invoke()
+    }
 
     Box(
         modifier = modifier

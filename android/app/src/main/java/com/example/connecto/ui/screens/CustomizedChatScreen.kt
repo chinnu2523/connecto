@@ -1850,7 +1850,12 @@ fun CustomizedChatScreen(
     }
 
     fun initiateVoiceCallWithFriend(friend: FriendItem) {
-        if (VoiceCallManager.isDialLockedFlow.value || VoiceCallManager.callState.value != com.example.connecto.voice.CallState.IDLE) {
+        if (VoiceCallManager.callState.value != com.example.connecto.voice.CallState.IDLE) {
+            Toast.makeText(context, "A call is already in progress", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (VoiceCallManager.isDialLockedFlow.value) {
+            Toast.makeText(context, "Connecting call, please wait...", Toast.LENGTH_SHORT).show()
             return
         }
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {

@@ -111,17 +111,10 @@ class ConnectoRealtimeService : Service() {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
-        Log.d(TAG, "onTaskRemoved: App swiped from Recents - maintaining background realtime listener")
+        Log.d(TAG, "onTaskRemoved: Task removed from Recents, stopping background sync service cleanly")
         dismissConnectoActiveNotification(this)
-        try {
-            val appCtx = applicationContext
-            val restartIntent = Intent(appCtx, ConnectoRealtimeService::class.java).apply {
-                action = ACTION_START
-            }
-            appCtx.startService(restartIntent)
-        } catch (t: Throwable) {
-            Log.w(TAG, "onTaskRemoved restart: ${t.message}")
-        }
+        monitorJob?.cancel()
+        stopSelf()
     }
 
     override fun onDestroy() {

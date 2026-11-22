@@ -177,7 +177,7 @@ object ProximityScreenLockManager : SensorEventListener {
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
-    private fun applyScreenState(near: Boolean) {
+    fun applyScreenState(near: Boolean) {
         val activity = currentActivityRef?.get() ?: return
         activity.runOnUiThread {
             try {
@@ -191,8 +191,9 @@ object ProximityScreenLockManager : SensorEventListener {
                     lp.screenBrightness = 0.0f
                     window.attributes = lp
                 } else {
-                    // Restore original display brightness
-                    lp.screenBrightness = originalBrightness
+                    // Restore original display brightness (default system policy)
+                    lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                    originalBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
                     window.attributes = lp
                 }
             } catch (e: Exception) {

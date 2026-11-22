@@ -20,6 +20,7 @@ import android.os.Build
 import android.os.SystemClock
 import android.util.Base64
 import android.util.Log
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.example.connecto.network.ConnectoApiClient
 import com.example.connecto.network.ConnectoNetworkConfig
@@ -197,6 +198,7 @@ object VoiceCallManager {
 
     private val iceDisconnectJobs = ConcurrentHashMap<String, Job>()
     private var incomingCallTimeoutJob: Job? = null
+    private var outgoingCallTimeoutJob: Job? = null
     private var wsReconnectAttempt = 0
 
     fun isGroupVoiceActive(groupId: String): Boolean {
@@ -506,6 +508,10 @@ object VoiceCallManager {
     fun onAppBackgrounded() {
         try {
             isAppInForeground = false
+            if (_callState.value != CallState.IDLE) {
+                Log.d(TAG, "onAppBackgrounded: Call is active (${_callState.value}), preserving foreground heartbeat and online presence")
+                return
+            }
             Log.d(TAG, "onAppBackgrounded: Emitting PRESENCE_UPDATE offline and pausing heartbeats")
             stopForegroundHeartbeat()
             val user = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
@@ -3064,6 +3070,8 @@ object VoiceCallManager {
                         return
                     }
                     Log.d(TAG, "Call connected! Room: $roomId")
+                    outgoingCallTimeoutJob?.cancel()
+                    outgoingCallTimeoutJob = null
                     _isRemoteRinging.value = false
                     _callState.value = CallState.CONNECTED
                     _incomingCall.value = null
@@ -3750,6 +3758,27 @@ object VoiceCallManager {
                 ConnectoApiClient.inviteToVoiceCall(cleanTarget, roomId, callerAvatar)
             } catch (_: Throwable) {}
         }
+
+        // Automatic Outgoing Call Timeout: If recipient does not answer within 40 seconds, teardown cleanly
+        startOutgoingCallTimeout(roomId, cleanDisplayName)
+    }
+
+    private fun startOutgoingCallTimeout(callId: String, title: String) {
+        outgoingCallTimeoutJob?.cancel()
+        outgoingCallTimeoutJob = scope.launch {
+            delay(40000L) // 40 seconds timeout for outgoing call
+            if (_callState.value == CallState.OUTGOING_RINGING && _activeRoomId.value == callId) {
+                Log.d(TAG, "Outgoing call timed out after 40s (no answer from $title)")
+                withContext(Dispatchers.Main) {
+                    try {
+                        appContext?.let {
+                            Toast.makeText(it, "No answer from $title", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (_: Exception) {}
+                }
+                endCall()
+            }
+        }
     }
 
     private fun startIncomingCallTimeout(callId: String, title: String, groupId: String? = null) {
@@ -4212,6 +4241,8 @@ object VoiceCallManager {
         iceDisconnectJobs.clear()
         incomingCallTimeoutJob?.cancel()
         incomingCallTimeoutJob = null
+        outgoingCallTimeoutJob?.cancel()
+        outgoingCallTimeoutJob = null
         _participantCount.value = 1
         _liveAudioAmplitude.value = 0f
         ProximityScreenLockManager.stopMonitoring()

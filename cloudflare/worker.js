@@ -653,19 +653,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.11/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.10/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.9/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.10-b197-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.11-b198-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.8.10");
-          res.headers.set("X-Connecto-Build", "197");
+          res.headers.set("X-Connecto-Version", "v5.8.11");
+          res.headers.set("X-Connecto-Build", "198");
           return res;
         }
 
@@ -701,8 +701,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.8.10");
-              downloadHeaders.set("X-Connecto-Build", "197");
+              downloadHeaders.set("X-Connecto-Version", "v5.8.11");
+              downloadHeaders.set("X-Connecto-Build", "198");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2337,14 +2337,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.10",
-        version_code: 197,
-        size_bytes: 38473099,
+        version_name: "5.8.11",
+        version_code: 198,
+        size_bytes: 38486530,
         size_formatted: "36.7 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
         changelog: [
+          "Voice Calling & Background Lifecycle Hardening (v5.8.11): Fixed 1:1 calling permanent dial lock by introducing a 45-second outgoing call timeout that cleanly resets dial state, dismisses ringing overlays, and leaves helpful user feedback. Fixed proximity screen lock bug where premature sensor blackout froze UI touches and locked screen brightness upon resuming the app. Bounded ear blackout strictly to active connected calls and restored system brightness on stop/resume. Resolved background crash when app is removed from recent apps by terminating service gracefully instead of executing unauthorized background service starts on Android 8-15. Added system BackHandler to call overlay to allow quick minimization, and ensured MinimizedMultitaskingCallBar remains accessible during active Direct Chat conversations.",
           "Direct Chat UI/UX Polish, Smooth View Transitions & Solid Theme (v5.8.10): Overhauled the 1:1 Direct Chat experience with 120Hz smooth horizontal slide and fade view transitions between conversation list, direct chat, and friend profile. Added contextual More Options (⋮) menu with quick access to Wallpaper Customizer, Notification Mute/Unmute, Biometric Chat Lock/Unlock, Profile View, and Clear Chat History dialog. Implemented tactile spring press physics on Send and Emoji buttons with pure dark theme solid white buttons (zero color gradients) and instant local chat clearing.",
           "Monochrome Pure Dark Theme & White Button System (v5.8.9): Removed color gradients across the entire Connecto application UI in favor of a pure dark OLED design system with solid white buttons and high-contrast typography. Elevated primary action buttons, FABs, speed-dial action buttons, dialog confirmations, and filter chips to solid white (#FFFFFF) with deep black text and icons (#000000). Harmonized bottom navigation with monochrome soft ambient glow and solid white sliding indicator pill. Converted modal dialogs, email verification, and action sheets to flat, high-contrast monochrome components adhering strictly to Stitch MCP pure black noir specifications.",
           "Obsidian & Liquid Glass Design System Overhaul (v5.8.8): Implemented a complete 5-tab ecosystem UI/UX overhaul on Android Native Jetpack Compose. Synchronized OLED 0-nit pitch black surfaces (#0A0B0E) with soft frosted liquid glass cards and crisp Electric Indigo (#6366F1) / (#818CF8) specular highlights. Re-architected Liquid Glass token resolution to ensure permanent legibility across all backgrounds by grounding glass cards on translucent obsidian foundations rather than transparent cutouts. Elevated the 5-tier navigation dock with subtle Electric Indigo radial ambient glow, high-precision sliding indicator pill with spring physics, and tactile micro-press response. Harmonized Quick Action chips, Friend Request cards, and Pinned Favourites on Home; refined channel header capsules and docked composers in Channels; polished Call history cards with emerald/crimson indicators; and streamlined inset grouped cards across Profile & Settings.",
@@ -11106,7 +11107,7 @@ export class ConnectoRealtimeRoom {
           this.pendingCalls.delete(callId);
           continue;
         }
-        if (info.target === username && info.status === "ringing") {
+        if ((info.target === username || info.canonicalTarget === username) && info.status === "ringing") {
           return new Response(JSON.stringify({
             has_pending: true,
             call_id: info.callId,

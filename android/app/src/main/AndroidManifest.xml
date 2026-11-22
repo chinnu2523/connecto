@@ -73,7 +73,7 @@
             android:name=".notifications.ConnectoRealtimeService"
             android:enabled="true"
             android:exported="false"
-            android:stopWithTask="false" />
+            android:stopWithTask="true" />
 
         <!-- Default FCM notification channel & icon -->
         <meta-data

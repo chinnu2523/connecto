@@ -290,6 +290,9 @@ class MainActivity : FragmentActivity() {
             ConnectoNotificationManager.isAppInForeground = true
             com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(this)
             com.example.connecto.voice.ProximityScreenLockManager.updateActivity(this)
+            if (com.example.connecto.voice.VoiceCallManager.callState.value != com.example.connecto.voice.CallState.CONNECTED) {
+                com.example.connecto.voice.ProximityScreenLockManager.applyScreenState(near = false)
+            }
         } catch (t: Throwable) {
             android.util.Log.e("MainActivity", "onResume error: ${t.message}")
         }
@@ -303,6 +306,9 @@ class MainActivity : FragmentActivity() {
         super.onStop()
         try {
             ConnectoNotificationManager.isAppInForeground = false
+            if (com.example.connecto.voice.VoiceCallManager.callState.value != com.example.connecto.voice.CallState.CONNECTED) {
+                com.example.connecto.voice.ProximityScreenLockManager.stopMonitoring()
+            }
             com.example.connecto.voice.VoiceCallManager.onAppBackgrounded()
             com.example.connecto.security.SecretVaultManager.lockVault()
         } catch (t: Throwable) {
@@ -953,16 +959,11 @@ fun ConnectoApp(
         MainActivity.pendingIntentAction = null
     }
 
-    // Keep real-time WebSocket & background service alive when backgrounded; auto-lock on return if enabled
+    // Keep real-time WebSocket & background service alive when active; auto-lock on return if enabled
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, authenticatedUsername) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) {
-                val isLoggedIn = prefs.getBoolean("is_logged_in", false)
-                if (isLoggedIn) {
-                    com.example.connecto.voice.VoiceCallManager.connectWebSocket()
-                }
-            } else if (event == Lifecycle.Event.ON_START) {
+            if (event == Lifecycle.Event.ON_START) {
                 val isLoggedIn = prefs.getBoolean("is_logged_in", false)
                 if (isLoggedIn && flowState == AppFlowState.CHAT_APP) {
                     com.example.connecto.notifications.ConnectoRealtimeService.startService(context)
@@ -1165,25 +1166,25 @@ fun ConnectoApp(
                         containerColor = Color.Transparent,
                         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
                         bottomBar = {
-                            if (showBottomBar) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .navigationBarsPadding()
-                                ) {
-                                    // Minimized Multitasking Call Bar
-                                    val isCallOngoing = (callState == CallState.CONNECTED || callState == CallState.OUTGOING_RINGING)
-                                    if (isCallMinimized && isCallOngoing) {
-                                        MinimizedMultitaskingCallBar(
-                                            callTitle = if (managerCallTitle.isNotBlank()) managerCallTitle else "Voice Call",
-                                            onExpand = { isCallMinimized = false },
-                                            onEndCall = {
-                                                isCallMinimized = false
-                                                VoiceCallManager.endCall()
-                                            }
-                                        )
-                                    }
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .navigationBarsPadding()
+                            ) {
+                                // Minimized Multitasking Call Bar: Always visible during active minimized call across all screens
+                                val isCallOngoing = (callState == CallState.CONNECTED || callState == CallState.OUTGOING_RINGING)
+                                if (isCallMinimized && isCallOngoing) {
+                                    MinimizedMultitaskingCallBar(
+                                        callTitle = if (managerCallTitle.isNotBlank()) managerCallTitle else "Voice Call",
+                                        onExpand = { isCallMinimized = false },
+                                        onEndCall = {
+                                            isCallMinimized = false
+                                            VoiceCallManager.endCall()
+                                        }
+                                    )
+                                }
 
+                                if (showBottomBar) {
                                     ConnectoBottomBar(
                                         currentTab = currentTab,
                                         onTabSelected = { selectedTab ->
@@ -1521,7 +1522,8 @@ fun ConnectoApp(
         // In-Call Proximity Screen-Off Lock:
         // When audio is on the earpiece and the top receiver / proximity sensor is covered (phone held to ear),
         // the screen is completely turned off (pitch black) and touch input is locked just like native phone calls.
-        val isCallActive = (callState == CallState.CONNECTED || callState == CallState.OUTGOING_RINGING)
+        // Active strictly during CONNECTED call state only (never during ringing/dialing or idle).
+        val isCallActive = (callState == CallState.CONNECTED)
         val shouldBlackoutForEar = (isProximityScreenLocked || isProximityNear) &&
                 currentAudioRoute == com.example.connecto.voice.AudioRoute.EARPIECE &&
                 isCallActive
