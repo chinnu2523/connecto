@@ -46,6 +46,8 @@ object ProximityScreenLockManager : SensorEventListener {
 
     private var originalBrightness: Float = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
     private var isMonitoringActive = false
+    private var sensorEventCount = 0
+    private var monitoringStartTimeMs = 0L
 
     fun init(context: Context) {
         val app = context.applicationContext
@@ -88,6 +90,8 @@ object ProximityScreenLockManager : SensorEventListener {
     fun startMonitoring(activity: Activity? = null) {
         activity?.let { updateActivity(it) }
         isMonitoringActive = true
+        sensorEventCount = 0
+        monitoringStartTimeMs = System.currentTimeMillis()
 
         val sm = sensorManager ?: appContext?.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
         sensorManager = sm
@@ -99,8 +103,6 @@ object ProximityScreenLockManager : SensorEventListener {
             isSensorRegistered = registered
             Log.d(TAG, "Proximity sensor listener registered: $registered")
         }
-
-        acquireWakeLock()
     }
 
     /**
@@ -108,6 +110,8 @@ object ProximityScreenLockManager : SensorEventListener {
      */
     fun stopMonitoring() {
         isMonitoringActive = false
+        sensorEventCount = 0
+        monitoringStartTimeMs = 0L
         if (isSensorRegistered) {
             sensorManager?.unregisterListener(this)
             isSensorRegistered = false
@@ -155,22 +159,31 @@ object ProximityScreenLockManager : SensorEventListener {
         val distance = event.values.getOrNull(0) ?: return
         val maxRange = proximitySensor?.maximumRange ?: 5.0f
 
-        // When the top receiver is closed / covered, distance is near 0
-        // (usually 0.0cm or less than maxRange / 4.0cm)
-        val isNear = distance < maxRange && distance < 4.0f
-        Log.d(TAG, "onSensorChanged: distance=$distance, maxRange=$maxRange -> isNear=$isNear, route=${VoiceCallManager.currentAudioRoute.value}")
+        sensorEventCount++
+        val elapsedMs = System.currentTimeMillis() - monitoringStartTimeMs
 
+        // Ignore early transient calibration samples (< 1000ms from call start or eventCount < 2)
+        if (elapsedMs < 1000L || sensorEventCount < 2) {
+            _isNear.value = false
+            _isScreenOffLocked.value = false
+            applyScreenState(false)
+            return
+        }
+
+        // True physical ear touch distance (< 2.5cm)
+        val isNear = distance < maxRange && distance < 2.5f
         _isNear.value = isNear
 
-        val isCallActive = (VoiceCallManager.callState.value == CallState.CONNECTED ||
-                VoiceCallManager.callState.value == CallState.OUTGOING_RINGING)
+        val isCallActive = (VoiceCallManager.callState.value == CallState.CONNECTED)
         val isEarpiece = (VoiceCallManager.currentAudioRoute.value == AudioRoute.EARPIECE)
 
-        if (isMonitoringActive && isCallActive && isEarpiece) {
-            _isScreenOffLocked.value = isNear
-            applyScreenState(isNear)
+        if (isMonitoringActive && isCallActive && isEarpiece && isNear) {
+            _isScreenOffLocked.value = true
+            acquireWakeLock()
+            applyScreenState(true)
         } else {
             _isScreenOffLocked.value = false
+            releaseWakeLock()
             applyScreenState(false)
         }
     }

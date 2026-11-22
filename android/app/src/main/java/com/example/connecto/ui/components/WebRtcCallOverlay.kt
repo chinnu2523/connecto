@@ -958,34 +958,12 @@ fun FullScreenCallUI(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Refined 7-Bar Dynamic Equalizer Waveform
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val barMultipliers = listOf(0.40f, 0.70f, 1.0f, 0.85f, 1.0f, 0.70f, 0.40f)
-                            barMultipliers.forEach { multiplier ->
-                                val targetHeight = (6.dp + (safeAmplitude * 36f * multiplier).dp).coerceIn(6.dp, 38.dp)
-                                val animH by animateDpAsState(
-                                    targetValue = if (isMuted || callState != CallState.CONNECTED) 6.dp else targetHeight,
-                                    animationSpec = tween(65),
-                                    label = "eqBar"
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .width(4.5.dp)
-                                        .height(animH)
-                                        .clip(RoundedCornerShape(3.dp))
-                                        .background(
-                                            brush = if (isMuted) {
-                                                Brush.verticalGradient(listOf(Color(0xFFEF4444).copy(alpha = 0.7f), Color(0xFFEF4444).copy(alpha = 0.7f)))
-                                            } else {
-                                                Brush.verticalGradient(listOf(OnlineGreen, Color(0xFF06B6D4)))
-                                            }
-                                        )
-                                )
-                            }
-                        }
+                        // Refined 7-Bar Dynamic Equalizer Waveform (Single-Clock RenderThread Optimized)
+                        DynamicWaveformVisualizer(
+                            amplitude = safeAmplitude,
+                            isMuted = isMuted,
+                            isConnected = callState == CallState.CONNECTED
+                        )
 
                         Text(
                             text = if (isMuted) "Microphone Muted"
@@ -2809,6 +2787,43 @@ fun IncomingGroupCallUI(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun DynamicWaveformVisualizer(
+    amplitude: Float,
+    isMuted: Boolean,
+    isConnected: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val barMultipliers = remember { listOf(0.40f, 0.70f, 1.0f, 0.85f, 1.0f, 0.70f, 0.40f) }
+    val animAmp by animateFloatAsState(
+        targetValue = if (isMuted || !isConnected) 0f else amplitude,
+        animationSpec = tween(65, easing = FastOutSlowInEasing),
+        label = "waveformAmp"
+    )
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+    ) {
+        barMultipliers.forEach { multiplier ->
+            val heightDp = (6f + animAmp * 32f * multiplier).coerceIn(6f, 38f).dp
+            Box(
+                modifier = Modifier
+                    .width(4.5.dp)
+                    .height(heightDp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(
+                        brush = if (isMuted) {
+                            Brush.verticalGradient(listOf(Color(0xFFEF4444).copy(alpha = 0.7f), Color(0xFFEF4444).copy(alpha = 0.7f)))
+                        } else {
+                            Brush.verticalGradient(listOf(OnlineGreen, Color(0xFF06B6D4)))
+                        }
+                    )
+            )
         }
     }
 }

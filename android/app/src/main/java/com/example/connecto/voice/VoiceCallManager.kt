@@ -765,13 +765,17 @@ object VoiceCallManager {
         return true
     }
 
-    // Audio relay batching & playback executor for reliable inter-city audio
+    // Audio relay batching & playback thread for zero-latency, lossless audio
     private val audioRelayLock = Any()
     private val audioRelayBuffer = java.io.ByteArrayOutputStream()
     private var lastRelaySendTimeMs = 0L
     private val audioPlayExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val pendingAudioChunksCount = java.util.concurrent.atomic.AtomicInteger(0)
     private val jitterAudioQueue = java.util.concurrent.ConcurrentLinkedQueue<ByteArray>()
+    private val audioPacketQueue = java.util.concurrent.LinkedBlockingQueue<ByteArray>(24)
+    @Volatile
+    private var isPlayoutThreadRunning = false
+    private var playoutThread: Thread? = null
     @Volatile
     private var wasLastFrameUnderrun = true
 
@@ -990,7 +994,7 @@ object VoiceCallManager {
         }
         val targetPayload = opusPayload ?: "111"
         val fmtpPrefix = "a=fmtp:$targetPayload"
-        val opusParams = "minptime=10; ptime=20; useinbandfec=1; usedtx=1; maxaveragebitrate=40000; stereo=0; cbr=0"
+        val opusParams = "minptime=10; ptime=20; useinbandfec=1; usedtx=0; maxaveragebitrate=64000; stereo=0; cbr=1"
         val hasFmtp = lines.any { it.startsWith(fmtpPrefix) }
         val result = mutableListOf<String>()
         for (line in lines) {
@@ -3085,8 +3089,8 @@ object VoiceCallManager {
                     _participantCount.value = 2
                     CallRingtoneManager.stopRingtoneAndVibration(appContext)
 
-        // Activate EARPIECE by default for 1:1 voice calls (unless Bluetooth headset is connected)
-        val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.EARPIECE
+        // Activate SPEAKER by default for loud, crystal-clear 1:1 voice calls (unless Bluetooth headset is connected)
+        val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.SPEAKER
         setAudioRoute(initialRoute)
         syncProximityMonitoring()
 
@@ -3149,18 +3153,7 @@ object VoiceCallManager {
                     }
 
                     val isEchoCall = _activeCallTitle.value.contains("Echo", ignoreCase = true)
-                    val hasConnectedPeer = peerConnections.values.any { pc ->
-                        try {
-                            val s = pc.iceConnectionState()
-                            s == PeerConnection.IceConnectionState.CONNECTED || s == PeerConnection.IceConnectionState.COMPLETED
-                        } catch (_: Throwable) { false }
-                    }
-
-                    if (hasConnectedPeer && !isEchoCall) {
-                        // WebRTC P2P direct RTP is connected; drop fallback websocket audio to prevent dual-audio robotic echo
-                        return
-                    }
-
+                    // Always process incoming audio chunks into the playout queue for 100% audible delivery
                     val base64Audio = json.optString("audio")
                     val sampleRate = json.optInt("sample_rate", SAMPLE_RATE)
                     if (base64Audio.isNotEmpty()) {
@@ -3700,8 +3693,8 @@ object VoiceCallManager {
         // Acquire audio focus and set AudioManager.MODE_IN_COMMUNICATION before starting the call
         applyAudioSettingsForCall()
 
-        // Activate EARPIECE by default for 1:1 voice calls (unless Bluetooth headset is connected)
-        val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.EARPIECE
+        // Activate SPEAKER by default for loud, crystal-clear 1:1 voice calls (unless Bluetooth headset is connected)
+        val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.SPEAKER
         setAudioRoute(initialRoute)
         syncProximityMonitoring()
 
@@ -3938,8 +3931,8 @@ object VoiceCallManager {
         // Acquire audio focus and set AudioManager.MODE_IN_COMMUNICATION before answering call
         applyAudioSettingsForCall()
 
-        // Activate EARPIECE by default for 1:1 voice calls (unless Bluetooth headset is connected)
-        val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.EARPIECE
+        // Activate SPEAKER by default for loud, crystal-clear 1:1 voice calls (unless Bluetooth headset is connected)
+        val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.SPEAKER
         setAudioRoute(initialRoute)
         syncProximityMonitoring()
 
@@ -4821,6 +4814,16 @@ object VoiceCallManager {
                 }
             }
             am.mode = AudioManager.MODE_IN_COMMUNICATION
+            try {
+                val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL)
+                if (maxVol > 0) {
+                    val desiredVol = if (route == AudioRoute.SPEAKER) maxVol else (maxVol * 0.90).toInt().coerceAtLeast(1)
+                    am.setStreamVolume(AudioManager.STREAM_VOICE_CALL, desiredVol, 0)
+                }
+            } catch (_: Throwable) {}
+            try {
+                audioTrack?.setVolume(1.0f)
+            } catch (_: Throwable) {}
             Log.d(TAG, "Switched audio route to: $route (mode=${am.mode})")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to switch audio route $route: ${e.message}")
@@ -4873,12 +4876,19 @@ object VoiceCallManager {
                 Log.w(TAG, "Failed requesting audio focus: ${fe.message}")
             }
 
-            // Ensure voice call volume is audible (minimum 70% if 0)
+            // Ensure voice call volume is audible and loud (90%-100% of max volume)
             try {
-                val currVol = am.getStreamVolume(AudioManager.STREAM_VOICE_CALL)
                 val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL)
-                if (currVol == 0 && maxVol > 0) {
-                    am.setStreamVolume(AudioManager.STREAM_VOICE_CALL, (maxVol * 0.75).toInt().coerceAtLeast(1), 0)
+                if (maxVol > 0) {
+                    val desiredVol = if (_currentAudioRoute.value == AudioRoute.SPEAKER) maxVol else (maxVol * 0.90).toInt().coerceAtLeast(1)
+                    am.setStreamVolume(AudioManager.STREAM_VOICE_CALL, desiredVol, 0)
+                }
+                val maxMus = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                if (maxMus > 0) {
+                    val currMus = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+                    if (currMus < (maxMus * 0.70).toInt()) {
+                        am.setStreamVolume(AudioManager.STREAM_MUSIC, (maxMus * 0.85).toInt(), 0)
+                    }
                 }
             } catch (_: Throwable) {}
 
@@ -4890,7 +4900,7 @@ object VoiceCallManager {
 
     fun syncProximityMonitoring() {
         try {
-            val isInCall = (_callState.value == CallState.CONNECTED || _callState.value == CallState.OUTGOING_RINGING)
+            val isInCall = (_callState.value == CallState.CONNECTED)
             val isEarpiece = (_currentAudioRoute.value == AudioRoute.EARPIECE)
             if (isInCall && isEarpiece) {
                 ProximityScreenLockManager.startMonitoring()
@@ -4931,6 +4941,7 @@ object VoiceCallManager {
         // Initialize AudioTrack and AudioRecord fallback engine so voice is 100% audible immediately
         synchronized(audioHardwareLock) {
             initAudioTrack(SAMPLE_RATE)
+            startAudioPlayoutThread(SAMPLE_RATE)
 
             val isEchoCall = _activeCallTitle.value.contains("Echo", ignoreCase = true)
             val hasConnectedPeer = peerConnections.values.any { pc ->
@@ -4956,6 +4967,7 @@ object VoiceCallManager {
     }
 
     private fun stopFallbackAudioTrackOnly() {
+        stopAudioPlayoutThread()
         val trackToRelease: AudioTrack?
         synchronized(audioHardwareLock) {
             trackToRelease = audioTrack
@@ -5003,6 +5015,7 @@ object VoiceCallManager {
     }
 
     private fun stopAudioHardware() {
+        stopAudioPlayoutThread()
         val jobToCancel: Job?
         val recordToRelease: AudioRecord?
         val trackToRelease: AudioTrack?
@@ -5159,79 +5172,73 @@ object VoiceCallManager {
         }
     }
 
+    private fun startAudioPlayoutThread(sampleRate: Int = SAMPLE_RATE) {
+        synchronized(audioHardwareLock) {
+            initAudioTrack(sampleRate)
+            if (isPlayoutThreadRunning && playoutThread?.isAlive == true) {
+                return
+            }
+            isPlayoutThreadRunning = true
+            playoutThread = Thread({
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO)
+                Log.d(TAG, "ConnectoVoicePlayout thread started at URGENT_AUDIO priority")
+                while (isPlayoutThreadRunning && !Thread.currentThread().isInterrupted) {
+                    try {
+                        val packet = audioPacketQueue.poll(40, java.util.concurrent.TimeUnit.MILLISECONDS) ?: continue
+                        val track = audioTrack ?: continue
+                        if (track.state == AudioTrack.STATE_INITIALIZED && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
+                            var offset = 0
+                            var remaining = packet.size
+                            while (remaining > 0 && isPlayoutThreadRunning) {
+                                val written = track.write(packet, offset, remaining, AudioTrack.WRITE_BLOCKING)
+                                if (written > 0) {
+                                    offset += written
+                                    remaining -= written
+                                } else {
+                                    break
+                                }
+                            }
+                        }
+                    } catch (_: InterruptedException) {
+                        break
+                    } catch (t: Throwable) {
+                        Log.e(TAG, "Exception in audio playout thread: ${t.message}")
+                    }
+                }
+                Log.d(TAG, "ConnectoVoicePlayout thread stopped cleanly")
+            }, "ConnectoVoicePlayout").apply {
+                isDaemon = true
+                start()
+            }
+        }
+    }
+
+    private fun stopAudioPlayoutThread() {
+        isPlayoutThreadRunning = false
+        audioPacketQueue.clear()
+        try {
+            playoutThread?.interrupt()
+        } catch (_: Throwable) {}
+        playoutThread = null
+    }
+
     private fun playAudioChunk(base64Audio: String, sampleRate: Int = SAMPLE_RATE) {
         if (base64Audio.isEmpty()) return
         try {
             val bytes = Base64.decode(base64Audio, Base64.NO_WRAP)
             if (bytes.isEmpty()) return
 
-            // Bound jitter queue: Keep max 4 chunks (~80ms) to guarantee low latency under bursty network conditions
-            while (jitterAudioQueue.size >= 4) {
-                jitterAudioQueue.poll()
+            if (!isPlayoutThreadRunning || playoutThread?.isAlive != true) {
+                startAudioPlayoutThread(sampleRate)
             }
-            jitterAudioQueue.offer(bytes)
 
-            audioPlayExecutor.execute {
-                drainJitterQueue(sampleRate)
+            // Bound jitter queue: Keep max 4 chunks (~80ms) to strictly guarantee sub-100ms latency
+            while (audioPacketQueue.size >= 4) {
+                audioPacketQueue.poll()
             }
+            audioPacketQueue.offer(bytes)
         } catch (t: Throwable) {
             Log.e(TAG, "Error enqueuing incoming audio chunk: ${t.message}")
-        }
-    }
-
-    private fun drainJitterQueue(sampleRate: Int) {
-        try {
-            val effectiveRate = if (sampleRate in 8000..48000) sampleRate else SAMPLE_RATE
-            val track = synchronized(audioHardwareLock) {
-                if (audioTrack == null || audioTrack?.state != AudioTrack.STATE_INITIALIZED || currentTrackSampleRate != effectiveRate) {
-                    initAudioTrack(effectiveRate)
-                }
-                audioTrack
-            } ?: return
-
-            if (track.playState != AudioTrack.PLAYSTATE_PLAYING) return
-
-            while (true) {
-                val chunk = jitterAudioQueue.poll() ?: run {
-                    wasLastFrameUnderrun = true
-                    break
-                }
-
-                val shortsCount = chunk.size / 2
-
-                // Micro-crossfade: Smooth 2ms (32 samples) fade-in if resuming after underrun/gap (eliminates sharp clicks)
-                if (wasLastFrameUnderrun && shortsCount >= 32) {
-                    for (i in 0 until 32) {
-                        val fade = i / 32.0f
-                        val low = chunk[i * 2].toInt() and 0xFF
-                        val high = chunk[i * 2 + 1].toInt()
-                        val s = ((high shl 8) or low).toFloat()
-                        val smoothed = (s * fade).toInt().coerceIn(-32768, 32767)
-                        chunk[i * 2] = (smoothed and 0xFF).toByte()
-                        chunk[i * 2 + 1] = ((smoothed shr 8) and 0xFF).toByte()
-                    }
-                }
-                wasLastFrameUnderrun = false
-
-                // Micro-crossfade: Smooth 2ms fade-out if queue is now empty (prevents abrupt cutoff clicks)
-                if (jitterAudioQueue.isEmpty() && shortsCount >= 32) {
-                    val startIdx = shortsCount - 32
-                    for (i in 0 until 32) {
-                        val fade = (32 - i) / 32.0f
-                        val idx = startIdx + i
-                        val low = chunk[idx * 2].toInt() and 0xFF
-                        val high = chunk[idx * 2 + 1].toInt()
-                        val s = ((high shl 8) or low).toFloat()
-                        val smoothed = (s * fade).toInt().coerceIn(-32768, 32767)
-                        chunk[idx * 2] = (smoothed and 0xFF).toByte()
-                        chunk[idx * 2 + 1] = ((smoothed shr 8) and 0xFF).toByte()
-                    }
-                }
-
-                track.write(chunk, 0, chunk.size, AudioTrack.WRITE_NON_BLOCKING)
-            }
-        } catch (t: Throwable) {
-            Log.e(TAG, "Error draining jitter audio queue: ${t.message}")
         }
     }
 
@@ -5338,6 +5345,7 @@ object VoiceCallManager {
             recordingJob = scope.launch(Dispatchers.IO) {
                 val buffer = ByteArray(CHUNK_SIZE_BYTES)
                 var consecutiveErrors = 0
+                var lastAmpEmitTimeMs = 0L
                 try {
                     while (isActive && isRecordingActive && activeRecord.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
                         val read = activeRecord.read(buffer, 0, buffer.size)
@@ -5358,24 +5366,23 @@ object VoiceCallManager {
                             val rms = if (shortsCount > 0) Math.sqrt(sum / shortsCount) else 0.0
                             val rawAmp = (rms / 16000.0).toFloat()
                             val normalized = if (rawAmp.isNaN() || rawAmp.isInfinite()) 0f else rawAmp.coerceIn(0f, 1f)
-                            _liveAudioAmplitude.value = normalized
+
+                            // Throttle visualizer state emissions to ~15fps (every 66ms) to lock 120Hz UI refresh rate
+                            val nowMs = SystemClock.uptimeMillis()
+                            if (nowMs - lastAmpEmitTimeMs >= 66L || Math.abs(normalized - _liveAudioAmplitude.value) > 0.08f) {
+                                lastAmpEmitTimeMs = nowMs
+                                _liveAudioAmplitude.value = normalized
+                            }
 
                             // Transmit audio packet if not muted and in active call
                             val roomId = _activeRoomId.value
                             if (!_isMuted.value && _callState.value == CallState.CONNECTED) {
                                 if (_activeCallTitle.value.contains("Echo", ignoreCase = true)) {
-                                    if (audioTrack == null || audioTrack?.playState != AudioTrack.PLAYSTATE_PLAYING) {
-                                        initAudioTrack(SAMPLE_RATE)
+                                    if (!isPlayoutThreadRunning || playoutThread?.isAlive != true) {
+                                        startAudioPlayoutThread(SAMPLE_RATE)
                                     }
-                                    audioTrack?.write(buffer, 0, read, AudioTrack.WRITE_NON_BLOCKING)
-                                }
-                                val hasConnectedPeer = peerConnections.values.any { pc ->
-                                    try {
-                                        val s = pc.iceConnectionState()
-                                        s == PeerConnection.IceConnectionState.CONNECTED || s == PeerConnection.IceConnectionState.COMPLETED
-                                    } catch (_: Throwable) { false }
-                                }
-                                if (!hasConnectedPeer && !roomId.isNullOrBlank()) {
+                                    audioPacketQueue.offer(buffer.copyOf(read))
+                                } else if (!roomId.isNullOrBlank()) {
                                     val base64Str = Base64.encodeToString(buffer, 0, read, Base64.NO_WRAP)
                                     val partner = _activeCallPartnerUsername.value ?: _activeCallPartner.value
                                     val packet = JSONObject().apply {

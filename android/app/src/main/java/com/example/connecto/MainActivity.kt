@@ -1547,7 +1547,7 @@ fun ConnectoApp(
         // the screen is completely turned off (pitch black) and touch input is locked just like native phone calls.
         // Active strictly during CONNECTED call state only (never during ringing/dialing or idle).
         val isCallActive = (callState == CallState.CONNECTED)
-        val shouldBlackoutForEar = (isProximityScreenLocked || isProximityNear) &&
+        val shouldBlackoutForEar = isProximityScreenLocked &&
                 currentAudioRoute == com.example.connecto.voice.AudioRoute.EARPIECE &&
                 isCallActive
 
