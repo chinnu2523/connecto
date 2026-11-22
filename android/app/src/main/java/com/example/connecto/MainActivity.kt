@@ -1439,6 +1439,29 @@ fun ConnectoApp(
             }
         }
 
+        // 1:1 Incoming Voice Call In-App Overlay
+        val currentIncoming1on1 = incomingCallData
+        if (currentIncoming1on1 != null && callState == CallState.INCOMING_RINGING) {
+            com.example.connecto.voice.FullScreenIncomingCallUI(
+                callerName = currentIncoming1on1.callerName.ifEmpty { currentIncoming1on1.callerUsername },
+                callerUsername = currentIncoming1on1.callerUsername,
+                callerAvatar = currentIncoming1on1.callerAvatar,
+                onAccept = {
+                    com.example.connecto.voice.CallRingtoneManager.stopRingtoneAndVibration(context)
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                        micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                    VoiceCallManager.acceptIncomingCall()
+                    com.example.connecto.notifications.ConnectoNotificationManager.cancelCallNotification()
+                },
+                onDecline = {
+                    com.example.connecto.voice.CallRingtoneManager.stopRingtoneAndVibration(context)
+                    VoiceCallManager.declineIncomingCall()
+                    com.example.connecto.notifications.ConnectoNotificationManager.cancelCallNotification()
+                }
+            )
+        }
+
         // Global Full-Screen Audio Call Overlay (Only when CONNECTED or OUTGOING_RINGING, never during INCOMING_RINGING)
         val isCallActiveGlobal = (callState == CallState.CONNECTED || callState == CallState.OUTGOING_RINGING)
         androidx.compose.animation.AnimatedVisibility(

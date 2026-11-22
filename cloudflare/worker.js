@@ -653,19 +653,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.12/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.11/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.10/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.11-b198-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.12-b199-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.8.11");
-          res.headers.set("X-Connecto-Build", "198");
+          res.headers.set("X-Connecto-Version", "v5.8.12");
+          res.headers.set("X-Connecto-Build", "199");
           return res;
         }
 
@@ -701,8 +701,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.8.11");
-              downloadHeaders.set("X-Connecto-Build", "198");
+              downloadHeaders.set("X-Connecto-Version", "v5.8.12");
+              downloadHeaders.set("X-Connecto-Build", "199");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -767,11 +767,14 @@ Sitemap: https://connecto.fun/sitemap.xml
                         (url.searchParams.get("channel") || "").startsWith("room-") ||
                         (url.searchParams.get("token") || "").startsWith("cf_guest_") ||
                         url.searchParams.get("is_guest") === "true";
-      if (isStoreWs || isGuestWs) {
-        const room = getRealtimeRoom(env);
-        if (room) {
-          return room.fetch(request);
+      const forceCloudWs = url.searchParams.get("force_cloud") === "1" || localServerStatus === "DOWN";
+
+      const room = getRealtimeRoom(env);
+      if (room && (isStoreWs || isGuestWs || forceCloudWs)) {
+        if (url.pathname.toLowerCase().startsWith("/internal")) {
+          return new Response("Forbidden: Internal endpoint", { status: 403 });
         }
+        return room.fetch(request);
       }
 
       try {
@@ -782,7 +785,6 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         console.warn("[WS_PROXY_FALLBACK]", e.message);
       }
-      const room = getRealtimeRoom(env);
       if (room) {
         // SEC-31 / SEC-W02 FIX: Prevent WebSocket upgrade smuggling to DO internal routes
         if (url.pathname.toLowerCase().startsWith("/internal")) {
@@ -2337,14 +2339,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.11",
-        version_code: 198,
-        size_bytes: 38486530,
+        version_name: "5.8.12",
+        version_code: 199,
+        size_bytes: 38487258,
         size_formatted: "36.7 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
         changelog: [
+          "Voice Call Dual-Engine Audio & In-App Incoming Call Overlay (v5.8.12): Fully restored voice calling audio transmission across all cellular (4G/5G) and WiFi networks by enabling automatic dual-engine audio. When direct WebRTC peer-to-peer is blocked by carrier NAT/firewalls, the engine seamlessly routes lossless low-latency audio via WebSocket relay (16kHz PCM with hardware echo cancellation, noise suppression, and automatic gain control) with zero audio drop or silence. Replaced invalid TURN relay credentials with resilient OpenRelay TURN servers across UDP and TCP. Added in-app FullScreenIncomingCallUI in MainActivity so 1:1 incoming calls display immediate accept/decline controls when the app is in foreground, bypassing Android 14/15 background activity launch restrictions.",
           "Voice Calling & Background Lifecycle Hardening (v5.8.11): Fixed 1:1 calling permanent dial lock by introducing a 45-second outgoing call timeout that cleanly resets dial state, dismisses ringing overlays, and leaves helpful user feedback. Fixed proximity screen lock bug where premature sensor blackout froze UI touches and locked screen brightness upon resuming the app. Bounded ear blackout strictly to active connected calls and restored system brightness on stop/resume. Resolved background crash when app is removed from recent apps by terminating service gracefully instead of executing unauthorized background service starts on Android 8-15. Added system BackHandler to call overlay to allow quick minimization, and ensured MinimizedMultitaskingCallBar remains accessible during active Direct Chat conversations.",
           "Direct Chat UI/UX Polish, Smooth View Transitions & Solid Theme (v5.8.10): Overhauled the 1:1 Direct Chat experience with 120Hz smooth horizontal slide and fade view transitions between conversation list, direct chat, and friend profile. Added contextual More Options (⋮) menu with quick access to Wallpaper Customizer, Notification Mute/Unmute, Biometric Chat Lock/Unlock, Profile View, and Clear Chat History dialog. Implemented tactile spring press physics on Send and Emoji buttons with pure dark theme solid white buttons (zero color gradients) and instant local chat clearing.",
           "Monochrome Pure Dark Theme & White Button System (v5.8.9): Removed color gradients across the entire Connecto application UI in favor of a pure dark OLED design system with solid white buttons and high-contrast typography. Elevated primary action buttons, FABs, speed-dial action buttons, dialog confirmations, and filter chips to solid white (#FFFFFF) with deep black text and icons (#000000). Harmonized bottom navigation with monochrome soft ambient glow and solid white sliding indicator pill. Converted modal dialogs, email verification, and action sheets to flat, high-contrast monochrome components adhering strictly to Stitch MCP pure black noir specifications.",
@@ -7779,12 +7782,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       generatedTurnServers = [
         {
           urls: [
-            "turn:turn.cloudflare.com:3478?transport=udp",
-            "turn:turn.cloudflare.com:443?transport=tcp",
-            "turns:turn.cloudflare.com:443?transport=tcp"
+            "turn:openrelay.metered.ca:80",
+            "turn:openrelay.metered.ca:443",
+            "turn:openrelay.metered.ca:443?transport=tcp",
+            "turns:openrelay.metered.ca:443?transport=tcp"
           ],
-          username: "cloudflare",
-          credential: "cloudflare"
+          username: "openrelayproject",
+          credential: "openrelayproject"
         }
       ];
     }

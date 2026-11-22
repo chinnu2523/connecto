@@ -838,18 +838,22 @@ object VoiceCallManager {
             PeerConnection.IceServer.builder("stun:stun3.l.google.com:19302").createIceServer(),
             PeerConnection.IceServer.builder("stun:stun4.l.google.com:19302").createIceServer(),
 
-            // Cloudflare Anycast TURN Servers (UDP prioritized first for minimum voice latency)
-            PeerConnection.IceServer.builder("turn:turn.cloudflare.com:3478?transport=udp")
-                .setUsername("cloudflare")
-                .setPassword("cloudflare")
+            // OpenRelay Public TURN Relay Servers (UDP prioritized first, TCP fallback)
+            PeerConnection.IceServer.builder("turn:openrelay.metered.ca:80")
+                .setUsername("openrelayproject")
+                .setPassword("openrelayproject")
                 .createIceServer(),
-            PeerConnection.IceServer.builder("turn:turn.cloudflare.com:443?transport=tcp")
-                .setUsername("cloudflare")
-                .setPassword("cloudflare")
+            PeerConnection.IceServer.builder("turn:openrelay.metered.ca:443")
+                .setUsername("openrelayproject")
+                .setPassword("openrelayproject")
                 .createIceServer(),
-            PeerConnection.IceServer.builder("turns:turn.cloudflare.com:443?transport=tcp")
-                .setUsername("cloudflare")
-                .setPassword("cloudflare")
+            PeerConnection.IceServer.builder("turn:openrelay.metered.ca:443?transport=tcp")
+                .setUsername("openrelayproject")
+                .setPassword("openrelayproject")
+                .createIceServer(),
+            PeerConnection.IceServer.builder("turns:openrelay.metered.ca:443?transport=tcp")
+                .setUsername("openrelayproject")
+                .setPassword("openrelayproject")
                 .createIceServer()
         )
     }
@@ -1278,8 +1282,11 @@ object VoiceCallManager {
                         }
                         PeerConnection.IceConnectionState.FAILED -> {
                             iceDisconnectJobs.remove(peerId)?.cancel()
-                            Log.w(TAG, "Peer $peerId ICE failed; triggering automatic ICE restart without ending call")
+                            Log.w(TAG, "Peer $peerId ICE failed; triggering automatic ICE restart and activating audio fallback")
                             _reconnectingPeers.value = _reconnectingPeers.value + peerId
+                            if (_callState.value == CallState.CONNECTED) {
+                                startAudioHardware()
+                            }
                             val livePc = peerConnections[peerId]
                             if (livePc != null) {
                                 updateParticipantReconnectingState(peerId, true)
@@ -3133,16 +3140,42 @@ object VoiceCallManager {
                 }
 
                 "voice_data" -> {
-                    // Suppressed: 100% of audio travels strictly over RTCPeerConnection (Opus over RTP/UDP).
-                    // Drop WebSocket audio chunks to eliminate dual-audio, robotic echo, and playout latency.
-                    val roomId = json.optString("room_id").ifEmpty { json.optString("channel_id") }
-                    if (_callState.value == CallState.OUTGOING_RINGING && !roomId.isNullOrBlank()) {
-                        Log.d(TAG, "Signaling activity received while OUTGOING_RINGING; remote party answered! Transitioning to CONNECTED")
-                        _isRemoteRinging.value = false
-                        _callState.value = CallState.CONNECTED
-                        CallRingtoneManager.stopRingtoneAndVibration(appContext)
-                        startAudioHardware()
-                        startDurationTimer()
+                    val sender = json.optString("sender_id").ifEmpty { json.optString("sender_username") }
+                    val myUser = ConnectoApiClient.currentUsername ?: ""
+                    val myId = ConnectoApiClient.currentUserId ?: ""
+                    if (sender.isNotBlank() && (sender.equals(myUser, ignoreCase = true) || sender.equals(myId, ignoreCase = true))) {
+                        // Drop self-echo packets immediately to eliminate loopback
+                        return
+                    }
+
+                    val isEchoCall = _activeCallTitle.value.contains("Echo", ignoreCase = true)
+                    val hasConnectedPeer = peerConnections.values.any { pc ->
+                        try {
+                            val s = pc.iceConnectionState()
+                            s == PeerConnection.IceConnectionState.CONNECTED || s == PeerConnection.IceConnectionState.COMPLETED
+                        } catch (_: Throwable) { false }
+                    }
+
+                    if (hasConnectedPeer && !isEchoCall) {
+                        // WebRTC P2P direct RTP is connected; drop fallback websocket audio to prevent dual-audio robotic echo
+                        return
+                    }
+
+                    val base64Audio = json.optString("audio")
+                    val sampleRate = json.optInt("sample_rate", SAMPLE_RATE)
+                    if (base64Audio.isNotEmpty()) {
+                        val roomId = json.optString("room_id").ifEmpty { json.optString("channel_id") }
+                        if (_callState.value == CallState.OUTGOING_RINGING && !roomId.isNullOrBlank()) {
+                            Log.d(TAG, "Received voice_data while OUTGOING_RINGING; remote party answered! Transitioning to CONNECTED")
+                            _isRemoteRinging.value = false
+                            _callState.value = CallState.CONNECTED
+                            CallRingtoneManager.stopRingtoneAndVibration(appContext)
+                            startAudioHardware()
+                            startDurationTimer()
+                        }
+                        if (_callState.value == CallState.CONNECTED) {
+                            playAudioChunk(base64Audio, sampleRate)
+                        }
                     }
                     return
                 }
@@ -4895,10 +4928,31 @@ object VoiceCallManager {
             Log.e(TAG, "Failed to start local WebRTC audio: ${t.message}", t)
         }
 
-        // 100% of media travels strictly over RTCPeerConnection (Opus over RTP/UDP).
-        // Release any fallback AudioRecord and AudioTrack loops immediately to eliminate buffer lag, dual audio, and local loopback.
-        stopFallbackAudioTrackOnly()
-        stopFallbackAudioRecordOnly()
+        // Initialize AudioTrack and AudioRecord fallback engine so voice is 100% audible immediately
+        synchronized(audioHardwareLock) {
+            initAudioTrack(SAMPLE_RATE)
+
+            val isEchoCall = _activeCallTitle.value.contains("Echo", ignoreCase = true)
+            val hasConnectedPeer = peerConnections.values.any { pc ->
+                try {
+                    val s = pc.iceConnectionState()
+                    s == PeerConnection.IceConnectionState.CONNECTED || s == PeerConnection.IceConnectionState.COMPLETED
+                } catch (_: Throwable) { false }
+            }
+
+            // When WebRTC peer connection is already fully connected, microphone is managed by WebRTC
+            if (hasConnectedPeer && !isEchoCall) {
+                Log.d(TAG, "WebRTC peer connection already connected; mic managed by WebRTC engine")
+                return
+            }
+
+            if (isRecordingActive && audioRecord != null && audioRecord?.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+                Log.d(TAG, "Audio hardware is already actively running, ignoring duplicate start")
+                return
+            }
+
+            startAudioRecordLoop()
+        }
     }
 
     private fun stopFallbackAudioTrackOnly() {
@@ -5182,10 +5236,7 @@ object VoiceCallManager {
     }
 
     private fun startAudioRecordLoop() {
-        // Suppressed: Media transport is 100% pure WebRTC (RTCPeerConnection with Opus over RTP/UDP).
-        // Suppressing fallback raw AudioRecord eliminates latency queues, dual-audio, and echo.
-        Log.d(TAG, "Fallback startAudioRecordLoop suppressed in favor of pure WebRTC transport")
-        return
+        startAudioRecordLoopInternal()
     }
 
     private fun startAudioRecordLoopInternal() {
