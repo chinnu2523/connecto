@@ -653,21 +653,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.10/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.9/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.8/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.7/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.6/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.9-b196-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.10-b197-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.8.9");
-          res.headers.set("X-Connecto-Build", "196");
+          res.headers.set("X-Connecto-Version", "v5.8.10");
+          res.headers.set("X-Connecto-Build", "197");
           return res;
         }
 
@@ -703,8 +701,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.8.9");
-              downloadHeaders.set("X-Connecto-Build", "196");
+              downloadHeaders.set("X-Connecto-Version", "v5.8.10");
+              downloadHeaders.set("X-Connecto-Build", "197");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
