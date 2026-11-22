@@ -1266,9 +1266,8 @@ object VoiceCallManager {
                             updateParticipantReconnectingState(peerId, false)
                             _callState.value = CallState.CONNECTED
                             startStatsPolling(peerId)
-                            if (!_activeCallTitle.value.contains("Echo", ignoreCase = true)) {
-                                stopFallbackAudioRecordOnly()
-                            }
+                            // Keep fallback AudioRecord running until WebRTC RTP audio is verified flowing in stats polling
+                            Log.d(TAG, "WebRTC connected; monitoring stats to verify RTP audio flow before transferring mic")
                         }
                         PeerConnection.IceConnectionState.DISCONNECTED -> {
                             iceDisconnectJobs.remove(peerId)?.cancel()
@@ -1885,6 +1884,14 @@ object VoiceCallManager {
                             _callStats.value = dto
                             Log.d(TAG, "WebRTC stats: proto=$protocol RTT=${rttMs.toInt()}ms jitterBuf=${calculatedJitterBufMs.toInt()}ms loss=$packetsLost lossPct=${String.format(Locale.US, "%.1f", lossPct)}% candidate=$candidateType bytesRx=$bytesReceived")
 
+                            // Smooth mic handover: only pause fallback AudioRecord once WebRTC RTP audio is verified flowing
+                            if (!_activeCallTitle.value.contains("Echo", ignoreCase = true) && bytesReceived > 3000L && packetsReceived > 15) {
+                                if (isRecordingActive) {
+                                    Log.i(TAG, "WebRTC audio media verified active (bytesRx=$bytesReceived, packetsRx=$packetsReceived); cleanly transferring mic to WebRTC P2P")
+                                    stopFallbackAudioRecordOnly()
+                                }
+                            }
+
                             // Auto-Recovery Diagnostic Fallback:
                             // If connected for >= 3 seconds (iceConnectionState == CONNECTED) but bytesReceived == 0,
                             // automatically trigger a single restartIce() with IceTransportsType.RELAY
@@ -2376,7 +2383,12 @@ object VoiceCallManager {
             val sent = try { webSocket?.send(msg) ?: false } catch (_: Throwable) { false }
             if (sent) return
         }
-        Log.w(TAG, "WS not ready or send failed; queueing message: $msg")
+        val type = json.optString("type").ifEmpty { json.optString("action") }
+        if (type == "voice_data" || type == "voice:data") {
+            // Drop stale real-time audio frames when WS is temporarily disconnected to strictly prevent latency backlog
+            return
+        }
+        Log.w(TAG, "WS not ready or send failed; queueing signaling message: $msg")
         if (pendingWsMessages.size < 100) {
             pendingWsMessages.offer(msg)
         }
@@ -5186,7 +5198,10 @@ object VoiceCallManager {
                     try {
                         val packet = audioPacketQueue.poll(40, java.util.concurrent.TimeUnit.MILLISECONDS) ?: continue
                         val track = audioTrack ?: continue
-                        if (track.state == AudioTrack.STATE_INITIALIZED && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
+                        if (track.state == AudioTrack.STATE_INITIALIZED) {
+                            if (track.playState != AudioTrack.PLAYSTATE_PLAYING) {
+                                try { track.play() } catch (_: Throwable) {}
+                            }
                             var offset = 0
                             var remaining = packet.size
                             while (remaining > 0 && isPlayoutThreadRunning) {
