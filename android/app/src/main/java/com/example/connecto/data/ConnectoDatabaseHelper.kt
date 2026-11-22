@@ -851,6 +851,13 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         } catch (_: Exception) {}
     }
 
+    fun deleteMessagesForChannel(channelId: String) {
+        try {
+            val writeDb = writableDatabase
+            writeDb.delete(TABLE_MESSAGES, "$COL_MSG_CHANNEL = ? OR LOWER($COL_MSG_CHANNEL) = ?", arrayOf(channelId, channelId.lowercase()))
+        } catch (_: Exception) {}
+    }
+
     fun updateMessageContent(messageId: String, newContent: String) {
         try {
             val writeDb = writableDatabase

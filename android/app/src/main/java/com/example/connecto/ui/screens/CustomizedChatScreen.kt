@@ -679,6 +679,12 @@ object ChatMessageCache {
         }
     }
 
+    fun remove(conversationId: String) {
+        if (conversationId.isNotBlank()) {
+            memoryCache.remove(conversationId)
+        }
+    }
+
     fun clear() {
         memoryCache.clear()
     }
@@ -2263,6 +2269,13 @@ fun CustomizedChatScreen(
     var selectedMessageForAction by remember { mutableStateOf<CustomMessageItem?>(null) }
     val messageBoundsMap = remember { mutableStateMapOf<String, Rect>() }
     var showMoreOptionsMenu by remember { mutableStateOf(false) }
+    var showClearChatConfirmDialog by remember { mutableStateOf(false) }
+    var lastActiveFriend by remember { mutableStateOf<FriendItem?>(null) }
+    LaunchedEffect(selectedFriend) {
+        if (selectedFriend != null) {
+            lastActiveFriend = selectedFriend
+        }
+    }
     var editingMessage by remember { mutableStateOf<CustomMessageItem?>(null) }
     var highlightedMessageId by remember { mutableStateOf<String?>(null) }
     val messageInputFocusRequester = remember { FocusRequester() }
@@ -2583,7 +2596,6 @@ fun CustomizedChatScreen(
             }
             typedMessage = ""
             selectedFriend = null
-            friendMessages = emptyList()
             chatWallpaperId = "default"
             customWallpaperUri = null
             activeDmChannelId = null
@@ -4527,6 +4539,65 @@ fun CustomizedChatScreen(
         )
     }
 
+    // Clear Chat Confirmation Modal Dialog
+    if (showClearChatConfirmDialog) {
+        val targetFriendToClear = selectedFriend ?: lastActiveFriend
+        val friendName = targetFriendToClear?.name ?: "this friend"
+        AlertDialog(
+            onDismissRequest = { showClearChatConfirmDialog = false },
+            containerColor = Color(0xFF181C28),
+            title = {
+                Text(
+                    text = "Clear Chat History?",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to clear all message history with $friendName? Messages will be cleared from this device.",
+                    color = Color(0xFF94A3B8),
+                    fontSize = 13.5.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showClearChatConfirmDialog = false
+                        targetFriendToClear?.let { friend ->
+                            val cKey = getCanonicalChatId(friend)
+                            friendMessages = emptyList()
+                            ChatMessageCache.remove(cKey)
+                            ChatMessageCache.remove(friend.id)
+                            preloadedChatMessages.remove(cKey)
+                            preloadedChatMessages.remove(friend.id)
+                            friendPrefs.edit()
+                                .putLong("${userPrefix}_cleared_at_${friend.id}", System.currentTimeMillis())
+                                .apply()
+                            coroutineScope.launch(Dispatchers.IO) {
+                                try {
+                                    dbHelper.deleteMessagesForChannel(cKey)
+                                    if (friend.id.isNotBlank()) dbHelper.deleteMessagesForChannel(friend.id)
+                                } catch (_: Exception) {}
+                            }
+                            Toast.makeText(context, "Chat history cleared", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Clear Chat", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearChatConfirmDialog = false }) {
+                    Text("Cancel", color = Color(0xFF94A3B8))
+                }
+            }
+        )
+    }
+
     // Unfriend Confirmation Modal Dialog with Data Wipe Warning Tab
     val unfriendTarget = selectedFriend
     if (showUnfriendConfirmDialog && unfriendTarget != null) {
@@ -5072,10 +5143,34 @@ fun CustomizedChatScreen(
             .fillMaxSize()
             .background(if (!isLight) Color(0xFF0A0B0E) else MaterialTheme.colorScheme.background)
     ) {
-        when {
-            isFriendProfileOpen && selectedFriend?.isGroup == false -> {
-                        // ================= 3. DEDICATED FULL-SCREEN FRIEND PROFILE TAB =================
-                        selectedFriend?.let { friendObj ->
+        val directChatViewStage = when {
+            isFriendProfileOpen && (selectedFriend ?: lastActiveFriend)?.isGroup == false -> "profile"
+            selectedFriend != null -> "chat"
+            else -> "list"
+        }
+
+        androidx.compose.animation.AnimatedContent(
+            targetState = directChatViewStage,
+            transitionSpec = {
+                if (initialState == "list" && targetState == "chat") {
+                    (slideInHorizontally(tween(240, easing = EaseOutCubic)) { it / 3 } + fadeIn(tween(200))) togetherWith
+                    (slideOutHorizontally(tween(200, easing = EaseInCubic)) { -it / 6 } + fadeOut(tween(160)))
+                } else if (initialState == "chat" && targetState == "list") {
+                    (slideInHorizontally(tween(240, easing = EaseOutCubic)) { -it / 6 } + fadeIn(tween(200))) togetherWith
+                    (slideOutHorizontally(tween(220, easing = EaseInCubic)) { it / 3 } + fadeOut(tween(180)))
+                } else if (targetState == "profile") {
+                    (slideInHorizontally(tween(260, easing = EaseOutCubic)) { it / 3 } + fadeIn(tween(220))) togetherWith
+                    (slideOutHorizontally(tween(200, easing = EaseInCubic)) { -it / 6 } + fadeOut(tween(160)))
+                } else {
+                    (slideInHorizontally(tween(240, easing = EaseOutCubic)) { -it / 6 } + fadeIn(tween(200))) togetherWith
+                    (slideOutHorizontally(tween(220, easing = EaseInCubic)) { it / 3 } + fadeOut(tween(180)))
+                }
+            },
+            label = "chatViewStageTransition"
+        ) { currentStage ->
+            when (currentStage) {
+                "profile" -> {
+                        (selectedFriend ?: lastActiveFriend)?.let { friendObj ->
                             val friendClean = friendObj.handle.removePrefix("@").trim().lowercase()
                             // Strict validation: profData must belong to friendObj!
                             val profData = selectedFriendProfileData?.takeIf {
@@ -5255,7 +5350,7 @@ fun CustomizedChatScreen(
                             )
                         }
             }
-            selectedFriend != null -> {
+            "chat" -> {
                 val handleSendMessage: (String, Boolean, Boolean) -> Unit = { userMsg, isSilent, isWhisper ->
                     selectedFriend?.let { curF ->
                         messageDrafts.remove(curF.id)
@@ -5902,6 +5997,146 @@ fun CustomizedChatScreen(
                                         tint = actionIconTint,
                                         modifier = Modifier.size(18.dp)
                                     )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(actionBtnBg)
+                                        .border(1.dp, actionBtnBorder, CircleShape)
+                                        .pressScaleEffect(
+                                            onClick = {
+                                                showMoreOptionsMenu = true
+                                            }
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MoreVert,
+                                        contentDescription = "More options",
+                                        tint = actionIconTint,
+                                        modifier = Modifier.size(19.dp)
+                                    )
+
+                                    DropdownMenu(
+                                        expanded = showMoreOptionsMenu,
+                                        onDismissRequest = { showMoreOptionsMenu = false },
+                                        modifier = Modifier
+                                            .background(Color(0xFF181C28))
+                                            .border(1.dp, Color(0x1FFFFFFF), RoundedCornerShape(14.dp))
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("View Profile", color = Color.White, fontSize = 13.5.sp) },
+                                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp)) },
+                                            onClick = {
+                                                showMoreOptionsMenu = false
+                                                isFriendProfileOpen = true
+                                                friendProfileSubPage = null
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Chat Wallpaper", color = Color.White, fontSize = 13.5.sp) },
+                                            leadingIcon = { Icon(Icons.Default.Wallpaper, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp)) },
+                                            onClick = {
+                                                showMoreOptionsMenu = false
+                                                showWallpaperCustomizerDialog = true
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(if (isChatMuted) "Unmute Notifications" else "Mute Notifications", color = Color.White, fontSize = 13.5.sp) },
+                                            leadingIcon = { Icon(if (isChatMuted) Icons.Default.Notifications else Icons.Default.NotificationsOff, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp)) },
+                                            onClick = {
+                                                showMoreOptionsMenu = false
+                                                val targetFriend = selectedFriend ?: lastActiveFriend
+                                                if (targetFriend != null) {
+                                                    val cleanHandle = targetFriend.handle.trim().lowercase().removePrefix("@")
+                                                    val fId = targetFriend.id.lowercase()
+                                                    val currentMuted = notifPrefs.getStringSet("muted_channels", emptySet())?.toMutableSet() ?: mutableSetOf()
+                                                    if (!isChatMuted) {
+                                                        currentMuted.add(cleanHandle)
+                                                        currentMuted.add(fId)
+                                                        isChatMuted = true
+                                                        Toast.makeText(context, "Muted notifications for @$cleanHandle", Toast.LENGTH_SHORT).show()
+                                                    } else {
+                                                        currentMuted.removeAll { it.lowercase() == cleanHandle || it.lowercase() == fId }
+                                                        isChatMuted = false
+                                                        Toast.makeText(context, "Unmuted notifications for @$cleanHandle", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                    notifPrefs.edit().putStringSet("muted_channels", currentMuted).apply()
+                                                }
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(if (isChatLocked) "Unlock Chat" else "Lock Chat", color = Color.White, fontSize = 13.5.sp) },
+                                            leadingIcon = { Icon(if (isChatLocked) Icons.Default.LockOpen else Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp)) },
+                                            onClick = {
+                                                showMoreOptionsMenu = false
+                                                val activity = context.findFragmentActivity()
+                                                val targetFriend = selectedFriend ?: lastActiveFriend
+                                                if (targetFriend != null) {
+                                                    val cleanHandle = targetFriend.handle.trim().lowercase().removePrefix("@")
+                                                    val fId = targetFriend.id
+                                                    val userPrefix = myUsername.lowercase()
+                                                    if (!isChatLocked) {
+                                                        if (activity != null && (BiometricAuthManager.isBiometricEnrolled(activity) || BiometricAuthManager.isDeviceSecure(activity))) {
+                                                            BiometricAuthManager.authenticate(
+                                                                activity = activity,
+                                                                title = "Lock Chat with @$cleanHandle",
+                                                                subtitle = "Verify identity to lock chat",
+                                                                onSuccess = {
+                                                                    isChatLocked = true
+                                                                    friendPrefs.edit()
+                                                                        .putBoolean("${userPrefix}_chat_locked_$fId", true)
+                                                                        .putBoolean("${userPrefix}_chat_locked_$cleanHandle", true)
+                                                                        .apply()
+                                                                    if (!unlockedLockedFriends.contains(fId)) {
+                                                                        unlockedLockedFriends.add(fId)
+                                                                    }
+                                                                    Toast.makeText(context, "Chat locked for @$cleanHandle", Toast.LENGTH_SHORT).show()
+                                                                },
+                                                                onError = { _, err ->
+                                                                    Toast.makeText(context, "Authentication required: $err", Toast.LENGTH_SHORT).show()
+                                                                }
+                                                            )
+                                                        } else {
+                                                            isChatLocked = true
+                                                            friendPrefs.edit()
+                                                                .putBoolean("${userPrefix}_chat_locked_$fId", true)
+                                                                .putBoolean("${userPrefix}_chat_locked_$cleanHandle", true)
+                                                                .apply()
+                                                            if (!unlockedLockedFriends.contains(fId)) {
+                                                                unlockedLockedFriends.add(fId)
+                                                            }
+                                                            Toast.makeText(context, "Chat locked for @$cleanHandle", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    } else {
+                                                        isChatLocked = false
+                                                        friendPrefs.edit()
+                                                            .remove("${userPrefix}_chat_locked_$fId")
+                                                            .remove("${userPrefix}_chat_locked_$cleanHandle")
+                                                            .remove("chat_locked_$fId")
+                                                            .apply()
+                                                        Toast.makeText(context, "Chat lock removed for @$cleanHandle", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                }
+                                            }
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(1.dp)
+                                                .background(Color(0x1FFFFFFF))
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Clear Chat History", color = Color(0xFFEF4444), fontSize = 13.5.sp) },
+                                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp)) },
+                                            onClick = {
+                                                showMoreOptionsMenu = false
+                                                showClearChatConfirmDialog = true
+                                            }
+                                        )
+                                    }
                                 }
                             } else {
                                 // Group Header Actions: Info, Group Voice Call, and Admin/Member Tag
@@ -8851,6 +9086,7 @@ fun CustomizedChatScreen(
                 }
             }
         }
+        }
 
         // Full-Screen Root Portal Modal Layer (zIndex: 999) for Long-Press Message Focus
         val activeSelectedMsg = selectedMessageForAction
@@ -10409,18 +10645,20 @@ fun IsolatedMessageComposer(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .clickable {
-                            if (!showEmojiPicker) {
-                                focusManager.clearFocus()
+                        .pressScaleEffect(
+                            onClick = {
+                                if (!showEmojiPicker) {
+                                    focusManager.clearFocus()
+                                }
+                                showEmojiPicker = !showEmojiPicker
                             }
-                            showEmojiPicker = !showEmojiPicker
-                        },
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.SentimentSatisfiedAlt,
                         contentDescription = "Emoji picker",
-                        tint = if (showEmojiPicker) MaterialTheme.colorScheme.primary else (if (isLight) Color(0xFF64748B) else Color(0xFF8E929F)),
+                        tint = if (showEmojiPicker) (if (isLight) Color(0xFF0F172A) else Color.White) else (if (isLight) Color(0xFF64748B) else Color(0xFF8E929F)),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -10428,10 +10666,16 @@ fun IsolatedMessageComposer(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Lightweight Send Action Button (Zero Layout Reflow, Opacity/Color transition)
+            // Lightweight Send Action Button (Zero Layout Reflow, Solid Theme & Tactile Spring Feedback)
             val sendActive = localText.isNotBlank()
+            var isSendPressed by remember { mutableStateOf(false) }
+            val sendScale by animateFloatAsState(
+                targetValue = if (isSendPressed) 0.88f else 1.0f,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "sendScale"
+            )
             val sendAlpha by animateFloatAsState(
-                targetValue = if (sendActive) 1f else 0.4f,
+                targetValue = if (sendActive) 1f else 0.45f,
                 animationSpec = tween(120),
                 label = "sendAlpha"
             )
@@ -10537,42 +10781,31 @@ fun IsolatedMessageComposer(
                 Box(
                     modifier = Modifier
                         .size(46.dp)
-                        .graphicsLayer { alpha = sendAlpha }
+                        .graphicsLayer {
+                            scaleX = sendScale
+                            scaleY = sendScale
+                            alpha = sendAlpha
+                        }
                         .clip(CircleShape)
                         .background(
                             if (sendActive) {
-                                if (isPureBlack || isLiquidGlassTheme) Brush.linearGradient(listOf(Color.White, Color(0xFFE4E4E7)))
-                                else if (isGlassTheme) Brush.linearGradient(listOf(Color(0xFF38BDF8), Color(0xFF0284C7)))
-                                else Brush.linearGradient(gradientColors)
+                                SolidColor(Color.White)
                             } else {
-                                if (isPureBlack || isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x26FFFFFF), Color(0x14FFFFFF)))
-                                else if (isGlassTheme) Brush.verticalGradient(listOf(Color(0xD91E293B), Color(0xB3111827)))
-                                else Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
+                                SolidColor(if (isLight) Color(0xFFE2E8F0) else Color(0xFF1E222D))
                             }
                         )
                         .border(
-                            width = if (isLiquidGlassTheme || isGlassTheme || isPureBlack) 1.2.dp else 1.dp,
-                            brush = if (isPureBlack || isLiquidGlassTheme) {
-                                Brush.linearGradient(
-                                    listOf(
-                                        if (sendActive) Color.White else Color(0x66FFFFFF),
-                                        if (sendActive) Color(0x80FFFFFF) else Color(0x26FFFFFF)
-                                    )
-                                )
-                            } else if (isGlassTheme) {
-                                Brush.linearGradient(
-                                    listOf(
-                                        if (sendActive) Color(0xFFE0F2FE) else Color(0x6638BDF8),
-                                        if (sendActive) Color(0x8038BDF8) else Color(0x2038BDF8)
-                                    )
-                                )
-                            } else {
-                                SolidColor(if (sendActive) Color.Transparent else MaterialTheme.colorScheme.outline)
-                            },
+                            width = 1.dp,
+                            color = if (sendActive) Color.White else (if (isLight) Color(0xFFCBD5E1) else Color(0x26FFFFFF)),
                             shape = CircleShape
                         )
-                        .pointerInput(localText) {
+                        .pointerInput(localText, editingMessage, isAcceptedFriend) {
                             detectTapGestures(
+                                onPress = {
+                                    isSendPressed = true
+                                    tryAwaitRelease()
+                                    isSendPressed = false
+                                },
                                 onTap = {
                                     if (editingMessage != null) {
                                         val newContent = localText.trim()
@@ -10605,10 +10838,9 @@ fun IsolatedMessageComposer(
                         imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Send",
                         tint = if (sendActive) {
-                            if (isPureBlack) Color.Black else contentOnGradient
+                            Color.Black
                         } else {
-                            if (isPureBlack || isLiquidGlassTheme) Color(0x66FFFFFF)
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            if (isLight) Color(0xFF64748B) else Color(0x80FFFFFF)
                         },
                         modifier = Modifier.size(20.dp)
                     )
