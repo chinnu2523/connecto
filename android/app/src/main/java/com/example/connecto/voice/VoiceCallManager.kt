@@ -1384,8 +1384,6 @@ object VoiceCallManager {
         scope.launch(webrtcDispatcher) {
             if (sessionToken != currentSessionToken || isWebRtcDisposed) return@launch
             try {
-                fetchTurnCredentials()
-                if (sessionToken != currentSessionToken || isWebRtcDisposed) return@launch
                 val pc = getOrCreatePeerConnection(peerId) ?: return@launch
                 ensureLocalAudioTrackAttached(pc)
                 val constraints = MediaConstraints().apply {
@@ -1539,8 +1537,6 @@ object VoiceCallManager {
         scope.launch(webrtcDispatcher) {
             if (sessionToken != currentSessionToken || isWebRtcDisposed) return@launch
             try {
-                fetchTurnCredentials()
-                if (sessionToken != currentSessionToken || isWebRtcDisposed) return@launch
                 val pc = getOrCreatePeerConnection(senderPeerId) ?: return@launch
                 if (disposedPcs.contains(pc)) return@launch
                 val sigState = try { pc.signalingState() } catch (_: IllegalStateException) { null } ?: return@launch
@@ -3058,19 +3054,24 @@ object VoiceCallManager {
                     }
                     sendWsMessage(ringingAck)
 
-                    // Launch full-screen incoming call UI
+                    // Launch full-screen incoming call UI strictly if app is in background or device is locked
                     appContext?.let { ctx ->
-                        try {
-                            val fullScreenIntent = Intent(ctx, IncomingCallActivity::class.java).apply {
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                                putExtra(ConnectoNotificationManager.EXTRA_ROOM_ID, roomId)
-                                putExtra(ConnectoNotificationManager.EXTRA_CALLER_NAME, callerName)
-                                putExtra("extra_caller_username", callerUsername)
-                                putExtra("extra_caller_avatar", callerAvatar)
+                        val isLocked = (ctx.getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager)?.isKeyguardLocked == true
+                        if (!isAppInForeground || isLocked) {
+                            try {
+                                val fullScreenIntent = Intent(ctx, IncomingCallActivity::class.java).apply {
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                    putExtra(ConnectoNotificationManager.EXTRA_ROOM_ID, roomId)
+                                    putExtra(ConnectoNotificationManager.EXTRA_CALLER_NAME, callerName)
+                                    putExtra("extra_caller_username", callerUsername)
+                                    putExtra("extra_caller_avatar", callerAvatar)
+                                }
+                                ctx.startActivity(fullScreenIntent)
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Could not launch IncomingCallActivity from WS: ${e.message}")
                             }
-                            ctx.startActivity(fullScreenIntent)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Could not launch IncomingCallActivity from WS: ${e.message}")
+                        } else {
+                            Log.d(TAG, "App in foreground and unlocked; in-app call overlay handles incoming call smoothly with zero activity overhead")
                         }
                     }
                 }

@@ -2343,7 +2343,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         category: "Communication",
         version_name: "5.8.15",
         version_code: 202,
-        size_bytes: 38488538,
+        size_bytes: 38488964,
         size_formatted: "36.7 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",

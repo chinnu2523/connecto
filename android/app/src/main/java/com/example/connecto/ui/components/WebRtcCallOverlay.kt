@@ -123,7 +123,6 @@ fun WebRtcCallOverlay(
     val voiceIsolationCapabilities by VoiceCallManager.voiceIsolationCapabilities.collectAsState()
     val callDuration by VoiceCallManager.callDurationSeconds.collectAsState()
     val callStats by VoiceCallManager.callStats.collectAsState()
-    val liveAmplitude by VoiceCallManager.liveAudioAmplitude.collectAsState()
     val callState by VoiceCallManager.callState.collectAsState()
     val isRemoteRinging by VoiceCallManager.isRemoteRinging.collectAsState()
     val managerParticipantCount by VoiceCallManager.participantCount.collectAsState()
@@ -232,36 +231,11 @@ fun WebRtcCallOverlay(
                     }
                 }
 
-                // Live Equalizer Visualizer Bars (reacting to real mic amplitude)
-                val safeAmplitude = if (liveAmplitude.isNaN() || liveAmplitude.isInfinite()) 0f else liveAmplitude.coerceIn(0f, 1f)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                // Live Equalizer Visualizer Bars (isolated in leaf component)
+                MiniLiveEqualizerBars(
+                    isMuted = isMuted,
                     modifier = Modifier.padding(end = 8.dp)
-                ) {
-                    val barHeights = listOf(
-                        10.dp + (safeAmplitude * 20f).dp,
-                        14.dp + (safeAmplitude * 32f).dp,
-                        18.dp + (safeAmplitude * 42f).dp,
-                        14.dp + (safeAmplitude * 28f).dp,
-                        10.dp + (safeAmplitude * 18f).dp
-                    )
-                    barHeights.forEach { targetHeight ->
-                        val safeTargetHeight = targetHeight.coerceIn(4.dp, 36.dp)
-                        val animatedHeight by animateDpAsState(
-                            targetValue = if (isMuted) 4.dp else safeTargetHeight,
-                            animationSpec = tween(70),
-                            label = "equalizerBar"
-                        )
-                        Box(
-                            modifier = Modifier
-                                .width(3.dp)
-                                .height(animatedHeight)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(if (isMuted) Color.Gray else OnlineGreen)
-                        )
-                    }
-                }
+                )
 
                 // Duration Badge
                 Box(
@@ -421,7 +395,6 @@ fun FullScreenCallUI(
 
     val callDuration by VoiceCallManager.callDurationSeconds.collectAsState()
     val callStats by VoiceCallManager.callStats.collectAsState()
-    val liveAmplitude by VoiceCallManager.liveAudioAmplitude.collectAsState()
     val callState by VoiceCallManager.callState.collectAsState()
     val isRemoteRinging by VoiceCallManager.isRemoteRinging.collectAsState()
     val managerParticipantCount by VoiceCallManager.participantCount.collectAsState()
@@ -537,36 +510,6 @@ fun FullScreenCallUI(
         CallState.IDLE -> "Call Ended"
     }
 
-    // Dynamic Pulsing Ring Animations
-    val infiniteTransition = rememberInfiniteTransition(label = "pulseRing")
-    val pulseScale1 by infiniteTransition.animateFloat(
-        initialValue = 1f, targetValue = 1.38f,
-        animationSpec = infiniteRepeatable(tween(1600, easing = FastOutSlowInEasing), RepeatMode.Restart),
-        label = "pulse1"
-    )
-    val pulseAlpha1 by infiniteTransition.animateFloat(
-        initialValue = 0.40f, targetValue = 0f,
-        animationSpec = infiniteRepeatable(tween(1600, easing = FastOutSlowInEasing), RepeatMode.Restart),
-        label = "alpha1"
-    )
-    val pulseScale2 by infiniteTransition.animateFloat(
-        initialValue = 1f, targetValue = 1.70f,
-        animationSpec = infiniteRepeatable(tween(2400, easing = FastOutSlowInEasing), RepeatMode.Restart),
-        label = "pulse2"
-    )
-    val pulseAlpha2 by infiniteTransition.animateFloat(
-        initialValue = 0.25f, targetValue = 0f,
-        animationSpec = infiniteRepeatable(tween(2400, easing = FastOutSlowInEasing), RepeatMode.Restart),
-        label = "alpha2"
-    )
-
-    // Continuous ambient glow breathing
-    val ambientGlowScale by infiniteTransition.animateFloat(
-        initialValue = 0.95f, targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(tween(2800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "glowScale"
-    )
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -576,14 +519,14 @@ fun FullScreenCallUI(
         val bgModel = resolveImageModel(resolvedAvatar)
         val isBgEmoji = resolvedAvatar?.let { !it.contains("/") && !it.contains(".") && it.length <= 4 } == true
         if (!resolvedAvatar.isNullOrBlank() && !isBgEmoji && bgModel != null) {
-            // Whole-screen friend profile photo covering entire display with cinematic blur
+            // Whole-screen friend profile photo covering display with dark scrim (zero live GPU blur pass for steady 120Hz)
             AsyncImage(
                 model = bgModel,
                 contentDescription = cleanDisplayName,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(16.dp)
+                    .graphicsLayer { alpha = 0.25f }
             )
 
             // Cinematic multi-stop gradient scrim
@@ -620,25 +563,10 @@ fun FullScreenCallUI(
                     )
             )
 
-            // Subtle ambient radial halo
-            Box(
-                modifier = Modifier
-                    .size(360.dp)
-                    .graphicsLayer {
-                        scaleX = ambientGlowScale
-                        scaleY = ambientGlowScale
-                        alpha = 0.15f
-                    }
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            listOf(
-                                avatarAccent.copy(alpha = 0.35f),
-                                themeAccent.copy(alpha = 0.15f),
-                                Color.Transparent
-                            )
-                        )
-                    )
+            // Subtle ambient radial halo (isolated in leaf composable)
+            AmbientCallHalo(
+                avatarAccent = avatarAccent,
+                themeAccent = themeAccent
             )
         }
 
@@ -837,26 +765,21 @@ fun FullScreenCallUI(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                val safeAmplitude = if (liveAmplitude.isNaN() || liveAmplitude.isInfinite()) 0f else liveAmplitude.coerceIn(0f, 1f)
-
-                val voiceAuraScale by animateFloatAsState(
-                    targetValue = if (callState == CallState.CONNECTED && !isMuted) 1f + (safeAmplitude * 0.22f) else 1f,
-                    animationSpec = tween(100),
-                    label = "voiceAura"
-                )
-
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier.size(190.dp)
                 ) {
-                    // Subtle voice aura ring expanding dynamically with live audio
+                    // Subtle voice aura ring expanding dynamically with live audio (zero parent recomposition via graphicsLayer)
                     Box(
                         modifier = Modifier
                             .size(174.dp)
                             .graphicsLayer {
-                                scaleX = voiceAuraScale
-                                scaleY = voiceAuraScale
-                                alpha = if (callState == CallState.CONNECTED && !isMuted) (0.25f + safeAmplitude * 0.45f).coerceIn(0f, 0.70f) else 0.15f
+                                val amp = VoiceCallManager.liveAudioAmplitude.value
+                                val safeAmp = if (amp.isNaN() || amp.isInfinite()) 0f else amp.coerceIn(0f, 1f)
+                                val scale = if (callState == CallState.CONNECTED && !isMuted) 1f + (safeAmp * 0.22f) else 1f
+                                scaleX = scale
+                                scaleY = scale
+                                alpha = if (callState == CallState.CONNECTED && !isMuted) (0.25f + safeAmp * 0.45f).coerceIn(0f, 0.70f) else 0.15f
                             }
                             .clip(CircleShape)
                             .background(
@@ -958,9 +881,8 @@ fun FullScreenCallUI(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Refined 7-Bar Dynamic Equalizer Waveform (Single-Clock RenderThread Optimized)
+                        // Refined 7-Bar Dynamic Equalizer Waveform (Single-Clock RenderThread Optimized, isolated in leaf composable)
                         DynamicWaveformVisualizer(
-                            amplitude = safeAmplitude,
                             isMuted = isMuted,
                             isConnected = callState == CallState.CONNECTED
                         )
@@ -2793,14 +2715,18 @@ fun IncomingGroupCallUI(
 
 @Composable
 fun DynamicWaveformVisualizer(
-    amplitude: Float,
     isMuted: Boolean,
     isConnected: Boolean,
+    amplitude: Float = -1f,
     modifier: Modifier = Modifier
 ) {
+    val liveAmp by VoiceCallManager.liveAudioAmplitude.collectAsState()
+    val effAmp = if (amplitude >= 0f) amplitude else liveAmp
+    val safeAmplitude = if (effAmp.isNaN() || effAmp.isInfinite()) 0f else effAmp.coerceIn(0f, 1f)
+
     val barMultipliers = remember { listOf(0.40f, 0.70f, 1.0f, 0.85f, 1.0f, 0.70f, 0.40f) }
     val animAmp by animateFloatAsState(
-        targetValue = if (isMuted || !isConnected) 0f else amplitude,
+        targetValue = if (isMuted || !isConnected) 0f else safeAmplitude,
         animationSpec = tween(65, easing = FastOutSlowInEasing),
         label = "waveformAmp"
     )
@@ -2826,4 +2752,74 @@ fun DynamicWaveformVisualizer(
             )
         }
     }
+}
+
+@Composable
+fun MiniLiveEqualizerBars(
+    isMuted: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val liveAmplitude by VoiceCallManager.liveAudioAmplitude.collectAsState()
+    val safeAmplitude = if (liveAmplitude.isNaN() || liveAmplitude.isInfinite()) 0f else liveAmplitude.coerceIn(0f, 1f)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        modifier = modifier
+    ) {
+        val barHeights = listOf(
+            10.dp + (safeAmplitude * 20f).dp,
+            14.dp + (safeAmplitude * 32f).dp,
+            18.dp + (safeAmplitude * 42f).dp,
+            14.dp + (safeAmplitude * 28f).dp,
+            10.dp + (safeAmplitude * 18f).dp
+        )
+        barHeights.forEach { targetHeight ->
+            val safeTargetHeight = targetHeight.coerceIn(4.dp, 36.dp)
+            val animatedHeight by animateDpAsState(
+                targetValue = if (isMuted) 4.dp else safeTargetHeight,
+                animationSpec = tween(70),
+                label = "equalizerBar"
+            )
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(animatedHeight)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(if (isMuted) Color.Gray else OnlineGreen)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AmbientCallHalo(
+    avatarAccent: Color,
+    themeAccent: Color,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "haloTransition")
+    val glowScale by infiniteTransition.animateFloat(
+        initialValue = 0.95f, targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(tween(2800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "glowScale"
+    )
+    Box(
+        modifier = modifier
+            .size(360.dp)
+            .graphicsLayer {
+                scaleX = glowScale
+                scaleY = glowScale
+                alpha = 0.15f
+            }
+            .clip(CircleShape)
+            .background(
+                Brush.radialGradient(
+                    listOf(
+                        avatarAccent.copy(alpha = 0.35f),
+                        themeAccent.copy(alpha = 0.15f),
+                        Color.Transparent
+                    )
+                )
+            )
+    )
 }
