@@ -569,6 +569,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalPdfUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.15/pdf-studio.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.14/pdf-studio.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.7.9/pdf-studio.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.7.6/pdf-studio.apk",
@@ -580,7 +581,7 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.5/pdf-studio.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.9.2-b28-autofit-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.9.3-b29-pos-sync-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -588,8 +589,8 @@ Sitemap: https://connecto.fun/sitemap.xml
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
           res.headers.set("X-Connecto-Package", "com.app.pdfstudio");
           res.headers.set("X-Connecto-App", "PDF Studio");
-          res.headers.set("X-Connecto-Version", "v1.9.2");
-          res.headers.set("X-Connecto-Build", "28");
+          res.headers.set("X-Connecto-Version", "v1.9.3");
+          res.headers.set("X-Connecto-Build", "29");
           return res;
         }
 
@@ -624,8 +625,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
               downloadHeaders.set("X-Connecto-App", "PDF Studio");
-              downloadHeaders.set("X-Connecto-Version", "v1.9.2");
-              downloadHeaders.set("X-Connecto-Build", "28");
+              downloadHeaders.set("X-Connecto-Version", "v1.9.3");
+              downloadHeaders.set("X-Connecto-Build", "29");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -640,7 +641,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (err) {
         console.error("PDF Studio download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.8.14/pdf-studio.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.8.15/pdf-studio.apk", 302);
     }
 
     // 3b. Cloudflare Global Edge CDN: Direct APK Download Gateway
@@ -654,19 +655,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.15/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.14/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.13/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.14-b201-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.15-b202-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.8.14");
-          res.headers.set("X-Connecto-Build", "201");
+          res.headers.set("X-Connecto-Version", "v5.8.15");
+          res.headers.set("X-Connecto-Build", "202");
           return res;
         }
 
@@ -702,8 +703,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.8.14");
-              downloadHeaders.set("X-Connecto-Build", "201");
+              downloadHeaders.set("X-Connecto-Version", "v5.8.15");
+              downloadHeaders.set("X-Connecto-Build", "202");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2340,14 +2341,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.14",
-        version_code: 201,
+        version_name: "5.8.15",
+        version_code: 202,
         size_bytes: 38488538,
         size_formatted: "36.7 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
         changelog: [
+          "Voice Call Latency & Zero-Lag 120Hz Call UI Engine (v5.8.15): Completely resolved 4-5 second audio pickup silence by eliminating blocking HTTP TURN credential fetches from the single-threaded WebRTC negotiation dispatchers, enabling instant (<20ms) SDP offer and answer generation with immediate peer-to-peer and fallback audio transmission. Fully eliminated app-wide UI lag, stutter, and frame stalls during incoming and active calls by removing live GPU full-screen RenderNode blur, stopping unattached high-frequency infinite animations, isolating real-time audio amplitude collection into dedicated leaf components, and preventing redundant external IncomingCallActivity launches when the application is actively in the foreground.",
           "Voice Call Audio Relay Fix & Sub-20ms Ultra-Low Latency Engine (v5.8.14): Fixed critical Cloudflare Worker routing bug where connectedSockets property lookup caused a TypeError on every voice_data WebSocket packet, completely restoring real-time voice audio transmission. Standardized case-insensitive room and channel subscription across all edge Durable Objects, eliminating dropped WebRTC signaling (offers, answers, ICE candidates). Upgraded VoiceCallManager to perform intelligent verified media handover—preserving active low-latency fallback AudioRecord streams until WebRTC RTP audio packets are confirmed flowing, preventing post-pickup silence. Implemented transient packet loss drop on disconnected sockets to eliminate reconnection latency backlog and burst distortion. Added AudioTrack automatic play-state recovery in ConnectoVoicePlayout worker thread for crystal-clear, instantaneous full-duplex voice communication.",
           "Voice Call Latency, Dedicated Audio Playout Thread & 120Hz Call UI Engine (v5.8.13): Eliminated call audio dropouts and latency with a dedicated Audio Playout Worker thread using synchronous WRITE_BLOCKING at urgent audio priority, completely preventing buffer underruns and dropped frames. Defaults audio routing to Loudspeaker for immediate audible clarity on pick-up with automatic in-call volume boost to 90%-100% of maximum. Disabled Opus Discontinuous Transmission (usedtx=0, cbr=1, 64kbps) to eliminate silence gaps and voice cut-outs. Hardened proximity sensor logic with a 1.5s post-connect grace period and calibrated distance checks, preventing premature screen blackout. Optimized Call UI Compose tree with throttled visualizer emissions (~15fps) and a single-clock RenderThread dynamic equalizer, locking a silky-smooth 120Hz refresh rate.",
           "Voice Call Dual-Engine Audio & In-App Incoming Call Overlay (v5.8.12): Fully restored voice calling audio transmission across all cellular (4G/5G) and WiFi networks by enabling automatic dual-engine audio. When direct WebRTC peer-to-peer is blocked by carrier NAT/firewalls, the engine seamlessly routes lossless low-latency audio via WebSocket relay (16kHz PCM with hardware echo cancellation, noise suppression, and automatic gain control) with zero audio drop or silence. Replaced invalid TURN relay credentials with resilient OpenRelay TURN servers across UDP and TCP. Added in-app FullScreenIncomingCallUI in MainActivity so 1:1 incoming calls display immediate accept/decline controls when the app is in foreground, bypassing Android 14/15 background activity launch restrictions.",
@@ -2511,14 +2513,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Full PDF editor & creative image editor with typography matching",
         description: "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         category: "Productivity",
-        version_name: "1.9.2",
-        version_code: 28,
+        version_name: "1.9.3",
+        version_code: 29,
         size_bytes: 75867300,
         size_formatted: "72.3 MB",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
         accent_color: "#EF4444",
         changelog: [
+          "Subpixel Text Positioning & Word-Level Kerning Alignment: Resolved root cause in Global Find & Replace where string index to glyph position mapping was desynchronized by synthetic space characters, causing replaced words to shift vertically onto neighboring lines or columns; engineered 1-to-1 character-to-glyph sequence indexing; added inter-word kerning advance detection in PDF TJ arrays so individual words are accurately segmented; fixed font size scaling priority on PDF bitmaps ensuring exact physical point-to-pixel ratio; synchronized InlineEditSheet nudge offsets with true page dimensions; unified Image Editor preview and export canvas to eliminate vertical baseline drift and horizontal padding offsets.",
           "Images & PDF Text Inpainting, Auto-Fit Width Scaling & Authentic Typography: Fixed root cause where first-page text extraction ran with null bitmap due to uncommitted Compose snapshot, preventing true visible color sampling and causing colored text (e.g. green headings) to fallback to black; added overrideBitmap directly into initial page extraction pipeline; resolved page rotation dimension mismatch on rotated PDF slides; added intelligent dynamic text auto-fitting (textScaleX clamping) so replacement text seamlessly fits into the original word/line slot without overlapping neighboring text or table cells; expanded inpaint erase patches to dynamically cover the full painted width of replacement text preventing background bleeding; prioritized direct disk TrueType file loading (/system/fonts/Roboto-Bold.ttf) over platform families to strictly prevent OEM cursive/handwriting device themes from hijacking typography; initialized PdfEngine in Application onCreate; optimized images text inpainting in Creative Image Editor.",
           "Image Text Replacement & Opaque Background Erase Patch: Enforced strict 3-layer rendering order in both live preview and high-res export canvas (Base image -> 100% Opaque Erase Patch expanded by 3.5px -> Replacement text), completely preventing old OCR letters from peeking underneath; robust full-resolution bitmap border ring background sampling with vertical linear gradient transition when perimeter colors vary; interactive dual-swatch color picker popover in bottom style bar (Text Color & Background Fill with live Eyedropper sampling); clean OCR overlays with ultra-subtle outlines and auto-hiding unselected boxes during editing; floating + Add Text button intelligently hidden while style bar is active; letter spacing safely clamped to prevent text crushing.",
           "My Documents File Management System: Complete high-craft Obsidian file manager on Home screen with zero-clutter adaptive header (hidden controls when empty, muted count pill with 0ms inline search morph and compact filter/sort chips when populated); scannable 16px-radius #13161F document cards with 60fps lossy WebP cached page thumbnails, format badges (PDF, PNG, JPG), bold truncated titles, and single overflow ⋮ action; 1-tap direct editing into PDF Editor or Creative Image Editor; 24px top-radius contextual bottom sheet with safe rename (locked extension badge & path sanitization), 1-tap duplicate, system share, MediaStore Downloads export (Downloads/PDF Studio), and 4-second undo snackbar deletion; fluid long-press multi-select mode with floating bottom action dock for batch Merge PDFs (2+ PDFs), batch To PDF (1+ Images), batch Share, and guarded Batch Delete; background self-healing verification silently purging orphaned thumbnails and leftover temp files.",
