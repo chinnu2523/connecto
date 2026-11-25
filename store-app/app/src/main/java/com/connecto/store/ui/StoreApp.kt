@@ -660,34 +660,73 @@ private fun ClassicBottomNavBar(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .height(64.dp),
-        color = if (theme.isDark) Color(0xE60E1016) else Color(0xF2FFFFFF),
+            .height(66.dp),
+        color = if (theme.isDark) Color(0xEB0B0D12) else Color(0xF5FFFFFF),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = if (theme.isDark) Color(0x0FFFFFFF) else Color(0x0F000000)
+            color = if (theme.isDark) Color(0x14FFFFFF) else Color(0x0F000000)
         )
     ) {
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 12.dp)
         ) {
-            sections.forEach { section ->
-                val isSelected = selected == section
-                val badgeCount = if (section == StoreNavSection.UPDATES) updateCount else 0
+            val tabWidth = maxWidth / sections.size
+            val selectedIndex = sections.indexOf(selected).coerceAtLeast(0)
+            val indicatorOffset by animateDpAsState(
+                targetValue = tabWidth * selectedIndex,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                ),
+                label = "navPillOffset"
+            )
 
-                ClassicBottomNavTabItem(
-                    section = section,
-                    isSelected = isSelected,
-                    badgeCount = badgeCount,
-                    currentUser = currentUser,
-                    onClick = { onSelect(section) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                )
+            // Sliding top luminous indicator bar
+            Box(
+                modifier = Modifier
+                    .offset(x = indicatorOffset + (tabWidth - 36.dp) / 2)
+                    .align(Alignment.TopStart)
+                    .width(36.dp)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(bottomStart = 3.dp, bottomEnd = 3.dp))
+                    .background(if (theme.isDark) Color.White else theme.accentColor)
+            )
+
+            // Subtle ambient spotlight pill behind active tab
+            Box(
+                modifier = Modifier
+                    .offset(x = indicatorOffset + 6.dp)
+                    .align(Alignment.CenterStart)
+                    .width(tabWidth - 12.dp)
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        if (theme.isDark) Color(0x12FFFFFF) else theme.accentColor.copy(alpha = 0.08f)
+                    )
+            )
+
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                sections.forEach { section ->
+                    val isSelected = selected == section
+                    val badgeCount = if (section == StoreNavSection.UPDATES) updateCount else 0
+
+                    ClassicBottomNavTabItem(
+                        section = section,
+                        isSelected = isSelected,
+                        badgeCount = badgeCount,
+                        currentUser = currentUser,
+                        onClick = { onSelect(section) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    )
+                }
             }
         }
     }
@@ -1126,17 +1165,31 @@ private fun ClassicCategoryPills(
     ) {
         items(categories) { category ->
             val isSelected = selected == category
-            val pillBg = if (isSelected) (if (theme.isDark) Color(0xFF242836) else Color(0xFF0F172A))
-                         else (if (theme.isDark) Color(0xFF161922) else Color(0xFFF1F5F9))
-            val pillTextColor = if (isSelected) Color(0xFFFFFFFF)
-                                else (if (theme.isDark) Color(0xFF7A7F8F) else Color(0xFF64748B))
+            val pillBg by animateColorAsState(
+                targetValue = if (isSelected) (if (theme.isDark) Color(0xFF2563EB) else Color(0xFF0F172A))
+                else (if (theme.isDark) Color(0xFF161922) else Color(0xFFF1F5F9)),
+                animationSpec = tween(durationMillis = 220, easing = EaseOutCubic),
+                label = "catPillBg"
+            )
+            val pillTextColor by animateColorAsState(
+                targetValue = if (isSelected) Color(0xFFFFFFFF)
+                else (if (theme.isDark) Color(0xFF8E929F) else Color(0xFF64748B)),
+                animationSpec = tween(durationMillis = 200),
+                label = "catPillText"
+            )
+            val pillBorderColor by animateColorAsState(
+                targetValue = if (isSelected) Color(0xFF60A5FA).copy(alpha = 0.65f) else theme.cardBorder,
+                animationSpec = tween(durationMillis = 220),
+                label = "catPillBorder"
+            )
 
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(pillBg)
-                    .tactilePress(pressedScale = 0.94f) { onSelect(category) }
-                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                    .border(1.dp, pillBorderColor, RoundedCornerShape(14.dp))
+                    .tactilePress(pressedScale = 0.93f) { onSelect(category) }
+                    .padding(horizontal = 15.dp, vertical = 8.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1170,23 +1223,68 @@ private fun ClassicEcosystemSpotlightCard(
 ) {
     val theme = LocalStoreTheme.current
     val isDark = theme.isDark
+    val infiniteTransition = rememberInfiniteTransition(label = "spotlightAnimations")
+    val beaconAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1100, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "beaconAlpha"
+    )
+    val beaconScale by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1100, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "beaconScale"
+    )
+    val sheenOffset by infiniteTransition.animateFloat(
+        initialValue = -0.5f,
+        targetValue = 1.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3600, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "spotlightSheen"
+    )
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .tactilePress(pressedScale = 0.98f) { onOpenDetail() },
-        shape = RoundedCornerShape(20.dp),
+            .clip(RoundedCornerShape(22.dp))
+            .tactilePress(pressedScale = 0.975f) { onOpenDetail() },
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = theme.surface),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = theme.borderHighlight
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    theme.borderHighlight,
+                    Color(0xFF3B82F6).copy(alpha = 0.45f),
+                    theme.borderHighlight
+                ),
+                start = Offset(sheenOffset * 600f, 0f),
+                end = Offset((sheenOffset + 0.6f) * 600f, 300f)
+            )
         )
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(theme.surface)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF2563EB).copy(alpha = if (isDark) 0.14f else 0.08f),
+                            theme.surface
+                        ),
+                        center = Offset(120f, 60f),
+                        radius = 750f
+                    )
+                )
                 .padding(20.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1201,13 +1299,18 @@ private fun ClassicEcosystemSpotlightCard(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF2563EB).copy(alpha = 0.15f))
-                            .border(1.dp, Color(0xFF3B82F6).copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                            .background(Color(0xFF2563EB).copy(alpha = 0.16f))
+                            .border(1.dp, Color(0xFF3B82F6).copy(alpha = 0.45f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(6.dp)
+                                .graphicsLayer {
+                                    scaleX = beaconScale
+                                    scaleY = beaconScale
+                                    alpha = beaconAlpha
+                                }
                                 .clip(CircleShape)
                                 .background(Color(0xFF38BDF8))
                         )
@@ -1359,20 +1462,38 @@ private fun ClassicAppCard(
                 }
             }
 
-            // Single App Store Style Tactile Action Button
-            val (actionLabel, actionBg, actionFg) = when {
-                appState.error != null -> Triple("RETRY", DangerRed, Color.White)
-                appState.isInstalling -> Triple("INSTALLING…", ElectricBlueUpdate.copy(alpha = 0.15f), ElectricBlueUpdateLight)
-                appState.isDownloading -> Triple("${appState.downloadProgress}% ✕", if (theme.isDark) Color(0xFF1E2230) else Color(0xFFE2E8F0), theme.textPrimary)
-                appState.installState == StoreApp.InstallState.NOT_INSTALLED -> Triple("GET", Color(0xFF2563EB), Color.White)
-                appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Triple("UPDATE", Color(0xFF2563EB), Color.White)
+            // Single App Store Style Tactile Action Button with Animated State & Live Download Progress
+            val animatedProgress by animateFloatAsState(
+                targetValue = (appState.downloadProgress.coerceIn(0, 100)) / 100f,
+                animationSpec = tween(durationMillis = 180, easing = LinearEasing),
+                label = "cardDownloadProgress"
+            )
+            val actionStateKey = when {
+                appState.error != null -> "ERROR"
+                appState.isInstalling -> "INSTALLING"
+                appState.isDownloading -> "DOWNLOADING"
+                appState.installState == StoreApp.InstallState.NOT_INSTALLED -> "GET"
+                appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> "UPDATE"
+                else -> "OPEN"
+            }
+            val (actionLabel, actionBg, actionFg) = when (actionStateKey) {
+                "ERROR" -> Triple("RETRY", DangerRed, Color.White)
+                "INSTALLING" -> Triple("INSTALLING…", ElectricBlueUpdate.copy(alpha = 0.15f), ElectricBlueUpdateLight)
+                "DOWNLOADING" -> Triple("${appState.downloadProgress}% ✕", if (theme.isDark) Color(0xFF1E2230) else Color(0xFFE2E8F0), theme.textPrimary)
+                "GET" -> Triple("GET", Color(0xFF2563EB), Color.White)
+                "UPDATE" -> Triple("UPDATE", Color(0xFF2563EB), Color.White)
                 else -> Triple("OPEN", if (theme.isDark) Color(0xFF1E2230) else Color(0xFFE2E8F0), if (theme.isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B))
             }
+            val animatedActionBg by animateColorAsState(
+                targetValue = actionBg,
+                animationSpec = tween(220),
+                label = "actionPillBg"
+            )
 
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background(actionBg)
+                    .background(animatedActionBg)
                     .tactilePress(
                         pressedScale = 0.90f,
                         onClick = when {
@@ -1384,34 +1505,68 @@ private fun ClassicAppCard(
                     .padding(horizontal = 16.dp, vertical = 7.dp),
                 contentAlignment = Alignment.Center
             ) {
-                if (appState.isInstalling) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(11.dp),
-                            color = ElectricBlueUpdateLight,
-                            strokeWidth = 1.8.dp
-                        )
-                        Text(
-                            text = "INSTALLING…",
-                            color = ElectricBlueUpdateLight,
-                            fontSize = 11.sp,
-                            style = TextStyle(fontFeatureSettings = "tnum"),
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.5.sp
-                        )
+                AnimatedContent(
+                    targetState = actionStateKey,
+                    transitionSpec = {
+                        (fadeIn(tween(180)) + scaleIn(initialScale = 0.9f, animationSpec = tween(180))) togetherWith
+                            (fadeOut(tween(140)) + scaleOut(targetScale = 0.9f, animationSpec = tween(140)))
+                    },
+                    label = "actionButtonStateTransition"
+                ) { stateKey ->
+                    when (stateKey) {
+                        "INSTALLING" -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(11.dp),
+                                    color = ElectricBlueUpdateLight,
+                                    strokeWidth = 1.8.dp
+                                )
+                                Text(
+                                    text = "INSTALLING…",
+                                    color = ElectricBlueUpdateLight,
+                                    fontSize = 11.sp,
+                                    style = TextStyle(fontFeatureSettings = "tnum"),
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                        }
+                        "DOWNLOADING" -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    progress = { animatedProgress },
+                                    modifier = Modifier.size(13.dp),
+                                    color = ElectricBlueUpdateLight,
+                                    trackColor = ElectricBlueUpdate.copy(alpha = 0.22f),
+                                    strokeWidth = 2.dp
+                                )
+                                Text(
+                                    text = "${appState.downloadProgress}% ✕",
+                                    color = actionFg,
+                                    fontSize = 11.5.sp,
+                                    style = TextStyle(fontFeatureSettings = "tnum"),
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.3.sp
+                                )
+                            }
+                        }
+                        else -> {
+                            Text(
+                                text = actionLabel,
+                                color = actionFg,
+                                fontSize = 11.5.sp,
+                                style = TextStyle(fontFeatureSettings = "tnum"),
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.4.sp
+                            )
+                        }
                     }
-                } else {
-                    Text(
-                        text = actionLabel,
-                        color = actionFg,
-                        fontSize = 11.5.sp,
-                        style = TextStyle(fontFeatureSettings = "tnum"),
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.4.sp
-                    )
                 }
             }
         }
@@ -1917,16 +2072,59 @@ private fun ClassicAppDetailView(
 private fun AppPreviewCarousel(appId: String, appName: String = "") {
     val previews = remember(appId) { getAppPreviews(appId) }
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
+    val pagerState = rememberPagerState(pageCount = { previews.size })
 
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        contentPadding = PaddingValues(vertical = 4.dp)
-    ) {
-        itemsIndexed(previews) { index, preview ->
-            PhoneMockupCard(
-                preview = preview,
-                onClick = { selectedIndex = index }
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        HorizontalPager(
+            state = pagerState,
+            contentPadding = PaddingValues(end = 56.dp),
+            pageSpacing = 12.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) { index ->
+            val pageOffset = ((pagerState.currentPage - index) + pagerState.currentPageOffsetFraction).absoluteValue
+            val scale = 1f - (pageOffset.coerceIn(0f, 1f) * 0.06f)
+            val alpha = 1f - (pageOffset.coerceIn(0f, 1f) * 0.28f)
+            Box(
+                modifier = Modifier.graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    this.alpha = alpha
+                }
+            ) {
+                PhoneMockupCard(
+                    preview = previews[index],
+                    onClick = { selectedIndex = index }
+                )
+            }
+        }
+
+        // Animated page indicator pills
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            previews.indices.forEach { i ->
+                val isActive = pagerState.currentPage == i
+                val dotWidth by animateDpAsState(
+                    targetValue = if (isActive) 18.dp else 6.dp,
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    label = "carouselDotWidth"
+                )
+                val dotColor by animateColorAsState(
+                    targetValue = if (isActive) Color(0xFF3B82F6) else Color(0xFF4B5563),
+                    animationSpec = tween(200),
+                    label = "carouselDotColor"
+                )
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 3.dp)
+                        .width(dotWidth)
+                        .height(6.dp)
+                        .clip(CircleShape)
+                        .background(dotColor)
+                )
+            }
         }
     }
 
