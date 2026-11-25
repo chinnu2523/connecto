@@ -433,14 +433,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.7.6/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.2.2-b71-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.2.3-b72-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.2.2");
-          res.headers.set("X-Connecto-Store-Build", "71");
+          res.headers.set("X-Connecto-Store-Version", "v2.2.3");
+          res.headers.set("X-Connecto-Store-Build", "72");
           return res;
         }
 
@@ -478,8 +478,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.2.2");
-              downloadHeaders.set("X-Connecto-Store-Build", "71");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.2.3");
+              downloadHeaders.set("X-Connecto-Store-Build", "72");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2301,14 +2301,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.2.2",
-        version_code: 71,
-        size_bytes: 17107453,
+        version_name: "2.2.3",
+        version_code: 72,
+        size_bytes: 17107474,
         size_formatted: "16.3 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Enterprise Device Owner & Privileged System Installer Support (v2.2.3): Added StoreDeviceAdminReceiver and INSTALL_PACKAGES privileged manifest declarations with DevicePolicyManager.isDeviceOwnerApp detection, enabling zero-prompt silent OS installs and updates on managed Device Owner devices and /system/priv-app deployments.",
           "High-Fluidity UI/UX Animations & Visual Effects Overhaul (v2.2.2): Added spring-physics sliding bottom navigation indicator & luminous spotlight pill, animated category chip transitions, pulsing live beacon & sweeping specular sheen on the Ecosystem Spotlight card, AnimatedContent state morphing with live circular download progress ring on app cards, and 3D perspective depth-scaled HorizontalPager preview carousel with animated indicator pills.",
           "Background Persistent Downloads & Direct OS Installer-of-Record Updates (v2.2.1): Moved APK downloads into an Application-scoped StoreDownloadCoordinator so navigating back or leaving Our Store never cancels or resets download progress, and reused already-downloaded valid APKs on retry. Enhanced installer-of-record detection across installingPackageName, initiatingPackageName, and updateOwnerPackageName (Android 14+) and removed premature system PackageInstaller intent fallbacks so updates install directly via Android PackageInstaller.",
           "Permanent Edge CDN Self-Update & Install Fallback (v2.2.0): Fixed root-cause in-app self-update failure caused by pruned tag assets by binding canonical edge stream releases/latest/download directly on Cloudflare Worker. Added filename pattern matching for ourstore package installer system intent fallback.",
@@ -2632,7 +2633,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "2.2.2",
+      store_version: "2.2.3",
       total_apps: appsToReturn.length,
       is_admin: isAdmin,
       apps: appsToReturn

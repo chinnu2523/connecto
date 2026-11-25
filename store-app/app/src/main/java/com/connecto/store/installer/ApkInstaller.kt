@@ -61,6 +61,21 @@ object ApkInstaller {
     }
 
     /**
+     * Returns true if Our Store holds privileged INSTALL_PACKAGES permission (system / priv-app)
+     * or is provisioned as the Enterprise Device Owner via DevicePolicyManager.
+     */
+    fun isPrivilegedOrDeviceOwner(context: Context): Boolean {
+        return try {
+            val hasInstallPerm = context.checkSelfPermission(android.Manifest.permission.INSTALL_PACKAGES) == PackageManager.PERMISSION_GRANTED
+            val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? android.app.admin.DevicePolicyManager
+            val isDeviceOwner = dpm?.isDeviceOwnerApp(context.packageName) == true
+            hasInstallPerm || isDeviceOwner
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /**
      * Checks whether Our Store is the installer of record for [packageName].
      * Android requires an app to be the installer of record to perform silent updates without user prompt.
      */
@@ -331,11 +346,10 @@ object ApkInstaller {
                     setInstallReason(PackageManager.INSTALL_REASON_USER)
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    // Direct Play Store-like installation: require user action ONLY if Our Store is not yet installer-of-record
-                    // Note: Self-updates of the installer app itself MUST require user action per Android OS security policy
                     val isAlreadyInstalled = getInstalledVersionCode(context, packageName) >= 0
                     val isInstaller = isInstallerOfRecord(context, packageName)
-                    if (!isSelfUpdate && isAlreadyInstalled && isInstaller) {
+                    val isPrivileged = isPrivilegedOrDeviceOwner(context)
+                    if (isPrivileged || (!isSelfUpdate && isAlreadyInstalled && isInstaller)) {
                         setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
                     } else {
                         setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_REQUIRED)
