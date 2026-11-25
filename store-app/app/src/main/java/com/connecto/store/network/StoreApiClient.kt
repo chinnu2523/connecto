@@ -217,16 +217,8 @@ object StoreApiClient {
     fun fetchApps(token: String? = null, username: String? = null): List<StoreApp> {
         val urlStr = buildString {
             append(CATALOG_URL)
-            val params = mutableListOf<String>()
-            if (!token.isNullOrBlank()) {
-                params.add("token=${java.net.URLEncoder.encode(token, "UTF-8")}")
-            }
             if (!username.isNullOrBlank()) {
-                params.add("username=${java.net.URLEncoder.encode(username.trim().lowercase().removePrefix("@"), "UTF-8")}")
-            }
-            if (params.isNotEmpty()) {
-                append("?")
-                append(params.joinToString("&"))
+                append("?username=${java.net.URLEncoder.encode(username.trim().lowercase().removePrefix("@"), "UTF-8")}")
             }
         }
         val conn = URL(urlStr).openConnection() as HttpURLConnection
@@ -271,7 +263,8 @@ object StoreApiClient {
                     accentColor = o.optString("accent_color", "#2563EB"),
                     changelog = changelog,
                     isEssential = o.optBoolean("is_essential", false),
-                    updatedAt = o.optString("updated_at")
+                    updatedAt = o.optString("updated_at"),
+                    sha256 = o.optString("sha256").ifBlank { null }
                 )
             )
         }

@@ -18,7 +18,8 @@ data class StoreApp(
     val accentColor: String,
     val changelog: List<String>,
     val isEssential: Boolean,
-    val updatedAt: String
+    val updatedAt: String,
+    val sha256: String? = null
 ) {
     /** Live install state, computed at runtime by comparing against PackageManager */
     enum class InstallState {

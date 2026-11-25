@@ -2177,7 +2177,7 @@ object VoiceCallManager {
         val devOs = ConnectoApiClient.getPhoneVersion()
         val encodedDeviceId = try { URLEncoder.encode(deviceId, "UTF-8") } catch (_: Exception) { deviceId }
 
-        val wsPath = "/api/v1/ws?user_id=$encodedId&username=$encodedUser&token=$encodedToken&device_id=$encodedDeviceId"
+        val wsPath = "/api/v1/ws?user_id=$encodedId&username=$encodedUser&device_id=$encodedDeviceId"
         val url = ConnectoNetworkConfig.getWsUrl(wsPath)
 
         // SEC-A04 FIX: Do not log bearer tokens to Logcat in cleartext; supply Authorization header

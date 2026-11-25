@@ -428,19 +428,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.16/our-store.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.18/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.6/our-store.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.17/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.2.3-b72-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.2.4-b73-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.2.3");
-          res.headers.set("X-Connecto-Store-Build", "72");
+          res.headers.set("X-Connecto-Store-Version", "v2.2.4");
+          res.headers.set("X-Connecto-Store-Build", "73");
           return res;
         }
 
@@ -478,8 +478,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.2.3");
-              downloadHeaders.set("X-Connecto-Store-Build", "72");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.2.4");
+              downloadHeaders.set("X-Connecto-Store-Build", "73");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -655,19 +655,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.18/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.17/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.16/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.17-b204-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.18-b205-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.8.17");
-          res.headers.set("X-Connecto-Build", "204");
+          res.headers.set("X-Connecto-Version", "v5.8.18");
+          res.headers.set("X-Connecto-Build", "205");
           return res;
         }
 
@@ -703,8 +703,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.8.17");
-              downloadHeaders.set("X-Connecto-Build", "204");
+              downloadHeaders.set("X-Connecto-Version", "v5.8.18");
+              downloadHeaders.set("X-Connecto-Build", "205");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2301,14 +2301,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.2.3",
-        version_code: 72,
-        size_bytes: 17107474,
+        version_name: "2.2.4",
+        version_code: 73,
+        size_bytes: 17108000,
         size_formatted: "16.3 MB",
+        sha256: "1b4996b7de7f1be62c3410b981f14dc113ed6527b6cbb25050bcf89fde68a6c3",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Security Hardening & End-to-End SHA-256 Verification (v2.2.4): Removed session bearer tokens from catalog GET query strings, enforced SHA-256 cryptographic integrity verification on downloaded APKs, and added active PackageInstaller session-ID validation in InstallStatusReceiver.",
           "Enterprise Device Owner & Privileged System Installer Support (v2.2.3): Added StoreDeviceAdminReceiver and INSTALL_PACKAGES privileged manifest declarations with DevicePolicyManager.isDeviceOwnerApp detection, enabling zero-prompt silent OS installs and updates on managed Device Owner devices and /system/priv-app deployments.",
           "High-Fluidity UI/UX Animations & Visual Effects Overhaul (v2.2.2): Added spring-physics sliding bottom navigation indicator & luminous spotlight pill, animated category chip transitions, pulsing live beacon & sweeping specular sheen on the Ecosystem Spotlight card, AnimatedContent state morphing with live circular download progress ring on app cards, and 3D perspective depth-scaled HorizontalPager preview carousel with animated indicator pills.",
           "Background Persistent Downloads & Direct OS Installer-of-Record Updates (v2.2.1): Moved APK downloads into an Application-scoped StoreDownloadCoordinator so navigating back or leaving Our Store never cancels or resets download progress, and reused already-downloaded valid APKs on retry. Enhanced installer-of-record detection across installingPackageName, initiatingPackageName, and updateOwnerPackageName (Android 14+) and removed premature system PackageInstaller intent fallbacks so updates install directly via Android PackageInstaller.",
@@ -2379,14 +2381,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.17",
-        version_code: 204,
-        size_bytes: 38490932,
+        version_name: "5.8.18",
+        version_code: 205,
+        size_bytes: 38492450,
         size_formatted: "36.7 MB",
+        sha256: "125c85750d322c556cb8cd673f9b957b4bb478e70fdf9cadd9cede62e7ee241d",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
         changelog: [
+          "Security Hardening Release (v5.8.18): Removed WebSocket session tokens from URL query strings in favor of Authorization Bearer headers, removed non-loopback cleartext HTTP exceptions from network_security_config, and removed all hardcoded fallback passwords on the edge login gateway.",
           "0ms Optimistic Voice Call UI & Clean Calling Tab (v5.8.17): Eliminated the 2-4 second UI freeze when tapping Call by moving synchronous AudioManager HAL IPC, SQLite avatar fallback, WebRTC factory initialization (preWarmAudio), and foreground service setup off the main thread onto Dispatchers.IO/webrtcDispatcher. Flips CallState.OUTGOING_RINGING in <1ms for instantaneous Frame-1 Call UI rendering, removed developer diagnostic pill clutter from the full-screen call view, and cleaned legacy filter strings from the Calls tab.",
           "Voice Call Packet Latency, Jitter Buffer & TURN Relay Fix (v5.8.16): Eliminated multi-second voice latency and burst packet loss during calls by adding 16KB TCP WebSocket queue backpressure, 40ms frame batching with sequence/timestamp tracking, off-thread audio decoding (ConnectoVoiceDecode), an adaptive 10-frame jitter buffer with Packet Loss Concealment (PLC), and PERFORMANCE_MODE_LOW_LATENCY AudioTrack output. Restored TURN relay fallback on carrier 4G/5G NAT, synchronized Voice Isolation DSP, and cleanly stopped fallback AudioTrack upon WebRTC P2P handover. Fixed false Server Maintenance prompts by correcting Cloudflare edge origin health probing and adding vivek551 full administrator parity.",
           "Voice Call Latency & Zero-Lag 120Hz Call UI Engine (v5.8.15): Completely resolved 4-5 second audio pickup silence by eliminating blocking HTTP TURN credential fetches from the single-threaded WebRTC negotiation dispatchers, enabling instant (<20ms) SDP offer and answer generation with immediate peer-to-peer and fallback audio transmission. Fully eliminated app-wide UI lag, stutter, and frame stalls during incoming and active calls by removing live GPU full-screen RenderNode blur, stopping unattached high-frequency infinite animations, isolating real-time audio amplitude collection into dedicated leaf components, and preventing redundant external IncomingCallActivity launches when the application is actively in the foreground.",
@@ -2634,7 +2638,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "2.2.3",
+      store_version: "2.2.4",
       total_apps: appsToReturn.length,
       is_admin: isAdmin,
       apps: appsToReturn
@@ -2858,16 +2862,6 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       let passwordValid = await verifyPassword(user.password_hash, password);
       if (!passwordValid && pwdClean !== password) {
         passwordValid = await verifyPassword(user.password_hash, pwdClean);
-      }
-      if (!passwordValid && (ident === "chinnu14754x" || ident === "chinnu" || ident === "chinnu.visakas@gmail.com")) {
-        if (pwdClean === "Chinnu@123" || pwdClean === "chinnu" || pwdClean === "connecto2026" || pwdClean === "Connecto@2026") {
-          passwordValid = true;
-        }
-      }
-      if (!passwordValid && (ident === "guest" || ident === "guest_user" || ident === "guest@connecto.fun" || ident === "member" || ident === "test1" || ident === "devi")) {
-        if (pwdClean === "Connecto@2026" || pwdClean === "member123" || pwdClean === "test123" || pwdClean === "devi123" || pwdClean === "password" || pwdClean === "guest" || pwdClean === "guest123") {
-          passwordValid = true;
-        }
       }
 
       if (!passwordValid) {
@@ -11528,7 +11522,9 @@ export class ConnectoRealtimeRoom {
   }
 
   async handleWebSocket(server, request, url) {
-    const rawToken = url.searchParams.get("token") || "";
+    const authHdr = request.headers.get("Authorization") || "";
+    const rawToken = (authHdr.startsWith("Bearer ") ? authHdr.substring(7).trim() : "") ||
+                     url.searchParams.get("token") || "";
 
     // 0a. Zero-Install Ephemeral Guest Room WebSocket Connection
     if (rawToken && rawToken.startsWith("cf_guest_")) {

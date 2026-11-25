@@ -74,7 +74,7 @@ object StoreDownloadCoordinator {
                     context = appContext,
                     url = app.downloadUrl,
                     fileName = fileName,
-                    expectedSha256 = null,
+                    expectedSha256 = app.sha256,
                     expectedSizeBytes = expectedSizeBytes
                 ) { progress ->
                     updateState(app.packageName) { state ->

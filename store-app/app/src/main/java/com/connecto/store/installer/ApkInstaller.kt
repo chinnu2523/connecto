@@ -23,6 +23,13 @@ import java.security.MessageDigest
 object ApkInstaller {
 
     private const val TAG = "OurStoreInstaller"
+    private val activeSessionIds = java.util.Collections.synchronizedSet(mutableSetOf<Int>())
+
+    fun isKnownSession(sessionId: Int): Boolean = sessionId >= 0 && activeSessionIds.contains(sessionId)
+
+    fun markSessionFinished(sessionId: Int) {
+        if (sessionId >= 0) activeSessionIds.remove(sessionId)
+    }
 
     /**
      * Returns the installed versionCode for [packageName], or -1 if not installed.
@@ -382,6 +389,7 @@ object ApkInstaller {
                 PendingIntent.FLAG_UPDATE_CURRENT
             }
             val pendingIntent = PendingIntent.getBroadcast(context, sessionId, statusIntent, flags)
+            activeSessionIds.add(sessionId)
             session.commit(pendingIntent.intentSender)
             session.close()
             true

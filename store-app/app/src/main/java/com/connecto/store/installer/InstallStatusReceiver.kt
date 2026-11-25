@@ -11,8 +11,13 @@ import com.connecto.store.notifications.StoreNotificationHelper
 class InstallStatusReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
+        val sessionId = intent.getIntExtra(PackageInstaller.EXTRA_SESSION_ID, -1)
         val packageName = intent.getStringExtra("package_name") ?: ""
-        Log.d("OurStore", "PackageInstaller status received: $status for $packageName")
+        if (!ApkInstaller.isKnownSession(sessionId)) {
+            Log.w("OurStore", "Ignored unverified install status broadcast (sessionId=$sessionId, pkg=$packageName)")
+            return
+        }
+        Log.d("OurStore", "PackageInstaller status received: $status for $packageName (session=$sessionId)")
 
         when (status) {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
@@ -54,6 +59,7 @@ class InstallStatusReceiver : BroadcastReceiver() {
                 }
             }
             PackageInstaller.STATUS_SUCCESS -> {
+                ApkInstaller.markSessionFinished(sessionId)
                 Log.i("OurStore", "Package $packageName successfully installed via PackageInstaller!")
                 StoreDownloadCoordinator.markInstalled(packageName)
                 StoreNotificationHelper.cancelInstallPending(context, packageName)
@@ -64,6 +70,7 @@ class InstallStatusReceiver : BroadcastReceiver() {
                 context.sendBroadcast(broadcast)
             }
             else -> {
+                ApkInstaller.markSessionFinished(sessionId)
                 val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
                 Log.e("OurStore", "PackageInstaller failed with status: $status message: $message")
                 StoreNotificationHelper.cancelInstallPending(context, packageName)
