@@ -441,9 +441,11 @@ fun FullScreenCallUI(
                     resolvedAvatar = cached?.friendAvatarUrl
                     return@LaunchedEffect
                 }
-                val dbAv = try {
-                    com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context).getFriendByUsernameOrHandle(queryUser)?.avatarUrl
-                } catch (_: Exception) { null }
+                val dbAv = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    try {
+                        com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context).getFriendByUsernameOrHandle(queryUser)?.avatarUrl
+                    } catch (_: Exception) { null }
+                }
                 if (!dbAv.isNullOrBlank()) {
                     resolvedAvatar = dbAv
                     return@LaunchedEffect
@@ -702,11 +704,6 @@ fun FullScreenCallUI(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(top = 10.dp)
             ) {
-                // Live WebRTC Diagnostics Pill
-                CallDiagnosticPill(
-                    callStats = callStats,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
 
                 Text(
                     text = cleanDisplayName,
@@ -2051,13 +2048,8 @@ fun FullScreenGroupCallUI(
                 }
             }
 
-            // Live WebRTC Diagnostics Pill
-            CallDiagnosticPill(
-                callStats = callStats,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(top = 4.dp, bottom = 4.dp)
-            )
+            // Clean status spacer
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Adaptive Participant Grid
             Box(

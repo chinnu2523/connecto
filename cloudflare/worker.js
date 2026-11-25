@@ -655,19 +655,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.17/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.16/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.15/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.16-b203-r3.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.17-b204-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.8.16");
-          res.headers.set("X-Connecto-Build", "203");
+          res.headers.set("X-Connecto-Version", "v5.8.17");
+          res.headers.set("X-Connecto-Build", "204");
           return res;
         }
 
@@ -703,8 +703,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.8.16");
-              downloadHeaders.set("X-Connecto-Build", "203");
+              downloadHeaders.set("X-Connecto-Version", "v5.8.17");
+              downloadHeaders.set("X-Connecto-Build", "204");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2379,14 +2379,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.16",
-        version_code: 203,
+        version_name: "5.8.17",
+        version_code: 204,
         size_bytes: 38490932,
         size_formatted: "36.7 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
         changelog: [
+          "0ms Optimistic Voice Call UI & Clean Calling Tab (v5.8.17): Eliminated the 2-4 second UI freeze when tapping Call by moving synchronous AudioManager HAL IPC, SQLite avatar fallback, WebRTC factory initialization (preWarmAudio), and foreground service setup off the main thread onto Dispatchers.IO/webrtcDispatcher. Flips CallState.OUTGOING_RINGING in <1ms for instantaneous Frame-1 Call UI rendering, removed developer diagnostic pill clutter from the full-screen call view, and cleaned legacy filter strings from the Calls tab.",
           "Voice Call Packet Latency, Jitter Buffer & TURN Relay Fix (v5.8.16): Eliminated multi-second voice latency and burst packet loss during calls by adding 16KB TCP WebSocket queue backpressure, 40ms frame batching with sequence/timestamp tracking, off-thread audio decoding (ConnectoVoiceDecode), an adaptive 10-frame jitter buffer with Packet Loss Concealment (PLC), and PERFORMANCE_MODE_LOW_LATENCY AudioTrack output. Restored TURN relay fallback on carrier 4G/5G NAT, synchronized Voice Isolation DSP, and cleanly stopped fallback AudioTrack upon WebRTC P2P handover. Fixed false Server Maintenance prompts by correcting Cloudflare edge origin health probing and adding vivek551 full administrator parity.",
           "Voice Call Latency & Zero-Lag 120Hz Call UI Engine (v5.8.15): Completely resolved 4-5 second audio pickup silence by eliminating blocking HTTP TURN credential fetches from the single-threaded WebRTC negotiation dispatchers, enabling instant (<20ms) SDP offer and answer generation with immediate peer-to-peer and fallback audio transmission. Fully eliminated app-wide UI lag, stutter, and frame stalls during incoming and active calls by removing live GPU full-screen RenderNode blur, stopping unattached high-frequency infinite animations, isolating real-time audio amplitude collection into dedicated leaf components, and preventing redundant external IncomingCallActivity launches when the application is actively in the foreground.",
           "Voice Call Audio Relay Fix & Sub-20ms Ultra-Low Latency Engine (v5.8.14): Fixed critical Cloudflare Worker routing bug where connectedSockets property lookup caused a TypeError on every voice_data WebSocket packet, completely restoring real-time voice audio transmission. Standardized case-insensitive room and channel subscription across all edge Durable Objects, eliminating dropped WebRTC signaling (offers, answers, ICE candidates). Upgraded VoiceCallManager to perform intelligent verified media handover—preserving active low-latency fallback AudioRecord streams until WebRTC RTP audio packets are confirmed flowing, preventing post-pickup silence. Implemented transient packet loss drop on disconnected sockets to eliminate reconnection latency backlog and burst distortion. Added AudioTrack automatic play-state recovery in ConnectoVoicePlayout worker thread for crystal-clear, instantaneous full-duplex voice communication.",

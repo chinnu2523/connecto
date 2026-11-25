@@ -412,13 +412,7 @@ fun CallsScreen(
                 diskLogs
             }
             if (cached.isNotEmpty()) {
-                val cleanLogs = cached.filter { log ->
-                    !log.callerName.contains("Tactical", ignoreCase = true) &&
-                    !log.callerName.contains("War Room", ignoreCase = true) &&
-                    !log.callerName.contains("Cyber Defense", ignoreCase = true) &&
-                    !log.callerName.contains("Lounge", ignoreCase = true) &&
-                    !log.callerName.startsWith("#")
-                }
+                val cleanLogs = cached.filter { !it.callerName.startsWith("#") }
                 addAll(cleanLogs.map { mapCallLogDtoToItem(it, currentUsername, ConnectoApiClient.cachedFriends) })
             }
         }
@@ -446,13 +440,7 @@ fun CallsScreen(
                 if (res.isSuccess) {
                     val logs = res.getOrThrow()
                     if (logs.isNotEmpty()) {
-                        val cleanLogs = logs.filter { log ->
-                            !log.callerName.contains("Tactical", ignoreCase = true) &&
-                            !log.callerName.contains("War Room", ignoreCase = true) &&
-                            !log.callerName.contains("Cyber Defense", ignoreCase = true) &&
-                            !log.callerName.contains("Lounge", ignoreCase = true) &&
-                            !log.callerName.startsWith("#")
-                        }
+                        val cleanLogs = logs.filter { !it.callerName.startsWith("#") }
                         // Smart Deduplication: Merge multiple entries for same caller within 75 seconds
                         val dedupedLogs = mutableListOf<CallLogDto>()
                         for (log in cleanLogs) {

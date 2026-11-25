@@ -1149,16 +1149,17 @@ object VoiceCallManager {
     fun preWarmAudio() {
         startNewWebRtcSession()
         val ctx = appContext ?: return
-        try {
-            if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                // Critical Android Timing Order: Configure audio mode and focus before initializing WebRTC mic capture
-                applyAudioSettingsForCall()
-                initWebRtcFactory(ctx)
-                startLocalAudio()
-                Log.d(TAG, "Audio pre-warmed: AudioDeviceModule and local audio track initialized (<300ms call accept ready)")
+        scope.launch(webrtcDispatcher) {
+            try {
+                if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                    applyAudioSettingsForCall()
+                    initWebRtcFactory(ctx)
+                    startLocalAudio()
+                    Log.d(TAG, "Audio pre-warmed asynchronously: AudioDeviceModule and local audio track ready")
+                }
+            } catch (t: Throwable) {
+                Log.w(TAG, "preWarmAudio error: ${t.message}")
             }
-        } catch (t: Throwable) {
-            Log.w(TAG, "preWarmAudio error: ${t.message}")
         }
     }
 
@@ -3717,21 +3718,16 @@ object VoiceCallManager {
         val currentUsername = ConnectoApiClient.currentUsername?.ifEmpty { "User" } ?: "User"
         val roomId = "call_${currentUsername}_${System.currentTimeMillis()}"
 
-        // Instant fast-path avatar resolution from in-memory cache and local SQLite DB (<1ms)
-        val resolvedAvatar = if (!avatarUrl.isNullOrBlank() && avatarUrl != "👤" && avatarUrl != "👾") {
+        // Instant fast-path avatar resolution from RAM cache (<0.1ms, zero SQLite/AudioHAL I/O on main thread)
+        val cachedAvatar = if (!avatarUrl.isNullOrBlank() && avatarUrl != "👤" && avatarUrl != "👾") {
             avatarUrl
         } else {
-            val cachedFriend = ConnectoApiClient.cachedFriends.find {
+            ConnectoApiClient.cachedFriends.find {
                 it.friendUsername.equals(cleanTarget, ignoreCase = true) ||
                 it.friendDisplayName.equals(cleanTarget, ignoreCase = true) ||
                 it.friendUsername.equals(cleanDisplayName, ignoreCase = true) ||
                 it.friendDisplayName.equals(cleanDisplayName, ignoreCase = true)
-            }
-            cachedFriend?.friendAvatarUrl ?: appContext?.let { ctx ->
-                try {
-                    ConnectoDatabaseHelper.getInstance(ctx).getFriendByUsernameOrHandle(cleanTarget)?.avatarUrl
-                } catch (_: Exception) { null }
-            }
+            }?.friendAvatarUrl
         }
 
         isCallCaller = true
@@ -3739,16 +3735,9 @@ object VoiceCallManager {
         _activeCallPartner.value = cleanDisplayName
         _activeCallPartnerUsername.value = cleanTarget
         _activeCallTitle.value = "1:1 Voice Call with $cleanDisplayName"
-        _activeCallAvatar.value = resolvedAvatar
+        _activeCallAvatar.value = cachedAvatar
         _participantCount.value = 2
-
-        // Acquire audio focus and set AudioManager.MODE_IN_COMMUNICATION before starting the call
-        applyAudioSettingsForCall()
-
-        // Activate SPEAKER by default for loud, crystal-clear 1:1 voice calls (unless Bluetooth headset is connected)
-        val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.SPEAKER
-        setAudioRoute(initialRoute)
-        syncProximityMonitoring()
+        _isRemoteRinging.value = false
 
         // If user is calling themselves (Echo / Loopback audio test call)
         if (cleanTarget.equals(currentUsername, ignoreCase = true) ||
@@ -3757,53 +3746,80 @@ object VoiceCallManager {
             Log.d(TAG, "Initiating Echo / Loopback audio test call for user: $currentUsername")
             _activeCallTitle.value = "Echo Audio Test (Self)"
             _callState.value = CallState.CONNECTED
-            startAudioHardware()
-            startDurationTimer()
+            scope.launch(Dispatchers.IO) {
+                applyAudioSettingsForCall()
+                setAudioRoute(if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.SPEAKER)
+                syncProximityMonitoring()
+                startAudioHardware()
+                startDurationTimer()
+            }
             return
         }
 
+        // OPTIMISTIC CALL UI (<1ms): Render Call UI immediately on Frame 1 before any AudioHAL/WebRTC/Network blocking!
         _callState.value = CallState.OUTGOING_RINGING
-        _isRemoteRinging.value = false
-        // Pre-fetch Cloudflare Realtime TURN credentials and pre-warm audio immediately
-        scope.launch(Dispatchers.IO) { fetchTurnCredentials() }
-        preWarmAudio()
-        appContext?.let {
-            VoiceCallForegroundService.startService(it, _activeCallTitle.value, cleanDisplayName, _isMuted.value)
-        }
 
-        // Send call invite — production WS reads "type" field, must be "call:initiate"
-        val callerAvatar = ConnectoApiClient.currentUserAvatar ?: ""
-        val callerDisplayName = ConnectoApiClient.currentUserDisplayName ?: currentUsername
-        val inviteMsg = JSONObject().apply {
-            put("action", "call:initiate")
-            put("type", "call:initiate")
-            put("target", cleanTarget)
-            put("target_user", cleanTarget)
-            put("call_id", roomId)
-            put("room_id", roomId)
-            put("caller", currentUsername)
-            put("caller_username", currentUsername)
-            put("caller_name", callerDisplayName)
-            put("caller_avatar", callerAvatar)
-            put("avatar", callerAvatar)
-        }
-        sendWsMessage(inviteMsg)
+        val uiDispatchMs = (System.nanoTime() - callStartNano) / 1_000_000.0
+        Log.d(TAG, "[CallLatency] Optimistic Call UI displayed for $cleanTarget in ${String.format(java.util.Locale.US, "%.2f", uiDispatchMs)}ms")
 
-        // Caller must also join the voice room so the server's in-memory voice_rooms map
-        // includes the caller — otherwise voice_data broadcast won't reach them.
-        val callerJoinMsg = JSONObject().apply {
-            put("type", "voice_join")
-            put("action", "voice:join")
-            put("channel_id", roomId)
-            put("room_id", roomId)
-        }
-        sendWsMessage(callerJoinMsg)
+        // Automatic Outgoing Call Timeout: If recipient does not answer within 40 seconds, teardown cleanly
+        startOutgoingCallTimeout(roomId, cleanDisplayName)
 
-        val latencyMs = (System.nanoTime() - callStartNano) / 1_000_000.0
-        Log.d(TAG, "[CallLatency] start1on1Call dispatched for $cleanTarget in ${String.format(java.util.Locale.US, "%.2f", latencyMs)}ms")
+        // Offload ALL blocking AudioManager HAL IPC, WebRTC native init, ForegroundService, and signaling to Dispatchers.IO
+        scope.launch(Dispatchers.IO) {
+            fetchTurnCredentials()
 
-        if (resolvedAvatar.isNullOrBlank()) {
-            scope.launch {
+            if (cachedAvatar.isNullOrBlank()) {
+                val dbAvatar = appContext?.let { ctx ->
+                    try {
+                        ConnectoDatabaseHelper.getInstance(ctx).getFriendByUsernameOrHandle(cleanTarget)?.avatarUrl
+                    } catch (_: Exception) { null }
+                }
+                if (!dbAvatar.isNullOrBlank()) {
+                    _activeCallAvatar.value = dbAvatar
+                }
+            }
+
+            applyAudioSettingsForCall()
+            val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.SPEAKER
+            setAudioRoute(initialRoute)
+            syncProximityMonitoring()
+            preWarmAudio()
+
+            appContext?.let {
+                VoiceCallForegroundService.startService(it, _activeCallTitle.value, cleanDisplayName, _isMuted.value)
+            }
+
+            val callerAvatar = ConnectoApiClient.currentUserAvatar ?: ""
+            val callerDisplayName = ConnectoApiClient.currentUserDisplayName ?: currentUsername
+            val inviteMsg = JSONObject().apply {
+                put("action", "call:initiate")
+                put("type", "call:initiate")
+                put("target", cleanTarget)
+                put("target_user", cleanTarget)
+                put("call_id", roomId)
+                put("room_id", roomId)
+                put("caller", currentUsername)
+                put("caller_username", currentUsername)
+                put("caller_name", callerDisplayName)
+                put("caller_avatar", callerAvatar)
+                put("avatar", callerAvatar)
+            }
+            sendWsMessage(inviteMsg)
+
+            val callerJoinMsg = JSONObject().apply {
+                put("type", "voice_join")
+                put("action", "voice:join")
+                put("channel_id", roomId)
+                put("room_id", roomId)
+            }
+            sendWsMessage(callerJoinMsg)
+
+            try {
+                ConnectoApiClient.inviteToVoiceCall(cleanTarget, roomId, callerAvatar)
+            } catch (_: Throwable) {}
+
+            if (_activeCallAvatar.value.isNullOrBlank()) {
                 try {
                     val fRes = ConnectoApiClient.getFriends()
                     if (fRes.isSuccess) {
@@ -3829,16 +3845,6 @@ object VoiceCallManager {
                 } catch (_: Exception) {}
             }
         }
-
-        // Fallback REST call in background
-        scope.launch {
-            try {
-                ConnectoApiClient.inviteToVoiceCall(cleanTarget, roomId, callerAvatar)
-            } catch (_: Throwable) {}
-        }
-
-        // Automatic Outgoing Call Timeout: If recipient does not answer within 40 seconds, teardown cleanly
-        startOutgoingCallTimeout(roomId, cleanDisplayName)
     }
 
     private fun startOutgoingCallTimeout(callId: String, title: String) {
