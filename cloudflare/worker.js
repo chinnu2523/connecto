@@ -1102,11 +1102,18 @@ async function saveProfileToRealtimeStorage(env, userId, username, data) {
   } catch (_) {}
 }
 
+let cachedOnlineUsersSet = null;
+let cachedOnlineUsersAt = 0;
+const ONLINE_USERS_CACHE_TTL_MS = 3000;
+
 async function getProfileFromRealtimeStorage(env, identifier) {
   try {
     const room = getRealtimeRoom(env);
     if (!room || !identifier) return null;
-    const res = await room.fetch("http://realtime/internal/profile/get?userId=" + encodeURIComponent(identifier.toLowerCase()));
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 900);
+    const res = await room.fetch("http://realtime/internal/profile/get?userId=" + encodeURIComponent(identifier.toLowerCase()), { signal: ctrl.signal });
+    clearTimeout(tid);
     if (res.ok) {
       const data = await res.json();
       return data.profile || null;
@@ -1116,18 +1123,27 @@ async function getProfileFromRealtimeStorage(env, identifier) {
 }
 
 async function getOnlineUsersFromRealtime(env) {
+  const now = Date.now();
+  if (cachedOnlineUsersSet && (now - cachedOnlineUsersAt) < ONLINE_USERS_CACHE_TTL_MS) {
+    return cachedOnlineUsersSet;
+  }
   try {
     const room = getRealtimeRoom(env);
-    if (!room) return null;
-    const res = await room.fetch("http://realtime/internal/stats");
+    if (!room) return cachedOnlineUsersSet;
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 900);
+    const res = await room.fetch("http://realtime/internal/stats", { signal: ctrl.signal });
+    clearTimeout(tid);
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data.online_users)) {
-        return new Set(data.online_users.map(u => String(u).toLowerCase().trim().replace(/^@/, "")));
+        cachedOnlineUsersSet = new Set(data.online_users.map(u => String(u).toLowerCase().trim().replace(/^@/, "")));
+        cachedOnlineUsersAt = Date.now();
+        return cachedOnlineUsersSet;
       }
     }
   } catch (_) {}
-  return null;
+  return cachedOnlineUsersSet;
 }
 
 function generateNumericOtp(length = 6) {
@@ -1857,6 +1873,9 @@ async function purgeExpiredSessions(env) {
   }
 }
 
+const verifiedSessionCache = new Map();
+const SESSION_CACHE_TTL_MS = 10000;
+
 async function checkSessionExpiration(request, env) {
   const authHeader = request.headers.get("Authorization") || "";
   const cookie = request.headers.get("Cookie") || "";
@@ -1872,23 +1891,28 @@ async function checkSessionExpiration(request, env) {
 
   try {
     const hashHex = await sha256Hex(token);
+    const now = Date.now();
+    const cached = verifiedSessionCache.get(hashHex);
+    if (cached && (now - cached.checkedAt) < SESSION_CACHE_TTL_MS && (cached.expiresAtMs === 0 || cached.expiresAtMs > now)) {
+      return null;
+    }
 
-    // Check if explicitly revoked
-    const isTerminated = await env.DB.prepare(
-      "SELECT 1 FROM terminated_sessions WHERE session_token_hash = ? OR session_token_hash = ? LIMIT 1"
-    ).bind(hashHex, token).first().catch(() => null);
+    // Run revocation and active session lookup in parallel instead of sequentially
+    const [isTerminated, session] = await Promise.all([
+      env.DB.prepare(
+        "SELECT 1 FROM terminated_sessions WHERE session_token_hash = ? OR session_token_hash = ? LIMIT 1"
+      ).bind(hashHex, token).first().catch(() => null),
+      env.DB.prepare(
+        "SELECT id, user_id, expires_at, last_active_at FROM user_sessions WHERE session_token_hash = ? OR id = ? LIMIT 1"
+      ).bind(hashHex, token).first().catch(() => null)
+    ]);
 
     if (isTerminated) {
+      verifiedSessionCache.delete(hashHex);
       return { expired: true, revoked: true };
     }
 
-    // Query active session record
-    const session = await env.DB.prepare(
-      "SELECT id, user_id, expires_at, last_active_at FROM user_sessions WHERE session_token_hash = ? OR id = ? LIMIT 1"
-    ).bind(hashHex, token).first().catch(() => null);
-
     if (session) {
-      const now = Date.now();
       const expiresAtMs = session.expires_at ? new Date(session.expires_at).getTime() : 0;
       const lastActiveMs = session.last_active_at ? new Date(session.last_active_at).getTime() : 0;
       const thirtyDaysMs = 30 * 86400 * 1000;
@@ -1897,6 +1921,7 @@ async function checkSessionExpiration(request, env) {
                         (lastActiveMs > 0 && (now - lastActiveMs >= thirtyDaysMs));
 
       if (isExpired) {
+        verifiedSessionCache.delete(hashHex);
         // Immediate lazy purge of expired row
         await env.DB.prepare("DELETE FROM user_sessions WHERE id = ?").bind(session.id).run().catch(() => {});
 
@@ -1918,12 +1943,19 @@ async function checkSessionExpiration(request, env) {
         return { expired: true, userId: session.user_id, sessionId: session.id };
       }
 
-      // Valid active session: slide 30-day window forward
-      const nowIso = new Date().toISOString();
-      const slideExpiresAt = new Date(Date.now() + thirtyDaysMs).toISOString();
-      await env.DB.prepare(
-        "UPDATE user_sessions SET last_active_at = ?, expires_at = ? WHERE id = ?"
-      ).bind(nowIso, slideExpiresAt, session.id).run().catch(() => {});
+      if (verifiedSessionCache.size > 500) {
+        verifiedSessionCache.clear();
+      }
+      verifiedSessionCache.set(hashHex, { checkedAt: now, expiresAtMs });
+
+      // Slide 30-day window forward non-blockingly only if > 60s since last update
+      if (!lastActiveMs || (now - lastActiveMs) > 60000) {
+        const nowIso = new Date().toISOString();
+        const slideExpiresAt = new Date(now + thirtyDaysMs).toISOString();
+        env.DB.prepare(
+          "UPDATE user_sessions SET last_active_at = ?, expires_at = ? WHERE id = ?"
+        ).bind(nowIso, slideExpiresAt, session.id).run().catch(() => {});
+      }
 
       return { expired: false, valid: true, userId: session.user_id, sessionId: session.id };
     }
@@ -4950,25 +4982,26 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       ""
     ).trim().toLowerCase().replace(/^@/, "");
 
-    let callerUser = await resolveUserFromRequest(request, env);
+    let [callerUser, dbUser, doProfile, onlineSet] = await Promise.all([
+      resolveUserFromRequest(request, env),
+      (targetUser && env.DB)
+        ? env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? OR id = ? LIMIT 1").bind(targetUser, targetUser).first().catch(() => null)
+        : Promise.resolve(null),
+      targetUser ? getProfileFromRealtimeStorage(env, targetUser) : Promise.resolve(null),
+      getOnlineUsersFromRealtime(env)
+    ]);
+
     if (!targetUser && callerUser) {
       targetUser = callerUser.username;
+      if (env.DB) {
+        dbUser = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? OR id = ? LIMIT 1").bind(targetUser, targetUser).first().catch(() => null);
+      }
     }
     if (!targetUser) {
       return jsonResponse({ status: "error", message: "User not specified" }, 400);
     }
 
-    let user = null;
-    if (env.DB) {
-      try {
-        user = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(targetUser).first();
-        if (!user) {
-          user = await env.DB.prepare("SELECT * FROM users WHERE id = ? LIMIT 1").bind(targetUser).first();
-        }
-      } catch (d1Err) {
-        console.warn("[D1_PROFILE_READ_LIMIT_REACHED]", d1Err.message);
-      }
-    }
+    let user = dbUser;
 
     if (!user) {
       user = getFallbackUser(targetUser);
@@ -5033,15 +5066,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       return jsonResponse({ status: "error", message: "User not found" }, 404);
     }
 
-    // Overlay real-time profile updates from Durable Object storage if available
-    const doProfile = (await getProfileFromRealtimeStorage(env, targetUser)) || (user.id ? await getProfileFromRealtimeStorage(env, user.id) : null);
+    // Overlay real-time profile updates from Durable Object storage if available (already fetched in parallel)
+    if (!doProfile && user.id && user.id.toLowerCase() !== targetUser) {
+      doProfile = await getProfileFromRealtimeStorage(env, user.id);
+    }
     if (doProfile) {
       user = { ...user, ...doProfile };
     }
 
     const isSelf = callerUser && callerUser.id === user.id;
     const effectiveStealth = !!user.is_stealth;
-    const onlineSet = await getOnlineUsersFromRealtime(env);
     const targetClean = (user.username || "").toLowerCase().trim().replace(/^@/, "");
     const isSocketActive = onlineSet ? (onlineSet.has(targetClean) || (user.id && onlineSet.has(String(user.id).toLowerCase()))) : false;
     const effectiveOnline = effectiveStealth ? false : Boolean(isSocketActive);

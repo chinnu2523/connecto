@@ -18,6 +18,11 @@ import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.URL
 import java.util.UUID
+import java.util.concurrent.TimeUnit
+import okhttp3.ConnectionPool
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 
 
 data class AuthResult(
@@ -5334,6 +5339,18 @@ object ConnectoApiClient {
         result.map { true }
     }
 
+    private val apiOkHttpClient by lazy {
+        ConnectoNetworkHelper.getCompatibleOkHttpClient(isWebSocket = false)
+            .newBuilder()
+            .connectionPool(ConnectionPool(8, 5, TimeUnit.MINUTES))
+            .connectTimeout(4, TimeUnit.SECONDS)
+            .readTimeout(8, TimeUnit.SECONDS)
+            .writeTimeout(8, TimeUnit.SECONDS)
+            .build()
+    }
+
+    private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
+
     private fun executeRequest(
         endpoint: String,
         method: String,
@@ -5346,124 +5363,106 @@ object ConnectoApiClient {
         val activeToken = if (isAuthEndpoint) null else (token ?: getPersistedToken())
         var lastException: Exception? = null
 
+        val devName = getPhoneModel()
+        val devVersion = getPhoneVersion()
+        val devType = getDeviceType()
+        val devId = getPersistentDeviceId()
+        val devOs = "Android ${android.os.Build.VERSION.RELEASE}"
+        val cleanUser = currentUsername?.trim()?.lowercase()?.removePrefix("@")
+
         for (base in candidateBases) {
             val cleanEndpoint = if (endpoint.startsWith("/")) endpoint else "/$endpoint"
             val fullUrl = "$base$cleanEndpoint"
-            var conn: HttpURLConnection? = null
 
             try {
-                android.util.Log.d("ConnectoSync", "executeRequest: $method $fullUrl")
-                val url = URL(fullUrl)
-                conn = (url.openConnection() as HttpURLConnection).apply {
-                    if (this is javax.net.ssl.HttpsURLConnection) {
-                        ConnectoNetworkHelper.patchedSslSocketFactory?.let { factory ->
-                            sslSocketFactory = factory
+                val reqBuilder = Request.Builder()
+                    .url(fullUrl)
+                    .header("User-Agent", USER_AGENT)
+                    .header("Accept", "application/json")
+                    .header("Content-Type", "application/json")
+                    .header("X-Phone-Type", devName)
+                    .header("X-Phone-Version", devVersion)
+                    .header("X-Device-Model", devName)
+                    .header("X-Device-Version", devVersion)
+                    .header("X-Device-Type", devType)
+                    .header("X-Device-Name", devName)
+                    .header("X-Device-OS", devOs)
+                    .header("X-Device-Id", devId)
+                    .header("X-App-Type", "android")
+
+                if (ConnectoNetworkConfig.activeServerMode == "cloud_only") {
+                    reqBuilder.header("X-Force-Cloud", "1")
+                }
+                if (!activeToken.isNullOrEmpty()) {
+                    reqBuilder.header("Authorization", "Bearer $activeToken")
+                } else if (!sessionCookie.isNullOrEmpty()) {
+                    reqBuilder.header("Cookie", sessionCookie!!)
+                }
+                if (!cleanUser.isNullOrBlank()) {
+                    reqBuilder.header("X-User-Username", cleanUser)
+                }
+
+                val reqBody = if (method == "POST" || method == "PUT" || method == "PATCH") {
+                    (body ?: "").toRequestBody(jsonMediaType)
+                } else if (method == "DELETE" && body != null) {
+                    body.toRequestBody(jsonMediaType)
+                } else {
+                    null
+                }
+                reqBuilder.method(method, reqBody)
+
+                apiOkHttpClient.newCall(reqBuilder.build()).execute().use { resp ->
+                    val responseCode = resp.code
+                    val isSuccess = resp.isSuccessful
+
+                    // Detect Cloudflare server mode & type
+                    val serverTypeHeader = resp.header("X-Connecto-Server")
+                    val serverMode = resp.header("X-Connecto-Mode")
+                    if (!serverTypeHeader.isNullOrBlank()) {
+                        updateServerType(serverTypeHeader)
+                    } else if (!serverMode.isNullOrBlank()) {
+                        val inferred = if (serverMode.equals("local_server", ignoreCase = true)) "Tailscale" else "Cloudflare"
+                        updateServerType(inferred)
+                    }
+                    if (!serverMode.isNullOrBlank()) {
+                        ConnectoNetworkConfig.activeServerMode = serverMode
+                    }
+
+                    // Extract any Set-Cookie headers
+                    val cookieHeaders = resp.headers("Set-Cookie")
+                    if (cookieHeaders.isNotEmpty()) {
+                        val candidate = cookieHeaders.first().substringBefore(";")
+                        if (candidate.startsWith("connecto_session=") && candidate.length > "connecto_session=".length) {
+                            sessionCookie = candidate
                         }
                     }
-                    requestMethod = method
-                    connectTimeout = 2500
-                    readTimeout = 4000
-                    setRequestProperty("User-Agent", USER_AGENT)
-                    setRequestProperty("Accept", "application/json")
-                    setRequestProperty("Content-Type", "application/json")
-                    // Let Cloudflare Gateway route to live origin with automatic failover
-                    if (ConnectoNetworkConfig.activeServerMode == "cloud_only") {
-                        setRequestProperty("X-Force-Cloud", "1")
-                    }
-                    if (!activeToken.isNullOrEmpty()) {
-                        setRequestProperty("Authorization", "Bearer $activeToken")
-                    } else if (!sessionCookie.isNullOrEmpty()) {
-                        setRequestProperty("Cookie", sessionCookie)
-                    }
-                    val u = currentUsername
-                    if (!u.isNullOrBlank()) {
-                        setRequestProperty("X-User-Username", u.trim().lowercase().removePrefix("@"))
-                    }
-                    val devName = getPhoneModel()
-                    val devVersion = getPhoneVersion()
-                    val devType = getDeviceType()
-                    val devId = getPersistentDeviceId()
-                    setRequestProperty("X-Phone-Type", devName)
-                    setRequestProperty("X-Phone-Version", devVersion)
-                    setRequestProperty("X-Device-Model", devName)
-                    setRequestProperty("X-Device-Version", devVersion)
-                    setRequestProperty("X-Device-Type", devType)
-                    setRequestProperty("X-Device-Name", devName)
-                    setRequestProperty("X-Device-OS", "Android ${android.os.Build.VERSION.RELEASE}")
-                    setRequestProperty("X-Device-Id", devId)
-                    setRequestProperty("X-App-Type", "android")
-                }
 
-                if (body != null && (method == "POST" || method == "PUT" || method == "PATCH")) {
-                    conn.doOutput = true
-                    OutputStreamWriter(conn.outputStream, "UTF-8").use { writer ->
-                        writer.write(body)
-                        writer.flush()
+                    val responseText = resp.body?.string() ?: ""
+
+                    if (isSuccess) {
+                        ConnectoNetworkConfig.activeBaseUrl = base
+                        return Result.success(responseText)
+                    } else if (responseCode == 401) {
+                        ConnectoNetworkConfig.activeBaseUrl = base
+                        val errorDetail = parseErrorMessage(responseText, responseCode)
+                        android.util.Log.e("ConnectoSync", "HTTP 401 Unauthorized on $method $fullUrl: $errorDetail")
+                        if (!isAuthEndpoint && !sessionToken.isNullOrBlank() && !token.isNullOrBlank() && currentUsername != "guest" && sessionToken != "guest_token_sandbox") {
+                            triggerSessionExpired(errorDetail.ifBlank { "Session has expired or was terminated. Please log in again." })
+                        }
+                        return Result.failure(Exception(errorDetail))
+                    } else if (responseCode in 400..499 && responseCode != 429) {
+                        ConnectoNetworkConfig.activeBaseUrl = base
+                        val errorDetail = parseErrorMessage(responseText, responseCode)
+                        return Result.failure(Exception(errorDetail))
+                    } else {
+                        android.util.Log.w("ConnectoSync", "Server base $base returned $responseCode, trying next candidate server...")
+                        val cleanErr = parseErrorMessage(responseText, responseCode)
+                        lastException = Exception(cleanErr)
                     }
-                }
-
-                val responseCode = conn.responseCode
-                val isSuccess = responseCode in 200..299
-                android.util.Log.d("ConnectoSync", "executeRequest: $method $fullUrl returned $responseCode (success=$isSuccess)")
-
-                // Detect Cloudflare server mode & type
-                val serverTypeHeader = conn.getHeaderField("X-Connecto-Server")
-                val serverMode = conn.getHeaderField("X-Connecto-Mode")
-                if (!serverTypeHeader.isNullOrBlank()) {
-                    updateServerType(serverTypeHeader)
-                } else if (!serverMode.isNullOrBlank()) {
-                    val inferred = if (serverMode.equals("local_server", ignoreCase = true)) "Tailscale" else "Cloudflare"
-                    updateServerType(inferred)
-                }
-                if (!serverMode.isNullOrBlank()) {
-                    ConnectoNetworkConfig.activeServerMode = serverMode
-                    android.util.Log.d("ConnectoSync", "Connecto active server mode: $serverMode")
-                }
-
-                // Extract any Set-Cookie headers
-                val cookieHeaders = conn.headerFields["Set-Cookie"]
-                if (!cookieHeaders.isNullOrEmpty()) {
-                    val candidate = cookieHeaders.first().substringBefore(";")
-                    if (candidate.startsWith("connecto_session=") && candidate.length > "connecto_session=".length) {
-                        sessionCookie = candidate
-                    }
-                }
-
-                val stream = if (isSuccess) conn.inputStream else conn.errorStream
-                val responseText = if (stream != null) {
-                    BufferedReader(InputStreamReader(stream, "UTF-8")).use { reader ->
-                        reader.readText()
-                    }
-                } else {
-                    ""
-                }
-
-                if (isSuccess) {
-                    ConnectoNetworkConfig.activeBaseUrl = base
-                    return Result.success(responseText)
-                } else if (responseCode == 401) {
-                    ConnectoNetworkConfig.activeBaseUrl = base
-                    val errorDetail = parseErrorMessage(responseText, responseCode)
-                    android.util.Log.e("ConnectoSync", "HTTP 401 Unauthorized on $method $fullUrl: $errorDetail")
-                    if (!isAuthEndpoint && !sessionToken.isNullOrBlank() && !token.isNullOrBlank() && currentUsername != "guest" && sessionToken != "guest_token_sandbox") {
-                        triggerSessionExpired(errorDetail.ifBlank { "Session has expired or was terminated. Please log in again." })
-                    }
-                    return Result.failure(Exception(errorDetail))
-                } else if (responseCode in 400..499 && responseCode != 429) {
-                    ConnectoNetworkConfig.activeBaseUrl = base
-                    val errorDetail = parseErrorMessage(responseText, responseCode)
-                    return Result.failure(Exception(errorDetail))
-                } else {
-                    // 429 (rate/quota limited) or 5xx: fall through to check next server base if multiple are configured
-                    android.util.Log.w("ConnectoSync", "Server base $base returned $responseCode, trying next candidate server...")
-                    val cleanErr = parseErrorMessage(responseText, responseCode)
-                    lastException = Exception(cleanErr)
                 }
             } catch (e: Exception) {
                 android.util.Log.e("ConnectoSync", "executeRequest: FAILED $method $fullUrl: ${e.javaClass.name}: ${e.message}", e)
                 lastException = e
-            } finally {
-                conn?.disconnect()
             }
         }
 
