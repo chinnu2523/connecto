@@ -66,13 +66,21 @@ object ApkInstaller {
      */
     fun isInstallerOfRecord(context: Context, packageName: String): Boolean {
         return try {
-            val installer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                context.packageManager.getInstallSourceInfo(packageName).installingPackageName
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val info = context.packageManager.getInstallSourceInfo(packageName)
+                val myPkg = context.packageName
+                val isUpdateOwner = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    info.updateOwnerPackageName == myPkg
+                } else {
+                    false
+                }
+                info.installingPackageName == myPkg ||
+                    info.initiatingPackageName == myPkg ||
+                    isUpdateOwner
             } else {
                 @Suppress("DEPRECATION")
-                context.packageManager.getInstallerPackageName(packageName)
+                context.packageManager.getInstallerPackageName(packageName) == context.packageName
             }
-            installer == context.packageName
         } catch (_: Exception) {
             false
         }
@@ -132,7 +140,23 @@ object ApkInstaller {
     ): File? = withContext(Dispatchers.IO) {
         val destFile = File(context.cacheDir, "apks/$fileName")
         destFile.parentFile?.mkdirs()
-        if (destFile.exists()) destFile.delete()
+
+        // Reuse already-downloaded valid APK instead of deleting & restarting from 0%
+        if (destFile.exists() && destFile.length() > 1024) {
+            val sizeOk = expectedSizeBytes == null || expectedSizeBytes <= 0L ||
+                kotlin.math.abs(destFile.length() - expectedSizeBytes) < 1_000_000L
+            val validArchive = try {
+                sizeOk && context.packageManager.getPackageArchiveInfo(destFile.absolutePath, 0) != null
+            } catch (_: Exception) { false }
+            if (validArchive) {
+                Log.i(TAG, "Reusing already-downloaded valid APK: ${destFile.name} (${destFile.length()} bytes)")
+                withContext(Dispatchers.Main) {
+                    onProgress(100)
+                }
+                return@withContext destFile
+            }
+            destFile.delete()
+        }
 
         try {
             // Signal immediate 1% progress so the progress bar is always visible from frame 1

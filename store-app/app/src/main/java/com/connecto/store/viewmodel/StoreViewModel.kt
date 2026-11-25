@@ -117,6 +117,35 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         // 3. Connect to Real-Time Edge WebSocket Broadcast Mesh
         StoreRealtimeManager.start()
         viewModelScope.launch {
+            com.connecto.store.installer.StoreDownloadCoordinator.states.collect { taskMap ->
+                val current = _uiState.value as? StoreUiState.Success ?: return@collect
+                var changed = false
+                val updated = current.apps.map { item ->
+                    val task = taskMap[item.app.packageName]
+                    if (task != null && (
+                            item.isDownloading != task.isDownloading ||
+                            item.isInstalling != task.isInstalling ||
+                            item.downloadProgress != task.downloadProgress ||
+                            item.error != task.error
+                        )) {
+                        changed = true
+                        item.copy(
+                            isDownloading = task.isDownloading,
+                            isInstalling = task.isInstalling,
+                            downloadProgress = task.downloadProgress,
+                            error = task.error
+                        )
+                    } else {
+                        item
+                    }
+                }
+                if (changed) {
+                    val selfUpdate = updated.find { (it.app.packageName == "com.connecto.store" || it.app.id == "ourstore") && (it.installState == StoreApp.InstallState.UPDATE_AVAILABLE || it.isDownloading || it.isInstalling) }
+                    _uiState.value = current.copy(apps = updated, storeSelfUpdate = selfUpdate)
+                }
+            }
+        }
+        viewModelScope.launch {
             StoreRealtimeManager.events.collect { event ->
                 when (event) {
                     is StoreRealtimeEvent.AppUpdate -> {
@@ -253,16 +282,21 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         val currentSuccess = _uiState.value as? StoreUiState.Success
         val uiApps = catalogApps.map { app ->
             val resolved = resolveInstallState(ctx, app, savedSet)
+            val task = com.connecto.store.installer.StoreDownloadCoordinator.getState(app.packageName)
             val existing = currentSuccess?.apps?.find { it.app.packageName == app.packageName }
-            // Retain active downloading and installing states across catalog refreshes so progress never resets
-            if (existing != null && (existing.isDownloading || existing.isInstalling)) {
-                resolved.copy(
+            when {
+                task != null && (task.isDownloading || task.isInstalling || task.error != null) -> resolved.copy(
+                    isDownloading = task.isDownloading,
+                    isInstalling = task.isInstalling,
+                    downloadProgress = task.downloadProgress,
+                    error = task.error
+                )
+                existing != null && (existing.isDownloading || existing.isInstalling) -> resolved.copy(
                     isDownloading = existing.isDownloading,
                     isInstalling = existing.isInstalling,
                     downloadProgress = existing.downloadProgress
                 )
-            } else {
-                resolved
+                else -> resolved
             }
         }
         val selfUpdate = uiApps.find { (it.app.packageName == "com.connecto.store" || it.app.id == "ourstore") && it.installState == StoreApp.InstallState.UPDATE_AVAILABLE }
@@ -546,6 +580,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     fun cancelDownload(packageName: String) {
         activeDownloadJobs[packageName]?.cancel()
         activeDownloadJobs.remove(packageName)
+        com.connecto.store.installer.StoreDownloadCoordinator.cancelDownload(packageName)
         updateAppState(packageName) {
             it.copy(isDownloading = false, isInstalling = false, downloadProgress = 0, error = null)
         }
@@ -587,104 +622,28 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     fun downloadAndInstall(context: Context, appState: AppUiState) {
         val current = _uiState.value as? StoreUiState.Success ?: return
         val currentApp = current.apps.find { it.app.packageName == appState.app.packageName }
-        if (currentApp?.isDownloading == true) {
+        val activeTask = com.connecto.store.installer.StoreDownloadCoordinator.getState(appState.app.packageName)
+        if (currentApp?.isDownloading == true || activeTask?.isDownloading == true) {
             return
         }
 
         val app = appState.app
         val ctx = getApplication<Application>()
 
-        // 0ms Optimistic State Flip before entering background worker
-        updateAppState(app.packageName) {
-            it.copy(isDownloading = true, isInstalling = false, downloadProgress = 0, error = null)
+        com.connecto.store.installer.StoreDownloadCoordinator.startDownloadAndInstall(
+            appContext = ctx,
+            app = app,
+            expectedSizeBytes = parseFormattedSize(app.sizeFormatted)
+        ) { _, file ->
+            pendingInstallFile = file
+            pendingPackageName = app.packageName
+            showPermissionPrompt(appState)
         }
-
-        val job = viewModelScope.launch {
-            try {
-                val fileName = "${app.id}-${app.versionName}.apk"
-                val file = ApkInstaller.downloadApk(
-                    context = ctx,
-                    url = app.downloadUrl,
-                    fileName = fileName,
-                    expectedSha256 = null,
-                    expectedSizeBytes = parseFormattedSize(app.sizeFormatted)
-                ) { progress ->
-                    updateAppState(app.packageName) { it.copy(downloadProgress = progress) }
-                }
-
-                if (file != null) {
-                    updateAppState(app.packageName) {
-                        it.copy(isDownloading = false, isInstalling = true, downloadProgress = 100)
-                    }
-
-                    // Launch watchdog timer to auto-clear stuck isInstalling if OS never reports status
-                    viewModelScope.launch {
-                        kotlinx.coroutines.delay(20_000L)
-                        val s = (_uiState.value as? StoreUiState.Success)?.apps?.find { it.app.packageName == app.packageName }
-                        if (s?.isInstalling == true) {
-                            refreshInstallStates(resetInstallingIfStillPending = true)
-                        }
-                    }
-
-                    // Check install permission before launching installer
-                    if (!ApkInstaller.canRequestPackageInstalls(ctx)) {
-                        pendingInstallFile = file
-                        pendingPackageName = app.packageName
-                        showPermissionPrompt(appState)
-                    } else {
-                        val started = ApkInstaller.installApk(context, file, app.packageName)
-                        if (!started) {
-                            updateAppState(app.packageName) {
-                                it.copy(
-                                    isDownloading = false,
-                                    isInstalling = false,
-                                    error = "Package installer could not be launched. Tap to retry."
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    updateAppState(app.packageName) {
-                        it.copy(
-                            isDownloading = false,
-                            isInstalling = false,
-                            error = "Download could not be completed. Tap to retry."
-                        )
-                    }
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                // Cancelled by user in 0ms
-                updateAppState(app.packageName) {
-                    it.copy(isDownloading = false, isInstalling = false, downloadProgress = 0, error = null)
-                }
-            } finally {
-                activeDownloadJobs.remove(app.packageName)
-            }
-        }
-        activeDownloadJobs[app.packageName] = job
     }
 
     fun onInstallFailed(packageName: String?, errorMessage: String?, isCancelled: Boolean = false) {
         val target = packageName ?: return
-        if (!isCancelled) {
-            // Check if cached APK exists to attempt seamless system intent fallback
-            val cachedFile = File(getApplication<Application>().cacheDir, "apks").listFiles()
-                ?.firstOrNull {
-                    it.name.startsWith(target) ||
-                    it.name.contains(target) ||
-                    (target == "com.connecto.app" && it.name.startsWith("connecto")) ||
-                    (target == "com.connecto.store" && (it.name.startsWith("ourstore") || it.name.startsWith("our-store")))
-                }
-            if (cachedFile != null && cachedFile.exists() && cachedFile.length() > 0) {
-                android.util.Log.i("OurStore", "PackageInstaller session failed for $target; launching system installer intent fallback")
-                viewModelScope.launch {
-                    val fallbackSuccess = ApkInstaller.installViaSystemIntent(getApplication(), cachedFile)
-                    if (fallbackSuccess) {
-                        return@launch
-                    }
-                }
-            }
-        }
+        com.connecto.store.installer.StoreDownloadCoordinator.markInstallFailed(target, errorMessage, isCancelled)
         updateAppState(target) {
             it.copy(
                 isDownloading = false,
@@ -724,17 +683,17 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         StoreRealtimeManager.requestCheckUpdates()
 
         // If user just returned from Settings with permission granted, resume pending install!
-        if (pendingInstallFile != null && ApkInstaller.canRequestPackageInstalls(context)) {
-            val file = pendingInstallFile
-            val pkg = pendingPackageName
+        val coordFile = com.connecto.store.installer.StoreDownloadCoordinator.pendingInstallFile ?: pendingInstallFile
+        val coordPkg = com.connecto.store.installer.StoreDownloadCoordinator.pendingPackageName ?: pendingPackageName
+        if (coordFile != null && ApkInstaller.canRequestPackageInstalls(context)) {
+            com.connecto.store.installer.StoreDownloadCoordinator.pendingInstallFile = null
+            com.connecto.store.installer.StoreDownloadCoordinator.pendingPackageName = null
             pendingInstallFile = null
             pendingPackageName = null
-            file?.let {
-                viewModelScope.launch {
-                    val ok = ApkInstaller.installApk(context, it, pkg)
-                    if (!ok && pkg != null) {
-                        updateAppState(pkg) { s -> s.copy(isInstalling = false, error = "Installation failed. Tap to retry.") }
-                    }
+            viewModelScope.launch {
+                val ok = ApkInstaller.installApk(context, coordFile, coordPkg)
+                if (!ok && coordPkg != null) {
+                    com.connecto.store.installer.StoreDownloadCoordinator.markInstallFailed(coordPkg, "Installation failed. Tap to retry.", false)
                 }
             }
         }

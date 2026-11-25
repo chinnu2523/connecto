@@ -47,7 +47,10 @@ class MainActivity : FragmentActivity() {
         com.connecto.store.notifications.StoreUpdateJobService.schedule(this)
         com.connecto.store.notifications.StoreUpdateAlarmReceiver.scheduleNext(this)
 
-        viewModel = StoreViewModel(application)
+        viewModel = androidx.lifecycle.ViewModelProvider(
+            this,
+            androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.getInstance(application)
+        )[StoreViewModel::class.java]
 
         // Request notification permission on Android 13+ if not already granted
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

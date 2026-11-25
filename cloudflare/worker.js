@@ -428,19 +428,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.6/our-store.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.16/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.7.5/our-store.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.7.6/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.2.0-b69-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.2.1-b70-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.2.0");
-          res.headers.set("X-Connecto-Store-Build", "69");
+          res.headers.set("X-Connecto-Store-Version", "v2.2.1");
+          res.headers.set("X-Connecto-Store-Build", "70");
           return res;
         }
 
@@ -478,8 +478,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.2.0");
-              downloadHeaders.set("X-Connecto-Store-Build", "69");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.2.1");
+              downloadHeaders.set("X-Connecto-Store-Build", "70");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2301,14 +2301,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.2.0",
-        version_code: 69,
+        version_name: "2.2.1",
+        version_code: 70,
         size_bytes: 17107461,
         size_formatted: "16.3 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Background Persistent Downloads & Direct OS Installer-of-Record Updates (v2.2.1): Moved APK downloads into an Application-scoped StoreDownloadCoordinator so navigating back or leaving Our Store never cancels or resets download progress, and reused already-downloaded valid APKs on retry. Enhanced installer-of-record detection across installingPackageName, initiatingPackageName, and updateOwnerPackageName (Android 14+) and removed premature system PackageInstaller intent fallbacks so updates install directly via Android PackageInstaller.",
           "Permanent Edge CDN Self-Update & Install Fallback (v2.2.0): Fixed root-cause in-app self-update failure caused by pruned tag assets by binding canonical edge stream releases/latest/download directly on Cloudflare Worker. Added filename pattern matching for ourstore package installer system intent fallback.",
           "Our Store Self-Update Engine Architecture (v2.1.9): Fixed in-app self-update failure. Routed self-updates through Android PackageInstaller.Session with USER_ACTION_REQUIRED per OS security guidelines, resolving background activity launch (BAL) restrictions. Eliminated SecurityException by removing persistable URI permission flag on FileProvider URIs. Added high-priority system notification and direct activity re-open prompt so the installation confirmation dialog is always accessible even if dismissed or minimized. Unhidden Our Store updates from the Updates tab and search.",
           "Ecosystem Sync & Production Release Pipeline (v2.1.8): Synchronized Our Store package catalog with Connecto v5.7.0 (Build 177) featuring production WebRTC group call engine and pure OLED black theme.",
@@ -2630,7 +2631,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "2.2.0",
+      store_version: "2.2.1",
       total_apps: appsToReturn.length,
       is_admin: isAdmin,
       apps: appsToReturn

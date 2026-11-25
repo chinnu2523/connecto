@@ -55,6 +55,7 @@ class InstallStatusReceiver : BroadcastReceiver() {
             }
             PackageInstaller.STATUS_SUCCESS -> {
                 Log.i("OurStore", "Package $packageName successfully installed via PackageInstaller!")
+                StoreDownloadCoordinator.markInstalled(packageName)
                 StoreNotificationHelper.cancelInstallPending(context, packageName)
                 val broadcast = Intent("com.connecto.store.PACKAGE_INSTALLED").apply {
                     putExtra("package_name", packageName)
