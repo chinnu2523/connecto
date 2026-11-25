@@ -894,7 +894,14 @@ fun HomeChatScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
                                 .clickable(enabled = !isWsConnected) {
-                                    com.example.connecto.MainActivity.openMaintenanceScreen()
+                                    coroutineScope.launch {
+                                        val isMaint = ConnectoApiClient.isServerInMaintenance()
+                                        if (isMaint) {
+                                            com.example.connecto.MainActivity.openMaintenanceScreen()
+                                        } else {
+                                            VoiceCallManager.connectWebSocket(force = true)
+                                        }
+                                    }
                                 }
                                 .padding(vertical = 2.dp, horizontal = 2.dp)
                         ) {
@@ -914,7 +921,7 @@ fun HomeChatScreen(
                                                 else -> colors.textDisabled
                                             }
                                         )
-                                )
+                                    )
                             }
                             Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
                             Text(
@@ -923,7 +930,7 @@ fun HomeChatScreen(
                                         if (isUserAdmin) "Connected to the Connecto Network ($activeServerType)"
                                         else "Connected to the Connecto Network"
                                     }
-                                    connectTimedOut -> "Server in Maintenance · Tap to view details"
+                                    connectTimedOut -> "Reconnecting to Network · Tap to retry"
                                     else -> "Connecting..."
                                 },
                                 fontSize = 12.sp,

@@ -770,9 +770,22 @@ object VoiceCallManager {
     private val audioRelayBuffer = java.io.ByteArrayOutputStream()
     private var lastRelaySendTimeMs = 0L
     private val audioPlayExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+    private val audioDecodeExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+        Thread(r, "ConnectoVoiceDecode").apply {
+            isDaemon = true
+            priority = Thread.NORM_PRIORITY + 1
+        }
+    }
     private val pendingAudioChunksCount = java.util.concurrent.atomic.AtomicInteger(0)
     private val jitterAudioQueue = java.util.concurrent.ConcurrentLinkedQueue<ByteArray>()
-    private val audioPacketQueue = java.util.concurrent.LinkedBlockingQueue<ByteArray>(24)
+    private val audioPacketQueue = java.util.concurrent.LinkedBlockingQueue<ByteArray>(32)
+    private val voiceTxSeq = java.util.concurrent.atomic.AtomicLong(0L)
+    @Volatile
+    private var lastRxVoiceSeq = -1L
+    @Volatile
+    private var lastRxVoiceTs = 0L
+    @Volatile
+    private var lastPlayedPcmFrame: ByteArray? = null
     @Volatile
     private var isPlayoutThreadRunning = false
     private var playoutThread: Thread? = null
@@ -888,10 +901,6 @@ object VoiceCallManager {
                 }
 
                 for (url in urlList) {
-                    // Filter out slow third-party free TURN URLs
-                    if (url.contains("openrelay.metered.ca", ignoreCase = true)) {
-                        continue
-                    }
                     try {
                         val builder = PeerConnection.IceServer.builder(url)
                         if (!username.isNullOrBlank()) {
@@ -909,9 +918,20 @@ object VoiceCallManager {
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing ICE servers: ${e.message}")
         }
-        // Prioritize UDP candidates over TCP for lowest latency
-        return result.sortedByDescending { server ->
-            server.urls.any { u -> u.contains("transport=udp", ignoreCase = true) || (!u.contains("transport=tcp") && !u.startsWith("turns:")) }
+        // Only drop openrelay fallback if a dedicated primary TURN server (e.g. Cloudflare TURN) is available
+        val hasPrimaryTurn = result.any { srv ->
+            srv.urls.any { u -> (u.startsWith("turn:") || u.startsWith("turns:")) && !u.contains("openrelay.metered.ca", ignoreCase = true) }
+        }
+        val filtered = if (hasPrimaryTurn) {
+            result.filterNot { srv -> srv.urls.any { u -> u.contains("openrelay.metered.ca", ignoreCase = true) } }
+        } else {
+            result
+        }
+        // Prioritize STUN / UDP candidates first, then TURN UDP, then TURN TCP/TLS
+        return filtered.sortedByDescending { server ->
+            val isOpenRelay = server.urls.any { it.contains("openrelay.metered.ca", ignoreCase = true) }
+            val isUdp = server.urls.any { u -> u.contains("transport=udp", ignoreCase = true) || (!u.contains("transport=tcp") && !u.startsWith("turns:")) }
+            (if (!isOpenRelay) 2 else 0) + (if (isUdp) 1 else 0)
         }
     }
 
@@ -1880,11 +1900,14 @@ object VoiceCallManager {
                             _callStats.value = dto
                             Log.d(TAG, "WebRTC stats: proto=$protocol RTT=${rttMs.toInt()}ms jitterBuf=${calculatedJitterBufMs.toInt()}ms loss=$packetsLost lossPct=${String.format(Locale.US, "%.1f", lossPct)}% candidate=$candidateType bytesRx=$bytesReceived")
 
-                            // Smooth mic handover: only pause fallback AudioRecord once WebRTC RTP audio is verified flowing
+                            // Smooth mic & playout handover: stop BOTH fallback AudioRecord and fallback AudioTrack once WebRTC RTP audio is verified flowing
                             if (!_activeCallTitle.value.contains("Echo", ignoreCase = true) && bytesReceived > 3000L && packetsReceived > 15) {
                                 if (isRecordingActive) {
-                                    Log.i(TAG, "WebRTC audio media verified active (bytesRx=$bytesReceived, packetsRx=$packetsReceived); cleanly transferring mic to WebRTC P2P")
+                                    Log.i(TAG, "WebRTC audio media verified active (bytesRx=$bytesReceived, packetsRx=$packetsReceived); cleanly transferring mic & playout to WebRTC P2P")
                                     stopFallbackAudioRecordOnly()
+                                }
+                                if (isPlayoutThreadRunning || audioTrack != null) {
+                                    stopFallbackAudioTrackOnly()
                                 }
                             }
 
@@ -2374,16 +2397,30 @@ object VoiceCallManager {
     }
 
     fun sendWsMessage(json: JSONObject) {
-        val msg = json.toString()
-        if (isWsConnected && webSocket != null) {
-            val sent = try { webSocket?.send(msg) ?: false } catch (_: Throwable) { false }
-            if (sent) return
-        }
         val type = json.optString("type").ifEmpty { json.optString("action") }
-        if (type == "voice_data" || type == "voice:data") {
+        val isVoicePacket = (type == "voice_data" || type == "voice:data")
+        val ws = webSocket
+        if (isWsConnected && ws != null) {
+            // Prevent multi-second TCP latency buildup: drop real-time voice frames when OkHttp's outgoing TCP buffer exceeds ~16KB (~300ms)
+            if (isVoicePacket && ws.queueSize() > 16_384L) {
+                return
+            }
+            val msg = json.toString()
+            val sent = try { ws.send(msg) } catch (_: Throwable) { false }
+            if (sent) return
+            if (isVoicePacket) return
+            Log.w(TAG, "WS send failed; queueing signaling message: $msg")
+            if (pendingWsMessages.size < 100) {
+                pendingWsMessages.offer(msg)
+            }
+            connectWebSocket()
+            return
+        }
+        if (isVoicePacket) {
             // Drop stale real-time audio frames when WS is temporarily disconnected to strictly prevent latency backlog
             return
         }
+        val msg = json.toString()
         Log.w(TAG, "WS not ready or send failed; queueing signaling message: $msg")
         if (pendingWsMessages.size < 100) {
             pendingWsMessages.offer(msg)
@@ -3169,6 +3206,8 @@ object VoiceCallManager {
                     // Always process incoming audio chunks into the playout queue for 100% audible delivery
                     val base64Audio = json.optString("audio")
                     val sampleRate = json.optInt("sample_rate", SAMPLE_RATE)
+                    val seq = json.optLong("seq", -1L)
+                    val pktTs = json.optLong("ts", 0L)
                     if (base64Audio.isNotEmpty()) {
                         val roomId = json.optString("room_id").ifEmpty { json.optString("channel_id") }
                         if (_callState.value == CallState.OUTGOING_RINGING && !roomId.isNullOrBlank()) {
@@ -3180,7 +3219,7 @@ object VoiceCallManager {
                             startDurationTimer()
                         }
                         if (_callState.value == CallState.CONNECTED) {
-                            playAudioChunk(base64Audio, sampleRate)
+                            playAudioChunk(base64Audio, sampleRate, seq, pktTs)
                         }
                     }
                     return
@@ -4533,12 +4572,17 @@ object VoiceCallManager {
     private var dspSmoothedGain = 1.0f
     private var voiceHangoverFrames = 0
 
+    private val dspLock = Any()
+    private var dspScratchBuffer = FloatArray(1024)
+
     fun resetVoiceIsolationDsp() {
-        hpX1 = 0f; hpX2 = 0f; hpY1 = 0f; hpY2 = 0f
-        lpX1 = 0f; lpX2 = 0f; lpY1 = 0f; lpY2 = 0f
-        dspNoiseFloor = 140.0
-        dspSmoothedGain = 1.0f
-        voiceHangoverFrames = 0
+        synchronized(dspLock) {
+            hpX1 = 0f; hpX2 = 0f; hpY1 = 0f; hpY2 = 0f
+            lpX1 = 0f; lpX2 = 0f; lpY1 = 0f; lpY2 = 0f
+            dspNoiseFloor = 140.0
+            dspSmoothedGain = 1.0f
+            voiceHangoverFrames = 0
+        }
     }
 
     // Filter coefficients precomputed for 16kHz audio:
@@ -4566,10 +4610,13 @@ object VoiceCallManager {
      */
     private fun applyVoiceIsolationDsp(buffer: ByteArray, length: Int) {
         if (length < 2) return
-
-        val shortsCount = length / 2
-        val filtered = FloatArray(shortsCount)
-        var frameEnergy = 0.0
+        synchronized(dspLock) {
+            val shortsCount = length / 2
+            if (dspScratchBuffer.size < shortsCount) {
+                dspScratchBuffer = FloatArray(shortsCount)
+            }
+            val filtered = dspScratchBuffer
+            var frameEnergy = 0.0
 
         for (i in 0 until shortsCount) {
             val low = buffer[i * 2].toInt() and 0xFF
@@ -4643,6 +4690,7 @@ object VoiceCallManager {
             val outShort = isolated.toInt().coerceIn(-32768, 32767)
             buffer[i * 2] = (outShort and 0xFF).toByte()
             buffer[i * 2 + 1] = ((outShort shr 8) and 0xFF).toByte()
+        }
         }
     }
 
@@ -5166,6 +5214,9 @@ object VoiceCallManager {
                 )
                 .setBufferSizeInBytes(bufSize)
                 .setTransferMode(AudioTrack.MODE_STREAM)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                trackBuilder.setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
+            }
 
             val session = currentAudioSessionId
             if (session != AudioManager.AUDIO_SESSION_ID_GENERATE && session > 0) {
@@ -5197,8 +5248,28 @@ object VoiceCallManager {
                 Log.d(TAG, "ConnectoVoicePlayout thread started at URGENT_AUDIO priority")
                 while (isPlayoutThreadRunning && !Thread.currentThread().isInterrupted) {
                     try {
-                        val packet = audioPacketQueue.poll(40, java.util.concurrent.TimeUnit.MILLISECONDS) ?: continue
+                        var packet = audioPacketQueue.poll(45, java.util.concurrent.TimeUnit.MILLISECONDS)
                         val track = audioTrack ?: continue
+                        if (packet == null) {
+                            // Packet Loss Concealment (PLC): smoothly fade out the previous frame instead of abrupt silence/clicking
+                            val prev = lastPlayedPcmFrame
+                            if (prev != null && !wasLastFrameUnderrun) {
+                                wasLastFrameUnderrun = true
+                                val plcFrame = prev.copyOf()
+                                for (i in 0 until plcFrame.size / 2) {
+                                    val s = ((plcFrame[i * 2 + 1].toInt() shl 8) or (plcFrame[i * 2].toInt() and 0xFF)).toShort()
+                                    val decayed = (s * 0.25f).toInt().toShort()
+                                    plcFrame[i * 2] = (decayed.toInt() and 0xFF).toByte()
+                                    plcFrame[i * 2 + 1] = ((decayed.toInt() shr 8) and 0xFF).toByte()
+                                }
+                                packet = plcFrame
+                            } else {
+                                continue
+                            }
+                        } else {
+                            wasLastFrameUnderrun = false
+                            lastPlayedPcmFrame = packet
+                        }
                         if (track.state == AudioTrack.STATE_INITIALIZED) {
                             if (track.playState != AudioTrack.PLAYSTATE_PLAYING) {
                                 try { track.play() } catch (_: Throwable) {}
@@ -5232,29 +5303,54 @@ object VoiceCallManager {
     private fun stopAudioPlayoutThread() {
         isPlayoutThreadRunning = false
         audioPacketQueue.clear()
+        lastPlayedPcmFrame = null
+        lastRxVoiceSeq = -1L
+        lastRxVoiceTs = 0L
         try {
             playoutThread?.interrupt()
         } catch (_: Throwable) {}
         playoutThread = null
     }
 
-    private fun playAudioChunk(base64Audio: String, sampleRate: Int = SAMPLE_RATE) {
+    private fun playAudioChunk(base64Audio: String, sampleRate: Int = SAMPLE_RATE, seq: Long = -1L, pktTs: Long = 0L) {
         if (base64Audio.isEmpty()) return
-        try {
-            val bytes = Base64.decode(base64Audio, Base64.NO_WRAP)
-            if (bytes.isEmpty()) return
+        audioDecodeExecutor.execute {
+            try {
+                // Drop genuinely stale/out-of-order delayed bursts (>2.5s behind latest received packet)
+                if (pktTs > 0L) {
+                    val latestTs = lastRxVoiceTs
+                    if (latestTs > 0L && pktTs < latestTs - 2500L) {
+                        return@execute
+                    }
+                    if (pktTs > latestTs) {
+                        lastRxVoiceTs = pktTs
+                    }
+                }
+                if (seq >= 0L) {
+                    val prevSeq = lastRxVoiceSeq
+                    if (prevSeq >= 0L && seq <= prevSeq && (prevSeq - seq) < 1000L) {
+                        return@execute
+                    }
+                    lastRxVoiceSeq = seq
+                }
 
-            if (!isPlayoutThreadRunning || playoutThread?.isAlive != true) {
-                startAudioPlayoutThread(sampleRate)
-            }
+                val bytes = Base64.decode(base64Audio, Base64.NO_WRAP)
+                if (bytes.isEmpty()) return@execute
 
-            // Bound jitter queue: Keep max 4 chunks (~80ms) to strictly guarantee sub-100ms latency
-            while (audioPacketQueue.size >= 4) {
-                audioPacketQueue.poll()
+                if (!isPlayoutThreadRunning || playoutThread?.isAlive != true) {
+                    startAudioPlayoutThread(sampleRate)
+                }
+
+                // Adaptive jitter buffer: allow up to 10 frames (~200-400ms) during cellular jitter bursts, trimming only excess backlog down to 6
+                if (audioPacketQueue.size >= 10) {
+                    while (audioPacketQueue.size > 6) {
+                        audioPacketQueue.poll()
+                    }
+                }
+                audioPacketQueue.offer(bytes)
+            } catch (t: Throwable) {
+                Log.e(TAG, "Error enqueuing incoming audio chunk: ${t.message}")
             }
-            audioPacketQueue.offer(bytes)
-        } catch (t: Throwable) {
-            Log.e(TAG, "Error enqueuing incoming audio chunk: ${t.message}")
         }
     }
 
@@ -5360,6 +5456,8 @@ object VoiceCallManager {
 
             recordingJob = scope.launch(Dispatchers.IO) {
                 val buffer = ByteArray(CHUNK_SIZE_BYTES)
+                val relayBatchBuffer = ByteArray(CHUNK_SIZE_BYTES * 2) // 40ms batching (25 pkt/s) halves TCP/JSON/DO overhead
+                var relayBatchOffset = 0
                 var consecutiveErrors = 0
                 var lastAmpEmitTimeMs = 0L
                 try {
@@ -5399,24 +5497,29 @@ object VoiceCallManager {
                                     }
                                     audioPacketQueue.offer(buffer.copyOf(read))
                                 } else if (!roomId.isNullOrBlank()) {
-                                    val base64Str = Base64.encodeToString(buffer, 0, read, Base64.NO_WRAP)
-                                    val partner = _activeCallPartnerUsername.value ?: _activeCallPartner.value
-                                    val packet = JSONObject().apply {
-                                        put("action", "voice_data")
-                                        put("type", "voice_data")
-                                        put("room_id", roomId)
-                                        put("channel_id", roomId)
-                                        put("audio", base64Str)
-                                        put("sample_rate", SAMPLE_RATE)
-                                        put("sender_id", ConnectoApiClient.currentUserId ?: "")
-                                        put("sender_username", ConnectoApiClient.currentUsername ?: "")
-                                        if (!partner.isNullOrBlank()) {
-                                            put("target", partner)
-                                            put("target_user", partner)
+                                    val copyLen = minOf(read, relayBatchBuffer.size - relayBatchOffset)
+                                    System.arraycopy(buffer, 0, relayBatchBuffer, relayBatchOffset, copyLen)
+                                    relayBatchOffset += copyLen
+                                    if (relayBatchOffset >= relayBatchBuffer.size) {
+                                        val base64Str = Base64.encodeToString(relayBatchBuffer, 0, relayBatchOffset, Base64.NO_WRAP)
+                                        relayBatchOffset = 0
+                                        val partner = _activeCallPartnerUsername.value ?: _activeCallPartner.value
+                                        val packet = JSONObject().apply {
+                                            put("action", "voice_data")
+                                            put("room_id", roomId)
+                                            put("audio", base64Str)
+                                            put("sample_rate", SAMPLE_RATE)
+                                            put("seq", voiceTxSeq.incrementAndGet())
+                                            put("ts", System.currentTimeMillis())
+                                            if (!partner.isNullOrBlank()) {
+                                                put("target", partner)
+                                            }
                                         }
+                                        sendWsMessage(packet)
                                     }
-                                    sendWsMessage(packet)
                                 }
+                            } else {
+                                relayBatchOffset = 0
                             }
                         } else if (read == AudioRecord.ERROR_INVALID_OPERATION || read == AudioRecord.ERROR_BAD_VALUE) {
                             consecutiveErrors++

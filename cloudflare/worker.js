@@ -309,7 +309,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     }
 
     // 3. System Status & Automation Mode Telemetry
-    if (url.pathname === "/api/status" || url.pathname === "/api/v1/status") {
+    if (url.pathname === "/api/status" || url.pathname === "/api/v1/status" || url.pathname === "/status") {
       return handleSystemStatus(env);
     }
     if (url.pathname === "/api/server-mode" || url.pathname === "/api/v1/system/mode") {
@@ -655,19 +655,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.16/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.15/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.14/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.15-b202-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.16-b203-r2.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.8.15");
-          res.headers.set("X-Connecto-Build", "202");
+          res.headers.set("X-Connecto-Version", "v5.8.16");
+          res.headers.set("X-Connecto-Build", "203");
           return res;
         }
 
@@ -703,8 +703,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.8.15");
-              downloadHeaders.set("X-Connecto-Build", "202");
+              downloadHeaders.set("X-Connecto-Version", "v5.8.16");
+              downloadHeaders.set("X-Connecto-Build", "203");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -780,7 +780,10 @@ Sitemap: https://connecto.fun/sitemap.xml
       }
 
       try {
-        const originWsResp = await fetch(request);
+        const wsCtrl = new AbortController();
+        const wsTimeout = setTimeout(() => wsCtrl.abort(), 1200);
+        const originWsResp = await fetch(request, { signal: wsCtrl.signal });
+        clearTimeout(wsTimeout);
         if (originWsResp.status === 101) {
           return originWsResp;
         }
@@ -837,7 +840,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     // =========================================================================
 
     // (A) Handle API Requests via Cloudflare D1
-    if (url.pathname.startsWith("/api/")) {
+    if (url.pathname.startsWith("/api/") || url.pathname === "/health" || url.pathname === "/status") {
       return handleCloudApiRequest(request, url, env, ctx);
     }
 
@@ -863,24 +866,8 @@ function markLocalServerDown(env, ctx) {
 
 async function probeOriginHealth(env) {
   lastOriginProbeTime = Date.now();
-  let state = "UP";
-  let detailMsg = "Local server operational";
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500);
-    const probeResp = await fetch("https://connecto.fun/health", {
-      signal: controller.signal,
-      headers: { "X-Connecto-Probe": "1" }
-    });
-    clearTimeout(timeoutId);
-    if (probeResp.status < 500) {
-      state = "UP";
-      detailMsg = "Origin verified online via direct tunnel probe";
-      localServerStatus = state;
-      return state;
-    }
-  } catch (_) {}
+  let state = "DOWN";
+  let detailMsg = "Local server unconfirmed / offline";
 
   try {
     if (env.DB) {
@@ -890,10 +877,13 @@ async function probeOriginHealth(env) {
       if (row && row.origin_state === "UP" && (row.age_sec != null && row.age_sec <= 60)) {
         state = "UP";
         detailMsg = `Origin verified online (heartbeat age ${row.age_sec || 0}s)`;
+      } else {
+        state = "DOWN";
+        detailMsg = `Origin verified offline / stale in D1 (age ${row ? row.age_sec : 'unknown'}s)`;
       }
     }
   } catch (err) {
-    state = "UP";
+    state = "DOWN";
   }
 
   localServerStatus = state;
@@ -2007,6 +1997,19 @@ async function resolveUserFromRequest(request, env) {
           two_factor_enabled: 0
         };
       }
+      if (!user && (userId === "usr_vivek551" || userId === "vivek551")) {
+        user = {
+          id: "usr_vivek551",
+          username: "vivek551",
+          display_name: "Vivek",
+          email: "saivivek551@gmail.com",
+          avatar_url: "👾",
+          bio: "Connecto Administrator",
+          is_admin: 1,
+          is_online: 1,
+          two_factor_enabled: 0
+        };
+      }
       if (!user && (userId === "usr_guest_demo" || userId === "guest" || userId === "guest_user")) {
         user = {
           id: "usr_guest_demo",
@@ -2120,7 +2123,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   // 0. Immediate Auth Session Expiration Check & Lazy Purge
   const sessionCheck = await checkSessionExpiration(request, env);
   if (sessionCheck && sessionCheck.expired) {
-    const isPublicPath = path === "/api/health" || path === "/api/v1/health" ||
+    const isPublicPath = path === "/api/health" || path === "/api/v1/health" || path === "/health" ||
                          path === "/api/app/version" || path === "/api/v1/app/version" ||
                          path === "/api/app/latest" || path === "/api/v1/app/latest" ||
                          path === "/api/auth/login" || path === "/api/login" || path === "/api/v1/auth/login" ||
@@ -2142,7 +2145,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   }
 
   // 1. Health checks for Android APK, Web, and Monitoring
-  if (path === "/api/health" || path === "/api/v1/health") {
+  if (path === "/api/health" || path === "/api/v1/health" || path === "/health") {
     return jsonResponse({
       status: "healthy",
       mode: "cloud_server",
@@ -2226,7 +2229,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       return jsonResponse({
         status: "success",
         username,
-        agreed: Boolean(record) || (username === "chinnu14754x" || username === "chinnu")
+        agreed: Boolean(record) || (username === "chinnu14754x" || username === "chinnu" || username === "vivek551")
       });
     }
   }
@@ -2341,14 +2344,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.15",
-        version_code: 202,
-        size_bytes: 38488964,
+        version_name: "5.8.16",
+        version_code: 203,
+        size_bytes: 38490932,
         size_formatted: "36.7 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
         changelog: [
+          "Voice Call Packet Latency, Jitter Buffer & TURN Relay Fix (v5.8.16): Eliminated multi-second voice latency and burst packet loss during calls by adding 16KB TCP WebSocket queue backpressure, 40ms frame batching with sequence/timestamp tracking, off-thread audio decoding (ConnectoVoiceDecode), an adaptive 10-frame jitter buffer with Packet Loss Concealment (PLC), and PERFORMANCE_MODE_LOW_LATENCY AudioTrack output. Restored TURN relay fallback on carrier 4G/5G NAT, synchronized Voice Isolation DSP, and cleanly stopped fallback AudioTrack upon WebRTC P2P handover. Fixed false Server Maintenance prompts by correcting Cloudflare edge origin health probing and adding vivek551 full administrator parity.",
           "Voice Call Latency & Zero-Lag 120Hz Call UI Engine (v5.8.15): Completely resolved 4-5 second audio pickup silence by eliminating blocking HTTP TURN credential fetches from the single-threaded WebRTC negotiation dispatchers, enabling instant (<20ms) SDP offer and answer generation with immediate peer-to-peer and fallback audio transmission. Fully eliminated app-wide UI lag, stutter, and frame stalls during incoming and active calls by removing live GPU full-screen RenderNode blur, stopping unattached high-frequency infinite animations, isolating real-time audio amplitude collection into dedicated leaf components, and preventing redundant external IncomingCallActivity launches when the application is actively in the foreground.",
           "Voice Call Audio Relay Fix & Sub-20ms Ultra-Low Latency Engine (v5.8.14): Fixed critical Cloudflare Worker routing bug where connectedSockets property lookup caused a TypeError on every voice_data WebSocket packet, completely restoring real-time voice audio transmission. Standardized case-insensitive room and channel subscription across all edge Durable Objects, eliminating dropped WebRTC signaling (offers, answers, ICE candidates). Upgraded VoiceCallManager to perform intelligent verified media handover—preserving active low-latency fallback AudioRecord streams until WebRTC RTP audio packets are confirmed flowing, preventing post-pickup silence. Implemented transient packet loss drop on disconnected sockets to eliminate reconnection latency backlog and burst distortion. Added AudioTrack automatic play-state recovery in ConnectoVoicePlayout worker thread for crystal-clear, instantaneous full-duplex voice communication.",
           "Voice Call Latency, Dedicated Audio Playout Thread & 120Hz Call UI Engine (v5.8.13): Eliminated call audio dropouts and latency with a dedicated Audio Playout Worker thread using synchronous WRITE_BLOCKING at urgent audio priority, completely preventing buffer underruns and dropped frames. Defaults audio routing to Loudspeaker for immediate audible clarity on pick-up with automatic in-call volume boost to 90%-100% of maximum. Disabled Opus Discontinuous Transmission (usedtx=0, cbr=1, 64kbps) to eliminate silence gaps and voice cut-outs. Hardened proximity sensor logic with a 1.5s post-connect grace period and calibrated distance checks, preventing premature screen blackout. Optimized Call UI Compose tree with throttled visualizer emissions (~15fps) and a single-clock RenderThread dynamic equalizer, locking a silky-smooth 120Hz refresh rate.",
@@ -2770,6 +2774,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           email: "chinnu.visakas@gmail.com",
           password_hash: "pbkdf2_sha256$100000$d9fd80a64abe92a15dfbe35bd68e918e$f66d5c603506e6b72c19a703d49f02f91f2bb2fa18a530548beefdfeb0d461e6",
           avatar_url: "https://connecto.fun/uploads/1789026913_e84cd5_avatar.png",
+          bio: "Connecto Administrator",
+          is_admin: 1,
+          is_online: 1,
+          two_factor_enabled: 0
+        };
+      } else if (ident === "vivek551" || ident === "saivivek551@gmail.com") {
+        user = {
+          id: "usr_vivek551",
+          username: "vivek551",
+          display_name: "Vivek",
+          email: "saivivek551@gmail.com",
+          password_hash: "pbkdf2_sha256$100000$ada024f0d9370636c160bcceefad361c$d16b17ea728c94fd415540e4fde01231dbf0638ddb78d962a030d3de5945a2cf",
+          avatar_url: "👾",
           bio: "Connecto Administrator",
           is_admin: 1,
           is_online: 1,
@@ -12461,6 +12478,8 @@ export class ConnectoRealtimeRoom {
               sender_id: meta.username,
               sender_username: meta.username,
               sample_rate: data.sample_rate || 16000,
+              seq: data.seq != null ? data.seq : undefined,
+              ts: data.ts != null ? data.ts : undefined,
               audio: audio
             };
             const roomChan = `voice_room:${rId}`;
@@ -12490,29 +12509,31 @@ export class ConnectoRealtimeRoom {
             }
 
             // Guaranteed delivery fallback for 1:1 calls:
-            // Ensure target peer receives the audio chunk directly even if channel join was delayed
-            const target = data.target || data.target_user || data.target_user_id;
-            const peer = this.resolveCallPeer(rId, meta.username, target);
-            if (peer && peer.toLowerCase() !== meta.username.toLowerCase()) {
-              const cleanPeer = String(peer).toLowerCase().trim().replace(/^@/, "");
-              let peerSockets = this.userSockets.get(cleanPeer);
-              if (!peerSockets || peerSockets.size === 0) {
-                for (const [ws, m] of this.socketMeta.entries()) {
-                  const u = String(m.username || "").toLowerCase().trim().replace(/^@/, "");
-                  const d = String(m.displayName || "").toLowerCase().trim().replace(/^@/, "");
-                  if (u === cleanPeer || d === cleanPeer) {
-                    if (!peerSockets) peerSockets = new Set();
-                    peerSockets.add(ws);
+            // Only scan socketMeta if chSet didn't reach any peer socket yet
+            if (sentSockets.size === 0) {
+              const target = data.target || data.target_user || data.target_user_id;
+              const peer = this.resolveCallPeer(rId, meta.username, target);
+              if (peer && peer.toLowerCase() !== meta.username.toLowerCase()) {
+                const cleanPeer = String(peer).toLowerCase().trim().replace(/^@/, "");
+                let peerSockets = this.userSockets.get(cleanPeer);
+                if (!peerSockets || peerSockets.size === 0) {
+                  for (const [ws, m] of this.socketMeta.entries()) {
+                    const u = String(m.username || "").toLowerCase().trim().replace(/^@/, "");
+                    const d = String(m.displayName || "").toLowerCase().trim().replace(/^@/, "");
+                    if (u === cleanPeer || d === cleanPeer) {
+                      if (!peerSockets) peerSockets = new Set();
+                      peerSockets.add(ws);
+                    }
                   }
                 }
-              }
-              if (peerSockets) {
-                for (const pws of peerSockets) {
-                  if (pws !== server && !sentSockets.has(pws)) {
-                    try {
-                      pws.send(msg);
-                      sentSockets.add(pws);
-                    } catch (_) {}
+                if (peerSockets) {
+                  for (const pws of peerSockets) {
+                    if (pws !== server && !sentSockets.has(pws)) {
+                      try {
+                        pws.send(msg);
+                        sentSockets.add(pws);
+                      } catch (_) {}
+                    }
                   }
                 }
               }
@@ -12593,7 +12614,7 @@ export class ConnectoRealtimeRoom {
           // SEC-W03 FIX: Validate DM channel participant authorization before broadcasting/persisting
           if (targetCh.startsWith("dm-") || targetCh.startsWith("dm_")) {
             const recipient = resolveDmRecipient(targetCh, meta.username, data.recipient || data.target);
-            if (!recipient && meta.username !== "chinnu" && meta.username !== "chinnu14754x") {
+            if (!recipient && meta.username !== "chinnu" && meta.username !== "chinnu14754x" && meta.username !== "vivek551") {
               server.send(JSON.stringify({ type: "error", error: "Forbidden: You are not a participant in this conversation." }));
               return;
             }
