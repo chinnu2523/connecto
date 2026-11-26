@@ -2124,8 +2124,8 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   } catch (globalErr) {
     console.warn("[CLOUD_API_SAFE_FALLBACK]", url.pathname, globalErr.message);
     if (url.pathname.includes("/friends")) {
-      const u = url.searchParams.get("username") || url.searchParams.get("user") || "chinnu14754x";
-      const fList = getFallbackFriends(u);
+      const u = url.searchParams.get("username") || url.searchParams.get("user") || "";
+      const fList = u ? getFallbackFriends(u) : [];
       return jsonResponse({ status: "ok", friends: fList, incoming_requests: [], outgoing_requests: [], requests: [] }, 200);
     }
     if (url.pathname.includes("/messages")) {
@@ -5154,6 +5154,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       let friendsList = [];
       let incomingList = [];
       let outgoingList = [];
+      let d1FriendsLoaded = false;
       if (env.DB) {
         try {
           const caller = await env.DB.prepare(`
@@ -5176,6 +5177,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             JOIN users u ON (f.friend_id = u.id AND f.user_id = ?) OR (f.user_id = u.id AND f.friend_id = ?)
             WHERE f.status = 'accepted' AND u.id != ?
           `).bind(caller.id, caller.id, caller.id).all();
+          d1FriendsLoaded = true;
 
           const seen = new Set();
           for (const r of (res.results || [])) {
@@ -5317,8 +5319,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         }
       }
 
-      if (friendsList.length === 0) {
-        friendsList = getFallbackFriends(myUsername || (authUser ? authUser.username : "chinnu14754x"));
+      if (!d1FriendsLoaded && friendsList.length === 0) {
+        friendsList = getFallbackFriends(myUsername || (authUser ? authUser.username : ""));
       }
 
       // If called specifically as received requests endpoint, return incoming array

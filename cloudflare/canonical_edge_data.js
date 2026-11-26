@@ -6638,7 +6638,9 @@ export function getFallbackUser(ident) {
 
 export function getFallbackFriends(myUsername) {
   const cleanMy = (myUsername || "").trim().toLowerCase().replace(/^@/, "");
-  const me = getFallbackUser(cleanMy) || { id: "usr_3b394606", username: "chinnu14754x", display_name: "chinnu" };
+  if (!cleanMy) return [];
+  const me = getFallbackUser(cleanMy);
+  if (!me) return [];
   
   const userMap = new Map();
   for (const u of CANONICAL_USERS) {
