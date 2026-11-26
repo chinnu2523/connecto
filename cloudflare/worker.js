@@ -569,6 +569,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalPdfUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.19/pdf-studio.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.15/pdf-studio.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.14/pdf-studio.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.7.9/pdf-studio.apk",
@@ -581,7 +582,7 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.5/pdf-studio.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.9.3-b29-pos-sync-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.9.4-b30-autofit-baseline-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -589,8 +590,8 @@ Sitemap: https://connecto.fun/sitemap.xml
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
           res.headers.set("X-Connecto-Package", "com.app.pdfstudio");
           res.headers.set("X-Connecto-App", "PDF Studio");
-          res.headers.set("X-Connecto-Version", "v1.9.3");
-          res.headers.set("X-Connecto-Build", "29");
+          res.headers.set("X-Connecto-Version", "v1.9.4");
+          res.headers.set("X-Connecto-Build", "30");
           return res;
         }
 
@@ -625,8 +626,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
               downloadHeaders.set("X-Connecto-App", "PDF Studio");
-              downloadHeaders.set("X-Connecto-Version", "v1.9.3");
-              downloadHeaders.set("X-Connecto-Build", "29");
+              downloadHeaders.set("X-Connecto-Version", "v1.9.4");
+              downloadHeaders.set("X-Connecto-Build", "30");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2557,15 +2558,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Full PDF editor & creative image editor with typography matching",
         description: "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         category: "Productivity",
-        version_name: "1.9.3",
-        version_code: 29,
-        size_bytes: 75867300,
+        version_name: "1.9.4",
+        version_code: 30,
+        size_bytes: 75867296,
         size_formatted: "72.3 MB",
-        sha256: "3602fd346a7e15afa76c9a3efa56137cdd18e6363749f653ec76213b1a8cd7b9",
+        sha256: "ce4d3501b42b6d0de11eb48844052118e86cb28c8f34fef4536e90f546b72c93",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
         accent_color: "#EF4444",
         changelog: [
+          "Image Text Auto-Fit, Stem-Ratio Typography & Subpixel Baseline Alignment: Resolved root cause in Image Editor OCR where camera sensor blur artificially inflated ink fill ratio, falsely classifying normal text as Bold 700 with thick stems; engineered physical stem-to-height ratio analysis (stemRatio < 0.18f -> Regular 400); anchored font size detection to typographic line height scale (~0.74 of bounding box), eliminating over-inflated 44px text on 22px lines; extracted true central core ink color avoiding harsh pitch black artifacts; aligned interactive Compose Text baseline with image baseline using font ascent metrics (onScreenBaselineY + metrics.ascent); implemented intelligent slot width auto-fitting and font height compensation (scaleX down to 0.68) preventing replacement words from overflowing into adjacent words; tightened erase patch padding from 3.5px to 1.5px to protect preceding and succeeding text.",
           "Subpixel Text Positioning & Word-Level Kerning Alignment: Resolved root cause in Global Find & Replace where string index to glyph position mapping was desynchronized by synthetic space characters, causing replaced words to shift vertically onto neighboring lines or columns; engineered 1-to-1 character-to-glyph sequence indexing; added inter-word kerning advance detection in PDF TJ arrays so individual words are accurately segmented; fixed font size scaling priority on PDF bitmaps ensuring exact physical point-to-pixel ratio; synchronized InlineEditSheet nudge offsets with true page dimensions; unified Image Editor preview and export canvas to eliminate vertical baseline drift and horizontal padding offsets.",
           "Images & PDF Text Inpainting, Auto-Fit Width Scaling & Authentic Typography: Fixed root cause where first-page text extraction ran with null bitmap due to uncommitted Compose snapshot, preventing true visible color sampling and causing colored text (e.g. green headings) to fallback to black; added overrideBitmap directly into initial page extraction pipeline; resolved page rotation dimension mismatch on rotated PDF slides; added intelligent dynamic text auto-fitting (textScaleX clamping) so replacement text seamlessly fits into the original word/line slot without overlapping neighboring text or table cells; expanded inpaint erase patches to dynamically cover the full painted width of replacement text preventing background bleeding; prioritized direct disk TrueType file loading (/system/fonts/Roboto-Bold.ttf) over platform families to strictly prevent OEM cursive/handwriting device themes from hijacking typography; initialized PdfEngine in Application onCreate; optimized images text inpainting in Creative Image Editor.",
           "Image Text Replacement & Opaque Background Erase Patch: Enforced strict 3-layer rendering order in both live preview and high-res export canvas (Base image -> 100% Opaque Erase Patch expanded by 3.5px -> Replacement text), completely preventing old OCR letters from peeking underneath; robust full-resolution bitmap border ring background sampling with vertical linear gradient transition when perimeter colors vary; interactive dual-swatch color picker popover in bottom style bar (Text Color & Background Fill with live Eyedropper sampling); clean OCR overlays with ultra-subtle outlines and auto-hiding unselected boxes during editing; floating + Add Text button intelligently hidden while style bar is active; letter spacing safely clamped to prevent text crushing.",
