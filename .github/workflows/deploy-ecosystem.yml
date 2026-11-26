@@ -125,5 +125,6 @@ jobs:
           TAG_NAME="v${CONNECTO_VERSION}"
           echo "Target Release Tag: ${TAG_NAME}"
           gh release view "${TAG_NAME}" || gh release create "${TAG_NAME}" --title "Connecto ${TAG_NAME}" --notes "Automated release ${TAG_NAME}" || true
-          gh release upload "${TAG_NAME}" website/static/downloads/connecto-fun.apk --clobber || true
-          gh release upload "${TAG_NAME}" website/static/downloads/our-store.apk --clobber || true
+          # Never clobber already-uploaded release APKs whose SHA-256 is pinned in cloudflare/worker.js
+          gh release upload "${TAG_NAME}" website/static/downloads/connecto-fun.apk || true
+          gh release upload "${TAG_NAME}" website/static/downloads/our-store.apk || true
