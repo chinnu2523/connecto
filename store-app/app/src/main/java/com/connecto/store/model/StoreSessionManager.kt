@@ -64,8 +64,23 @@ class StoreSessionManager(context: Context) {
 
                 secure
             } catch (e: Exception) {
-                Log.w(TAG, "Hardware KeyStore / EncryptedSharedPreferences unavailable; falling back to private prefs", e)
-                context.getSharedPreferences(LEGACY_PREFS_NAME, Context.MODE_PRIVATE)
+                Log.w(TAG, "EncryptedSharedPreferences error; attempting KeyStore recovery", e)
+                try {
+                    context.deleteSharedPreferences(SECURE_PREFS_NAME)
+                    val masterKey = MasterKey.Builder(context)
+                        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                        .build()
+                    EncryptedSharedPreferences.create(
+                        context,
+                        SECURE_PREFS_NAME,
+                        masterKey,
+                        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                    )
+                } catch (retryErr: Exception) {
+                    Log.e(TAG, "Hardware KeyStore recovery failed; falling back to private prefs", retryErr)
+                    context.getSharedPreferences(LEGACY_PREFS_NAME, Context.MODE_PRIVATE)
+                }
             }
         }
     }

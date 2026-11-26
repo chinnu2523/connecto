@@ -428,19 +428,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.18/our-store.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.19/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.17/our-store.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.18/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.2.4-b73-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.2.5-b74-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.2.4");
-          res.headers.set("X-Connecto-Store-Build", "73");
+          res.headers.set("X-Connecto-Store-Version", "v2.2.5");
+          res.headers.set("X-Connecto-Store-Build", "74");
           return res;
         }
 
@@ -478,8 +478,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.2.4");
-              downloadHeaders.set("X-Connecto-Store-Build", "73");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.2.5");
+              downloadHeaders.set("X-Connecto-Store-Build", "74");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -655,19 +655,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.19/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.18/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.17/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.18-b205-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.19-b206-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.8.18");
-          res.headers.set("X-Connecto-Build", "205");
+          res.headers.set("X-Connecto-Version", "v5.8.19");
+          res.headers.set("X-Connecto-Build", "206");
           return res;
         }
 
@@ -703,8 +703,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.8.18");
-              downloadHeaders.set("X-Connecto-Build", "205");
+              downloadHeaders.set("X-Connecto-Version", "v5.8.19");
+              downloadHeaders.set("X-Connecto-Build", "206");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2301,11 +2301,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.2.4",
-        version_code: 73,
-        size_bytes: 17108000,
+        version_name: "2.2.5",
+        version_code: 74,
+        size_bytes: 17107999,
         size_formatted: "16.3 MB",
-        sha256: "1b4996b7de7f1be62c3410b981f14dc113ed6527b6cbb25050bcf89fde68a6c3",
+        sha256: "133f35ff439d238b2ee96809db9faee311c8d6fc2639d993e31acf032e2dd507",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
@@ -2381,11 +2381,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.18",
-        version_code: 205,
-        size_bytes: 38492450,
+        version_name: "5.8.19",
+        version_code: 206,
+        size_bytes: 38492115,
         size_formatted: "36.7 MB",
-        sha256: "125c85750d322c556cb8cd673f9b957b4bb478e70fdf9cadd9cede62e7ee241d",
+        sha256: "c7b78e07e047812b6d8db4a2a40c75932442f8431db8c17c97fc1c43eb1ae9ab",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
@@ -2561,6 +2561,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         version_code: 29,
         size_bytes: 75867300,
         size_formatted: "72.3 MB",
+        sha256: "3602fd346a7e15afa76c9a3efa56137cdd18e6363749f653ec76213b1a8cd7b9",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
         accent_color: "#EF4444",
@@ -2638,7 +2639,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "2.2.4",
+      store_version: "2.2.5",
       total_apps: appsToReturn.length,
       is_admin: isAdmin,
       apps: appsToReturn

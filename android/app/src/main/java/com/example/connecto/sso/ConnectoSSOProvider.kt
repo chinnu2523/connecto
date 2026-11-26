@@ -100,7 +100,6 @@ class ConnectoSSOProvider : ContentProvider() {
             val isAdmin = (username.equals("chinnu14754x", ignoreCase = true) ||
                            username.equals("chinnu", ignoreCase = true) ||
                            username.equals("vivek551", ignoreCase = true) ||
-                           username.equals("admin", ignoreCase = true) ||
                            ConnectoApiClient.currentUserIsAdmin)
 
             val role = if (isAdmin) "admin" else "member"

@@ -163,15 +163,17 @@ object ApkInstaller {
         val destFile = File(context.cacheDir, "apks/$fileName")
         destFile.parentFile?.mkdirs()
 
-        // Reuse already-downloaded valid APK instead of deleting & restarting from 0%
+        // Reuse already-downloaded valid APK only when SHA-256 matches
         if (destFile.exists() && destFile.length() > 1024) {
             val sizeOk = expectedSizeBytes == null || expectedSizeBytes <= 0L ||
                 kotlin.math.abs(destFile.length() - expectedSizeBytes) < 1_000_000L
+            val shaOk = !expectedSha256.isNullOrBlank() &&
+                computeSha256(destFile).equals(expectedSha256.trim(), ignoreCase = true)
             val validArchive = try {
-                sizeOk && context.packageManager.getPackageArchiveInfo(destFile.absolutePath, 0) != null
+                sizeOk && shaOk && context.packageManager.getPackageArchiveInfo(destFile.absolutePath, 0) != null
             } catch (_: Exception) { false }
             if (validArchive) {
-                Log.i(TAG, "Reusing already-downloaded valid APK: ${destFile.name} (${destFile.length()} bytes)")
+                Log.i(TAG, "Reusing SHA-256 verified APK: ${destFile.name} (${destFile.length()} bytes)")
                 withContext(Dispatchers.Main) {
                     onProgress(100)
                 }

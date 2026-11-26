@@ -76,15 +76,13 @@ object ScreenSecurityManager {
         val ctx = context ?: activeActivityRef?.get()
         if (ctx != null) {
             try {
-                for (prefsName in listOf("connecto_session_prefs", "connecto_secure_session_prefs", "connecto_auth_prefs", "connecto_user_profile_prefs")) {
-                    val p = ctx.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
-                    val savedUname = p.getString("username", null)?.trim()?.lowercase()?.removePrefix("@") ?: ""
-                    if (savedUname == "chinnu14754x" || savedUname == "chinnu" || savedUname == "vivek551") {
-                        return true
-                    }
-                    if (p.getBoolean("is_admin", false) || p.getInt("is_admin", 0) == 1) {
-                        return true
-                    }
+                val p = SecureStorageManager.getEncryptedPrefs(ctx)
+                val savedUname = p.getString("username", null)?.trim()?.lowercase()?.removePrefix("@") ?: ""
+                if (savedUname == "chinnu14754x" || savedUname == "chinnu" || savedUname == "vivek551") {
+                    return true
+                }
+                if (p.getBoolean("is_admin", false) || p.getInt("is_admin", 0) == 1) {
+                    return true
                 }
             } catch (_: Exception) {}
         }

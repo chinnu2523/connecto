@@ -10,9 +10,9 @@ import com.example.connecto.network.MessageDto
 import com.example.connecto.network.PollDto
 import com.example.connecto.network.PollOptionDto
 import com.example.connecto.ui.screens.FriendItem
-import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -252,13 +252,14 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         // Purge is scheduled on a background IO thread via schedulePurgeAsync().
     }
 
+    private val dbScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     /** Schedule a background purge of expired/old messages. Safe to call from any thread. */
-    @OptIn(DelicateCoroutinesApi::class)
     fun schedulePurgeAsync() {
-        GlobalScope.launch(Dispatchers.IO) {
-            try { purgeMessagesOlderThan24Hours() } catch (_: Exception) {}
-            try { purgeOptimisticMessages() } catch (_: Exception) {}
-            try { purgeCorruptedDmChannels() } catch (_: Exception) {}
+        dbScope.launch {
+            try { purgeMessagesOlderThan24Hours() } catch (e: Exception) { android.util.Log.w("ConnectoDB", "purgeMessagesOlderThan24Hours failed", e) }
+            try { purgeOptimisticMessages() } catch (e: Exception) { android.util.Log.w("ConnectoDB", "purgeOptimisticMessages failed", e) }
+            try { purgeCorruptedDmChannels() } catch (e: Exception) { android.util.Log.w("ConnectoDB", "purgeCorruptedDmChannels failed", e) }
         }
     }
 

@@ -786,7 +786,7 @@ object ConnectoApiClient {
                 }
                 cachedE2ESecret = securePrefs.getString("e2e_secret", null) ?: legacyPrefs.getString("e2e_secret", null)
 
-                // Unify both preference stores so session tokens and user credentials never diverge
+                // Unify metadata in secure prefs and purge any plaintext secrets from legacy prefs
                 try {
                     securePrefs.edit()
                         .putBoolean("is_logged_in", true)
@@ -799,10 +799,12 @@ object ConnectoApiClient {
                         .putString("username", savedUsername)
                         .putString("user_id", currentUserId)
                         .putString("display_name", currentUserDisplayName)
+                        .remove("token")
+                        .remove("e2e_secret")
+                        .remove("session_id")
                         .apply()
                     if (!savedToken.isNullOrBlank()) {
                         securePrefs.edit().putString("token", savedToken).apply()
-                        legacyPrefs.edit().putString("token", savedToken).apply()
                     }
                 } catch (_: Exception) {}
             }

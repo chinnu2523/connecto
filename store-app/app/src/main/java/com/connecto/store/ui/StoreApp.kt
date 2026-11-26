@@ -4520,9 +4520,9 @@ fun ClassicLoginAccountView(
     }
     }
 
-    if (showLegalDialog != null) {
+    showLegalDialog?.let { tab ->
         OurStoreLegalDialog(
-            initialTab = showLegalDialog!!,
+            initialTab = tab,
             onDismiss = { showLegalDialog = null }
         )
     }
@@ -4547,7 +4547,7 @@ fun ClassicLoginAccountView(
 }
 
 // ─── Asynchronous Profile Avatar Loader ───────────────────────────────────────
-private val avatarBitmapCache = java.util.concurrent.ConcurrentHashMap<String, ImageBitmap>()
+private val avatarBitmapCache = android.util.LruCache<String, ImageBitmap>(64)
 
 @Composable
 fun UserAvatarImage(
@@ -4567,15 +4567,15 @@ fun UserAvatarImage(
         }
     }
 
-    var bitmap by remember(fullUrl) { mutableStateOf(avatarBitmapCache[fullUrl]) }
+    var bitmap by remember(fullUrl) { mutableStateOf(avatarBitmapCache.get(fullUrl)) }
 
     LaunchedEffect(fullUrl) {
         if (fullUrl.isBlank()) {
             bitmap = null
             return@LaunchedEffect
         }
-        if (avatarBitmapCache.containsKey(fullUrl)) {
-            bitmap = avatarBitmapCache[fullUrl]
+        avatarBitmapCache.get(fullUrl)?.let { cached ->
+            bitmap = cached
             return@LaunchedEffect
         }
         withContext(Dispatchers.IO) {
@@ -4592,7 +4592,7 @@ fun UserAvatarImage(
                     val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                     if (bmp != null) {
                         val imgBmp = bmp.asImageBitmap()
-                        avatarBitmapCache[fullUrl] = imgBmp
+                        avatarBitmapCache.put(fullUrl, imgBmp)
                         withContext(Dispatchers.Main) {
                             bitmap = imgBmp
                         }
@@ -4602,9 +4602,10 @@ fun UserAvatarImage(
         }
     }
 
-    if (bitmap != null) {
+    val currentBitmap = bitmap
+    if (currentBitmap != null) {
         Image(
-            bitmap = bitmap!!,
+            bitmap = currentBitmap,
             contentDescription = "$displayName's profile picture",
             modifier = modifier,
             contentScale = ContentScale.Crop
