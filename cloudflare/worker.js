@@ -733,19 +733,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.9.0/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.20/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.19/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.20-b207-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.9.0-b208-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.8.20");
-          res.headers.set("X-Connecto-Build", "207");
+          res.headers.set("X-Connecto-Version", "v5.9.0");
+          res.headers.set("X-Connecto-Build", "208");
           return res;
         }
 
@@ -781,8 +781,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.8.20");
-              downloadHeaders.set("X-Connecto-Build", "207");
+              downloadHeaders.set("X-Connecto-Version", "v5.9.0");
+              downloadHeaders.set("X-Connecto-Build", "208");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2460,11 +2460,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.20",
-        version_code: 207,
-        size_bytes: 38492349,
+        version_name: "5.9.0",
+        version_code: 208,
+        size_bytes: 38492334,
         size_formatted: "36.7 MB",
-        sha256: "acd983f00bf118d9489bc6d369f567fdf8817e0df321d80153756ef5b1bae00b",
+        sha256: "244cdc6bc8aa7b075735e428b507d32139d3cb4c59962979ea946634d34141cd",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
