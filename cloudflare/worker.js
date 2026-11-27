@@ -2909,7 +2909,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
 
       const body = await request.json().catch(() => ({}));
-      const ident = (body.login || body.username || body.identifier || "").trim().toLowerCase();
+      const ident = (body.login || body.username || body.identifier || "").trim().toLowerCase().replace(/^@/, "");
       const password = (body.password || "").toString();
 
       if (!ident || !password) {
@@ -2917,51 +2917,55 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
 
       let user = null;
-      if (ident === "chinnu14754x" || ident === "chinnu" || ident === "chinnu.visakas@gmail.com") {
-        user = {
-          id: "usr_3b394606",
-          username: "chinnu14754x",
-          display_name: "chinnu",
-          email: "chinnu.visakas@gmail.com",
-          password_hash: "pbkdf2_sha256$100000$d9fd80a64abe92a15dfbe35bd68e918e$f66d5c603506e6b72c19a703d49f02f91f2bb2fa18a530548beefdfeb0d461e6",
-          avatar_url: "https://connecto.fun/uploads/1789026913_e84cd5_avatar.png",
-          bio: "Connecto Administrator",
-          is_admin: 1,
-          is_online: 1,
-          two_factor_enabled: 0
-        };
-      } else if (ident === "vivek551" || ident === "saivivek551@gmail.com") {
-        user = {
-          id: "usr_vivek551",
-          username: "vivek551",
-          display_name: "Vivek",
-          email: "saivivek551@gmail.com",
-          password_hash: "pbkdf2_sha256$100000$ada024f0d9370636c160bcceefad361c$d16b17ea728c94fd415540e4fde01231dbf0638ddb78d962a030d3de5945a2cf",
-          avatar_url: "👾",
-          bio: "Connecto Administrator",
-          is_admin: 1,
-          is_online: 1,
-          two_factor_enabled: 0
-        };
-      } else if (ident === "guest" || ident === "guest_user" || ident === "guest@connecto.fun") {
-        user = {
-          id: "usr_guest_demo",
-          username: "guest",
-          display_name: "Guest",
-          email: "guest@connecto.fun",
-          password_hash: "pbkdf2_sha256$100000$d9fd80a64abe92a15dfbe35bd68e918e$f66d5c603506e6b72c19a703d49f02f91f2bb2fa18a530548beefdfeb0d461e6",
-          avatar_url: "https://connecto.fun/static/favicon.svg",
-          bio: "Welcome to Connecto! Exploring as a guest member.",
-          is_admin: 0,
-          is_online: 1,
-          two_factor_enabled: 0
-        };
-      } else if (env.DB) {
+      if (env.DB) {
         try {
           user = await env.DB.prepare(
-            "SELECT * FROM users WHERE lower(username) = ? OR lower(email) = ? LIMIT 1"
-          ).bind(ident, ident).first();
+            "SELECT * FROM users WHERE lower(username) = ? OR lower(email) = ? OR (lower(?) = 'chinnu' AND lower(username) = 'chinnu14754x') OR (lower(?) = 'chinnu.visakas@gmail.com' AND lower(username) = 'chinnu14754x') LIMIT 1"
+          ).bind(ident, ident, ident, ident).first();
         } catch (_) {}
+      }
+
+      if (!user) {
+        if (ident === "chinnu14754x" || ident === "chinnu" || ident === "chinnu.visakas@gmail.com") {
+          user = {
+            id: "usr_3b394606",
+            username: "chinnu14754x",
+            display_name: "chinnu",
+            email: "chinnu.visakas@gmail.com",
+            password_hash: "pbkdf2_sha256$100000$d9fd80a64abe92a15dfbe35bd68e918e$f66d5c603506e6b72c19a703d49f02f91f2bb2fa18a530548beefdfeb0d461e6",
+            avatar_url: "https://connecto.fun/uploads/1789026913_e84cd5_avatar.png",
+            bio: "Connecto Administrator",
+            is_admin: 1,
+            is_online: 1,
+            two_factor_enabled: 0
+          };
+        } else if (ident === "vivek551" || ident === "saivivek551@gmail.com") {
+          user = {
+            id: "usr_vivek551",
+            username: "vivek551",
+            display_name: "Vivek",
+            email: "saivivek551@gmail.com",
+            password_hash: "pbkdf2_sha256$100000$ada024f0d9370636c160bcceefad361c$d16b17ea728c94fd415540e4fde01231dbf0638ddb78d962a030d3de5945a2cf",
+            avatar_url: "👾",
+            bio: "Connecto Administrator",
+            is_admin: 1,
+            is_online: 1,
+            two_factor_enabled: 0
+          };
+        } else if (ident === "guest" || ident === "guest_user" || ident === "guest@connecto.fun") {
+          user = {
+            id: "usr_guest_demo",
+            username: "guest",
+            display_name: "Guest",
+            email: "guest@connecto.fun",
+            password_hash: "pbkdf2_sha256$100000$d9fd80a64abe92a15dfbe35bd68e918e$f66d5c603506e6b72c19a703d49f02f91f2bb2fa18a530548beefdfeb0d461e6",
+            avatar_url: "https://connecto.fun/static/favicon.svg",
+            bio: "Welcome to Connecto! Exploring as a guest member.",
+            is_admin: 0,
+            is_online: 1,
+            two_factor_enabled: 0
+          };
+        }
       }
 
       if (!user) {
