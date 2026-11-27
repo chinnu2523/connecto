@@ -483,7 +483,14 @@ object ConnectoApiClient {
         }
     }
 
+    @Volatile
+    private var sessionRefreshGraceUntil: Long = 0L
+
     fun triggerSessionExpired(reason: String) {
+        if (System.currentTimeMillis() < sessionRefreshGraceUntil) {
+            android.util.Log.d("ConnectoApiClient", "Ignoring transient 401 during session token refresh grace window: $reason")
+            return
+        }
         if (currentUsername == "guest" || sessionToken == "guest_token_sandbox") {
             android.util.Log.d("ConnectoApiClient", "Ignoring session expired in guest mode: $reason")
             return
@@ -1519,7 +1526,10 @@ object ConnectoApiClient {
                     twoFactorMethod = userObj.optString("two_factor_method", "sms"),
                     requires2Fa = false
                 )
-                sessionToken = authResult.token
+                sessionRefreshGraceUntil = System.currentTimeMillis() + 10_000L
+                if (!authResult.token.isNullOrBlank()) {
+                    sessionToken = authResult.token
+                }
                 currentUserId = authResult.id
                 currentUsername = authResult.username
                 currentUserEmail = authResult.email
@@ -1527,7 +1537,16 @@ object ConnectoApiClient {
                 val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || (authResult.username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu", "vivek551"))
                 updateAdminState(isAdmin)
                 try {
-                    applicationContext?.let { getSessionPrefs(it) }?.edit()?.putBoolean("is_admin", isAdmin)?.apply()
+                    applicationContext?.let { ctx ->
+                        getSessionPrefs(ctx).edit().apply {
+                            putBoolean("is_admin", isAdmin)
+                            putBoolean("is_logged_in", true)
+                            if (!authResult.token.isNullOrBlank()) {
+                                putString("token", authResult.token)
+                            }
+                            apply()
+                        }
+                    }
                 } catch (_: Exception) {}
                 updateAvatarState(parsedAvatar)
                 Result.success(authResult)
@@ -1587,7 +1606,7 @@ object ConnectoApiClient {
                 put("otp_code", otpCode.trim())
             }
             val response = executeRequest(
-                endpoint = "/api/verify-otp",
+                endpoint = "/api/v1/auth/forgot-password/verify-otp",
                 method = "POST",
                 body = body.toString(),
                 token = null
@@ -1627,7 +1646,7 @@ object ConnectoApiClient {
                 endpoint = "/api/auth/reset-password-with-otp",
                 method = "POST",
                 body = body.toString(),
-                token = null
+                token = sessionToken
             )
             if (response.isSuccess) {
                 val jsonObj = JSONObject(response.getOrThrow())
@@ -1654,7 +1673,10 @@ object ConnectoApiClient {
                     twoFactorMethod = userObj.optString("two_factor_method", "sms"),
                     requires2Fa = false
                 )
-                sessionToken = authResult.token
+                sessionRefreshGraceUntil = System.currentTimeMillis() + 10_000L
+                if (!authResult.token.isNullOrBlank()) {
+                    sessionToken = authResult.token
+                }
                 currentUserId = authResult.id
                 currentUsername = authResult.username
                 currentUserEmail = authResult.email
@@ -1662,7 +1684,16 @@ object ConnectoApiClient {
                 val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || (authResult.username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu", "vivek551"))
                 updateAdminState(isAdmin)
                 try {
-                    applicationContext?.let { getSessionPrefs(it) }?.edit()?.putBoolean("is_admin", isAdmin)?.apply()
+                    applicationContext?.let { ctx ->
+                        getSessionPrefs(ctx).edit().apply {
+                            putBoolean("is_admin", isAdmin)
+                            putBoolean("is_logged_in", true)
+                            if (!authResult.token.isNullOrBlank()) {
+                                putString("token", authResult.token)
+                            }
+                            apply()
+                        }
+                    }
                 } catch (_: Exception) {}
                 updateAvatarState(parsedAvatar)
                 Result.success(authResult)

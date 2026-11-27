@@ -111,28 +111,8 @@ fun ForgotPasswordDialog(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
 
-    // REAL-TIME OTP AUTO-VERIFICATION TRIGGER
-    LaunchedEffect(otpCode) {
-        val cleanOtp = otpCode.trim()
-        if (cleanOtp.length == 6 && !isOtpVerified && !isVerifyingOtp && currentStep == ForgotPasswordStep.OTP_VERIFICATION) {
-            isVerifyingOtp = true
-            errorMessage = null
-            coroutineScope.launch {
-                val res = ConnectoApiClient.verifyForgotPasswordOtp(
-                    identifier = identifier.trim(),
-                    otpCode = cleanOtp
-                )
-                isVerifyingOtp = false
-                if (res.isSuccess && res.getOrNull()?.verified == true) {
-                    isOtpVerified = true
-                    statusMessage = "✓ Verification code verified! Please enter your new password."
-                    currentStep = ForgotPasswordStep.NEW_PASSWORD
-                } else {
-                    errorMessage = res.exceptionOrNull()?.message ?: "Invalid or expired code. Please check and try again."
-                }
-            }
-        }
-    }
+    // Single-shot OTP verification is triggered by ConnectoOtpCodeField.onComplete or the Verify button
+    // (removed duplicate LaunchedEffect(otpCode) that raced with onComplete and caused 2nd-call 400 errors).
 
     Dialog(onDismissRequest = onDismiss) {
         val dialogBg = if (isLight) Color(0xFFFFFFFF) else Color(0xFF000000)
@@ -385,6 +365,7 @@ fun ForgotPasswordDialog(
                         isError = errorMessage != null,
                         enabled = !isVerifyingOtp && !isOtpVerified,
                         onComplete = { code ->
+                            if (!isVerifyingOtp && !isOtpVerified) {
                             // Auto-verify when 6 digits are complete!
                             isVerifyingOtp = true
                             errorMessage = null
@@ -401,6 +382,7 @@ fun ForgotPasswordDialog(
                                 } else {
                                     errorMessage = res.exceptionOrNull()?.message ?: "Invalid OTP verification code."
                                 }
+                            }
                             }
                         }
                     )
@@ -504,7 +486,7 @@ fun ForgotPasswordDialog(
                             newPassword = it
                             errorMessage = null
                         },
-                        placeholder = { Text("New Password (min 4 chars)", fontSize = 14.sp, color = subtitleColor) },
+                        placeholder = { Text("New Password (min 8 chars)", fontSize = 14.sp, color = subtitleColor) },
                         leadingIcon = {
                             Icon(Icons.Outlined.Lock, contentDescription = null, tint = subtitleColor)
                         },
