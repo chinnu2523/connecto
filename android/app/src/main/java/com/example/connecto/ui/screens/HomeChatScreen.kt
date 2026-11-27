@@ -637,6 +637,7 @@ fun HomeChatScreen(
                                 timeAgo = lastMsgTime,
                                 unreadCount = unreadMap[cleanHandle.lowercase()] ?: 0,
                                 isOnline = f.isOnline,
+                                lastSeen = f.lastSeen,
                                 avatarUrl = f.friendAvatarUrl
                             )
                         }

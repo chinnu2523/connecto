@@ -433,13 +433,13 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.18/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.2.5-b74-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.2.7-b76-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.2.5");
+          res.headers.set("X-Connecto-Store-Version", "v2.2.7");
           res.headers.set("X-Connecto-Store-Build", "74");
           return res;
         }
@@ -478,7 +478,7 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.2.5");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.2.7");
               downloadHeaders.set("X-Connecto-Store-Build", "74");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
@@ -557,6 +557,83 @@ Sitemap: https://connecto.fun/sitemap.xml
       });
     }
 
+    // 3a-6. Cloudflare Edge Gateway for PSP Generator APK
+    if (
+      cleanPath === "/download/psp-generator" ||
+      cleanPath === "/download/pspgenerator" ||
+      cleanPath === "/downloads/psp-generator.apk" ||
+      cleanPath === "/downloads/pspgenerator.apk" ||
+      cleanPath === "/psp-generator.apk" ||
+      cleanPath.includes("psp-generator") && cleanPath.endsWith(".apk")
+    ) {
+      try {
+        const canonicalPspUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.19/psp-generator.apk"
+        ];
+        const cache = caches.default;
+        const cacheKey = new Request("https://connecto.fun/downloads/psp-generator-v1.0.0-b1-prod.apk", { method: "GET" });
+        let cachedResp = await cache.match(cacheKey);
+        if (cachedResp) {
+          const res = new Response(cachedResp.body, cachedResp);
+          res.headers.set("CF-Cache-Status", "HIT");
+          res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
+          res.headers.set("X-Connecto-Package", "com.app.pspgenerator");
+          res.headers.set("X-Connecto-App", "PSP Generator");
+          res.headers.set("X-Connecto-Version", "v1.0.0");
+          res.headers.set("X-Connecto-Build", "1");
+          return res;
+        }
+
+        for (const targetUrl of canonicalPspUrls) {
+          try {
+            let currentFetchUrl = targetUrl;
+            let upstreamResp = null;
+            for (let redirectCount = 0; redirectCount < 5; redirectCount++) {
+              const resp = await fetch(currentFetchUrl, {
+                redirect: "manual",
+                headers: {
+                  "User-Agent": "Connecto-Cloud-Worker/1.5.5"
+                }
+              });
+              if (resp.status >= 300 && resp.status < 400) {
+                const loc = resp.headers.get("Location");
+                if (!loc) break;
+                currentFetchUrl = loc.startsWith("http") ? loc : new URL(loc, currentFetchUrl).toString();
+                continue;
+              }
+              upstreamResp = resp;
+              break;
+            }
+
+            if (upstreamResp && upstreamResp.ok) {
+              const downloadHeaders = new Headers();
+              downloadHeaders.set("Content-Type", "application/vnd.android.package-archive");
+              downloadHeaders.set("Content-Disposition", 'attachment; filename="psp-generator.apk"');
+              const cl = upstreamResp.headers.get("content-length");
+              if (cl) downloadHeaders.set("Content-Length", cl);
+              downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
+              downloadHeaders.set("Access-Control-Allow-Origin", "*");
+              downloadHeaders.set("X-Connecto-Package", "com.app.pspgenerator");
+              downloadHeaders.set("X-Connecto-App", "PSP Generator");
+              downloadHeaders.set("X-Connecto-Version", "v1.0.0");
+              downloadHeaders.set("X-Connecto-Build", "1");
+              downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
+
+              const responseToReturn = new Response(upstreamResp.body, {
+                status: 200,
+                headers: downloadHeaders
+              });
+              ctx.waitUntil(cache.put(cacheKey, responseToReturn.clone()));
+              return responseToReturn;
+            }
+          } catch (_) {}
+        }
+      } catch (err) {
+        console.error("PSP Generator download fetch error:", err);
+      }
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.8.19/psp-generator.apk", 302);
+    }
+
     // 3a-5. Cloudflare Edge Gateway for PDF Studio APK
     if (
       cleanPath === "/download/pdf-studio" ||
@@ -582,7 +659,7 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.5/pdf-studio.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.9.4-b30-autofit-baseline-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/pdf-studio-v1.9.4-b30-verified-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -656,19 +733,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.8.20/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.8.19/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.8.18/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.19-b206-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.8.20-b207-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.8.19");
-          res.headers.set("X-Connecto-Build", "206");
+          res.headers.set("X-Connecto-Version", "v5.8.20");
+          res.headers.set("X-Connecto-Build", "207");
           return res;
         }
 
@@ -704,8 +781,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.8.19");
-              downloadHeaders.set("X-Connecto-Build", "206");
+              downloadHeaders.set("X-Connecto-Version", "v5.8.20");
+              downloadHeaders.set("X-Connecto-Build", "207");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2302,15 +2379,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.2.5",
-        version_code: 74,
-        size_bytes: 17107997,
-        size_formatted: "16.3 MB",
-        sha256: "4e90b54b49554b0e3d2fc417b1bd7edc4f4942dc9a928cce9f95f8db24d26cf7",
+        version_name: "2.2.7",
+        version_code: 76,
+        size_bytes: 17992201,
+        size_formatted: "17.2 MB",
+        sha256: "eb4e97ee98d8251b95518d52c9e32aadf4a856a61966fc5383e69c48df496f2e",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Added PSP Generator (v1.0.0) to Our Store with dedicated app icon, 3 original studio/editor/print-sheet screenshots, and Android 11+ install-state detection.",
           "Security Hardening & End-to-End SHA-256 Verification (v2.2.4): Removed session bearer tokens from catalog GET query strings, enforced SHA-256 cryptographic integrity verification on downloaded APKs, and added active PackageInstaller session-ID validation in InstallStatusReceiver.",
           "Enterprise Device Owner & Privileged System Installer Support (v2.2.3): Added StoreDeviceAdminReceiver and INSTALL_PACKAGES privileged manifest declarations with DevicePolicyManager.isDeviceOwnerApp detection, enabling zero-prompt silent OS installs and updates on managed Device Owner devices and /system/priv-app deployments.",
           "High-Fluidity UI/UX Animations & Visual Effects Overhaul (v2.2.2): Added spring-physics sliding bottom navigation indicator & luminous spotlight pill, animated category chip transitions, pulsing live beacon & sweeping specular sheen on the Ecosystem Spotlight card, AnimatedContent state morphing with live circular download progress ring on app cards, and 3D perspective depth-scaled HorizontalPager preview carousel with animated indicator pills.",
@@ -2382,11 +2460,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.8.19",
-        version_code: 206,
-        size_bytes: 38492016,
+        version_name: "5.8.20",
+        version_code: 207,
+        size_bytes: 38492349,
         size_formatted: "36.7 MB",
-        sha256: "df50d3749d3d26d82f92695b74c9b29f41f8cada8a0e83c0d3a06468b136e61b",
+        sha256: "acd983f00bf118d9489bc6d369f567fdf8817e0df321d80153756ef5b1bae00b",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
@@ -2560,9 +2638,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         category: "Productivity",
         version_name: "1.9.4",
         version_code: 30,
-        size_bytes: 75867300,
-        size_formatted: "72.3 MB",
-        sha256: "3602fd346a7e15afa76c9a3efa56137cdd18e6363749f653ec76213b1a8cd7b9",
+        size_bytes: 67688640,
+        size_formatted: "64.6 MB",
+        sha256: "41f0feb02b3639ee918056bea56b42d956a21ffc95b7cb64e42c009decd78402",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
         accent_color: "#EF4444",
@@ -2618,6 +2696,36 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           { url: "https://connecto.fun/static/img/previews/pdfstudio_3.png", caption: "Lossless Multi-Document Merger", tag: "MERGER" }
         ],
         updated_at: "2026-11-20T11:20:00Z"
+      },
+      {
+        id: "pspgenerator",
+        package_name: "com.app.pspgenerator",
+        name: "PSP Generator",
+        badge: "Passport Photo Studio",
+        tagline: "Instant 300 DPI passport-size photos with full orientation & print sheets",
+        description: "Create official passport-size photos from any gallery or camera image. Supports US/India 2x2 in, UK/EU 35x45 mm, Canada 50x70 mm, Japan/China 33x48 mm, and custom mm sizes with Portrait/Landscape frame orientation, 90-degree rotation, flip, straighten, biometric guides, and 4x6 or A4 printable sheets.",
+        category: "Photography",
+        version_name: "1.0.0",
+        version_code: 1,
+        size_bytes: 12274786,
+        size_formatted: "11.7 MB",
+        sha256: "f8693a412e052463cf884980ae651b10ef535817443ddd79980097ad3208b961",
+        download_url: "https://connecto.fun/downloads/psp-generator.apk",
+        icon_url: "https://connecto.fun/static/psp_generator_logo.png",
+        accent_color: "#2563EB",
+        changelog: [
+          "Initial Release v1.0.0: Automatic EXIF orientation normalization on photo import from Gallery or Camera.",
+          "Official 300 DPI Passport Presets: UK/EU (35x45 mm), US/India (2x2 in), India Visa (35x35 mm), Canada (50x70 mm), Japan/China (33x48 mm), and Custom mm.",
+          "Full Orientation & Framing Controls: Portrait/Landscape frame toggle, +/-90 degree rotation, Horizontal/Vertical flip, -45 to +45 degree straighten, pinch-to-zoom, pan, and biometric head/eye guides.",
+          "Print-Ready Export: Save single 300 DPI JPG/PNG or auto-tiled 4x6 in and A4 printable sheets with crop marks."
+        ],
+        is_essential: false,
+        screenshots: [
+          { url: "https://connecto.fun/static/img/previews/pspgenerator_1.png", caption: "Quick Gallery & Camera Import", tag: "STUDIO" },
+          { url: "https://connecto.fun/static/img/previews/pspgenerator_2.png", caption: "300 DPI Framing & Orientation", tag: "EDITOR" },
+          { url: "https://connecto.fun/static/img/previews/pspgenerator_3.png", caption: "4×6 & A4 Printable Sheets", tag: "PRINT" }
+        ],
+        updated_at: "2026-11-27T05:15:00Z"
       }
     ];
 
@@ -2641,7 +2749,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "2.2.5",
+      store_version: "2.2.7",
       total_apps: appsToReturn.length,
       is_admin: isAdmin,
       apps: appsToReturn

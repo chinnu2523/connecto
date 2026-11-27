@@ -25,10 +25,10 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Autonomous package installer, background updater & security vault",
         "description": "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         "category": "Services",
-        "version_name": "2.2.5",
-        "version_code": 74,
-        "size_bytes": 17107999,
-        "size_formatted": "16.3 MB",
+        "version_name": "2.2.7",
+        "version_code": 76,
+        "size_bytes": 17992201,
+        "size_formatted": "17.2 MB",
         "download_url": "https://connecto.fun/downloads/our-store.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
@@ -76,9 +76,9 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Private encrypted messaging, calls & workspaces",
         "description": "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         "category": "Communication",
-        "version_name": "5.8.19",
-        "version_code": 206,
-        "size_bytes": 38492115,
+        "version_name": "5.8.20",
+        "version_code": 207,
+        "size_bytes": 38492349,
         "size_formatted": "36.7 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
@@ -214,8 +214,8 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "category": "Productivity",
         "version_name": "1.9.4",
         "version_code": 30,
-        "size_bytes": 75867296,
-        "size_formatted": "72.3 MB",
+        "size_bytes": 67688640,
+        "size_formatted": "64.6 MB",
         "download_url": "https://connecto.fun/downloads/pdf-studio.apk",
         "icon_url": "https://connecto.fun/static/pdf_studio_logo.png",
         "accent_color": "#EF4444",
@@ -271,6 +271,36 @@ APPS_CATALOG: List[Dict[str, Any]] = [
             {"url": "https://connecto.fun/static/img/previews/pdfstudio_3.png", "caption": "Lossless Multi-Document Merger", "tag": "MERGER"}
         ],
         "updated_at": "2026-11-20T11:20:00Z"
+    },
+    {
+        "id": "pspgenerator",
+        "package_name": "com.app.pspgenerator",
+        "name": "PSP Generator",
+        "badge": "Passport Photo Studio",
+        "tagline": "Instant 300 DPI passport-size photos with full orientation & print sheets",
+        "description": "Create official passport-size photos from any gallery or camera image. Supports US/India 2x2 in, UK/EU 35x45 mm, Canada 50x70 mm, Japan/China 33x48 mm, and custom mm sizes with Portrait/Landscape frame orientation, 90-degree rotation, flip, straighten, biometric guides, and 4x6 or A4 printable sheets.",
+        "category": "Photography",
+        "version_name": "1.0.0",
+        "version_code": 1,
+        "size_bytes": 12274786,
+        "size_formatted": "11.7 MB",
+        "sha256": "f8693a412e052463cf884980ae651b10ef535817443ddd79980097ad3208b961",
+        "download_url": "https://connecto.fun/downloads/psp-generator.apk",
+        "icon_url": "https://connecto.fun/static/psp_generator_logo.png",
+        "accent_color": "#2563EB",
+        "changelog": [
+            "Initial Release v1.0.0: Automatic EXIF orientation normalization on photo import from Gallery or Camera.",
+            "Official 300 DPI Passport Presets: UK/EU (35x45 mm), US/India (2x2 in), India Visa (35x35 mm), Canada (50x70 mm), Japan/China (33x48 mm), and Custom mm.",
+            "Full Orientation & Framing Controls: Portrait/Landscape frame toggle, +/-90 degree rotation, Horizontal/Vertical flip, -45 to +45 degree straighten, pinch-to-zoom, pan, and biometric head/eye guides.",
+            "Print-Ready Export: Save single 300 DPI JPG/PNG or auto-tiled 4x6 in and A4 printable sheets with crop marks."
+        ],
+        "is_essential": False,
+        "screenshots": [
+            {"url": "https://connecto.fun/static/img/previews/pspgenerator_1.png", "caption": "Quick Gallery & Camera Import", "tag": "STUDIO"},
+            {"url": "https://connecto.fun/static/img/previews/pspgenerator_2.png", "caption": "300 DPI Framing & Orientation", "tag": "EDITOR"},
+            {"url": "https://connecto.fun/static/img/previews/pspgenerator_3.png", "caption": "4×6 & A4 Printable Sheets", "tag": "PRINT"}
+        ],
+        "updated_at": "2026-11-27T05:15:00Z"
     }
 ]
 

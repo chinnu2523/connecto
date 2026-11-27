@@ -2861,17 +2861,23 @@ object VoiceCallManager {
                     val pUser = json.optString("username").ifEmpty { json.optString("user_id") }
                     val isOnline = json.optBoolean("is_online", json.optString("status").equals("online", ignoreCase = true))
                     val rawLastSeen = json.optString("last_seen").ifEmpty { json.optString("lastSeen") }
+                    val cleanPUser = pUser.lowercase().removePrefix("@")
                     val lastSeenTs = try {
-                        if (rawLastSeen.isNotBlank()) {
-                            val parsed = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).apply {
+                        if (rawLastSeen.isNotBlank() && rawLastSeen != "null") {
+                            val s = rawLastSeen.trim()
+                            val cleanStr = if (s.contains(".")) s.substringBefore(".") else s.removeSuffix("Z")
+                            val pattern = if (cleanStr.contains("T")) "yyyy-MM-dd'T'HH:mm:ss" else "yyyy-MM-dd HH:mm:ss"
+                            val parsed = java.text.SimpleDateFormat(pattern, java.util.Locale.US).apply {
                                 timeZone = java.util.TimeZone.getTimeZone("UTC")
-                            }.parse(rawLastSeen.removeSuffix("Z"))
-                            parsed?.time ?: System.currentTimeMillis()
-                        } else {
+                            }.parse(cleanStr)
+                            parsed?.time ?: if (isOnline) System.currentTimeMillis() else (getUserLastSeen(cleanPUser) ?: System.currentTimeMillis())
+                        } else if (json.has("timestamp")) {
                             json.optLong("timestamp", System.currentTimeMillis())
+                        } else {
+                            if (isOnline) System.currentTimeMillis() else (getUserLastSeen(cleanPUser) ?: System.currentTimeMillis())
                         }
                     } catch (_: Exception) {
-                        System.currentTimeMillis()
+                        if (isOnline) System.currentTimeMillis() else (getUserLastSeen(cleanPUser) ?: System.currentTimeMillis())
                     }
                     Log.d(TAG, "Presence update received: user=$pUser, is_online=$isOnline, lastSeen=$lastSeenTs")
                     if (pUser.isNotBlank()) {

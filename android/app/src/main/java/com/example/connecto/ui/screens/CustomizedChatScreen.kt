@@ -1955,6 +1955,7 @@ fun CustomizedChatScreen(
                         timeAgo = time,
                         unreadCount = unread,
                         isOnline = isFriendOnline,
+                        lastSeen = f.lastSeen ?: cachedFriend?.lastSeen,
                         avatarUrl = f.friendAvatarUrl ?: cachedFriend?.avatarUrl,
                         bannerUrl = f.friendBannerUrl ?: cachedFriend?.bannerUrl,
                         lastMessageTimestamp = lastTs
@@ -5933,9 +5934,14 @@ fun CustomizedChatScreen(
                                         } else if (isOnlineVisible) {
                                             "Online"
                                         } else if (!myHideLastSeen) {
+                                            val liveSelectedFriend = friendsList.firstOrNull { f ->
+                                                (selectedFriend?.id?.isNotBlank() == true && f.id.equals(selectedFriend?.id, ignoreCase = true)) ||
+                                                (selectedFriend?.handle?.isNotBlank() == true && f.handle.trim().lowercase().removePrefix("@") == selectedFriend?.handle?.trim()?.lowercase()?.removePrefix("@"))
+                                            }
                                             val lastSeenTs = VoiceCallManager.getUserLastSeen(selectedFriend?.handle)
                                                 ?: VoiceCallManager.getUserLastSeen(selectedFriend?.id)
-                                            val formatted = formatDynamicLastSeen(lastSeenTs, selectedFriend?.lastSeen, lastSeenTicker)
+                                            val effectiveLastSeenStr = liveSelectedFriend?.lastSeen ?: selectedFriend?.lastSeen
+                                            val formatted = formatDynamicLastSeen(lastSeenTs, effectiveLastSeenStr, lastSeenTicker)
                                             formatted ?: "Direct Chat"
                                         } else {
                                             "Direct Chat"

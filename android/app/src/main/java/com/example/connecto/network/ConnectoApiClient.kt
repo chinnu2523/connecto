@@ -3838,6 +3838,8 @@ object ConnectoApiClient {
                         val itemLastMsg = item.optString("last_message").takeIf { it.isNotBlank() }
                         val itemLastTs = item.optLong("last_message_timestamp", 0L)
                         val itemUnread = item.optInt("unread_count", 0)
+                        val itemLastSeen = item.optString("last_seen").takeIf { it.isNotBlank() && it != "null" }
+                            ?: item.optString("lastSeen").takeIf { it.isNotBlank() && it != "null" }
                         list.add(
                             FriendshipDto(
                                 id = item.optString("id").ifEmpty { item.optString("friend_id").ifEmpty { uName } },
@@ -3849,6 +3851,7 @@ object ConnectoApiClient {
                                 friendBannerUrl = resolvedBanner,
                                 status = if (isOnline) "online" else "offline",
                                 isOnline = isOnline,
+                                lastSeen = itemLastSeen,
                                 isStealth = isStealth,
                                 bio = itemBio,
                                 lastMessage = itemLastMsg,
@@ -3878,6 +3881,8 @@ object ConnectoApiClient {
                         val itemLastMsg = item.optString("last_message").takeIf { it.isNotBlank() }
                         val itemLastTs = item.optLong("last_message_timestamp", 0L)
                         val itemUnread = item.optInt("unread_count", 0)
+                        val itemLastSeen = item.optString("last_seen").takeIf { it.isNotBlank() && it != "null" }
+                            ?: item.optString("lastSeen").takeIf { it.isNotBlank() && it != "null" }
                         list.add(
                             FriendshipDto(
                                 id = item.optString("id").ifEmpty { item.optString("friend_id").ifEmpty { uName } },
@@ -3889,6 +3894,7 @@ object ConnectoApiClient {
                                 friendBannerUrl = resolvedBanner,
                                 status = if (isOnline) "online" else "offline",
                                 isOnline = isOnline,
+                                lastSeen = itemLastSeen,
                                 isStealth = isStealth,
                                 bio = itemBio,
                                 lastMessage = itemLastMsg,

@@ -21,7 +21,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
 
     companion object {
         private const val DATABASE_NAME = "connecto_local_cache.db"
-        private const val DATABASE_VERSION = 9
+        private const val DATABASE_VERSION = 10
 
         @Volatile
         private var INSTANCE: ConnectoDatabaseHelper? = null
@@ -67,6 +67,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         private const val COL_FRIEND_AVATAR = "avatar_url"
         private const val COL_FRIEND_BANNER = "banner_url"
         private const val COL_FRIEND_LAST_TIMESTAMP = "last_message_timestamp"
+        private const val COL_FRIEND_LAST_SEEN = "last_seen"
 
         private const val TABLE_GROUPS = "cached_groups"
         private const val COL_GROUP_ID = "id"
@@ -135,7 +136,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 $COL_FRIEND_IS_ONLINE INTEGER DEFAULT 0,
                 $COL_FRIEND_AVATAR TEXT,
                 $COL_FRIEND_BANNER TEXT,
-                $COL_FRIEND_LAST_TIMESTAMP INTEGER DEFAULT 0
+                $COL_FRIEND_LAST_TIMESTAMP INTEGER DEFAULT 0,
+                $COL_FRIEND_LAST_SEEN TEXT
             )
             """.trimIndent()
         )
@@ -242,6 +244,9 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                     """.trimIndent()
                 )
             } catch (_: Exception) {}
+        }
+        if (oldVersion < 10) {
+            try { db.execSQL("ALTER TABLE $TABLE_FRIENDS ADD COLUMN $COL_FRIEND_LAST_SEEN TEXT") } catch (_: Exception) {}
         }
     }
 
@@ -1037,6 +1042,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                     put(COL_FRIEND_AVATAR, f.avatarUrl)
                     put(COL_FRIEND_BANNER, f.bannerUrl)
                     put(COL_FRIEND_LAST_TIMESTAMP, effectiveTs)
+                    put(COL_FRIEND_LAST_SEEN, f.lastSeen)
                 }
                 db.insertWithOnConflict(TABLE_FRIENDS, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
             }
@@ -1058,6 +1064,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 val bannerUrl = if (bannerCol >= 0) it.getString(bannerCol) else null
                 val tsCol = it.getColumnIndex(COL_FRIEND_LAST_TIMESTAMP)
                 val lastTs = if (tsCol >= 0) it.getLong(tsCol) else 0L
+                val lastSeenCol = it.getColumnIndex(COL_FRIEND_LAST_SEEN)
+                val lastSeenStr = if (lastSeenCol >= 0) it.getString(lastSeenCol) else null
                 list.add(
                     FriendItem(
                         id = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_ID)) ?: "",
@@ -1072,7 +1080,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                         isOnline = it.getInt(it.getColumnIndexOrThrow(COL_FRIEND_IS_ONLINE)) == 1,
                         avatarUrl = avatarUrl,
                         bannerUrl = bannerUrl,
-                        lastMessageTimestamp = lastTs
+                        lastMessageTimestamp = lastTs,
+                        lastSeen = lastSeenStr
                     )
                 )
             }
