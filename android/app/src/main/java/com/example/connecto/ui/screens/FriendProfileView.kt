@@ -61,8 +61,16 @@ import com.example.connecto.notifications.CustomNotificationToneManager
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.material3.LinearProgressIndicator
 import com.example.connecto.data.WallpaperTransform
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -289,6 +297,25 @@ fun FriendProfileScreen(
     val effectiveBio = validatedProf?.bio?.ifBlank { friend.bio } ?: friend.bio
     val isLight = !ConnectoTheme.colors.isDark
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val haptic = LocalHapticFeedback.current
+
+    // 0ms Optimistic UI state for Mute toggle (syncs immediately with prop)
+    var optimisticMuted by remember(friend.id, isChatMuted) { mutableStateOf(isChatMuted) }
+    var handleCopied by remember(friend.id) { mutableStateOf(false) }
+    var confirmUnfriend by remember(friend.id) { mutableStateOf(false) }
+
+    LaunchedEffect(handleCopied) {
+        if (handleCopied) {
+            kotlinx.coroutines.delay(1600L)
+            handleCopied = false
+        }
+    }
+    LaunchedEffect(confirmUnfriend) {
+        if (confirmUnfriend) {
+            kotlinx.coroutines.delay(4000L)
+            confirmUnfriend = false
+        }
+    }
 
     AnimatedContent(
         targetState = subPage,
@@ -1041,44 +1068,43 @@ fun FriendProfileScreen(
                         }
                     }
 
-                    val showProfileSkeleton = isLoading && validatedProf == null
-                    androidx.compose.animation.Crossfade(
-                        targetState = showProfileSkeleton,
-                        animationSpec = tween(durationMillis = 160),
-                        label = "friendProfileOverviewCrossfade"
-                    ) { isSkeleton ->
-                        if (isSkeleton) {
-                            com.example.connecto.ui.theme.ShimmerProfileSkeleton(
-                                modifier = Modifier.fillMaxSize(),
-                                isDark = !isLight
-                            )
-                        } else {
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 16.dp),
-                                verticalArrangement = Arrangement.spacedBy(14.dp),
-                                contentPadding = PaddingValues(top = 4.dp, bottom = navBarBottom + 32.dp)
-                            ) {
+                    // Non-blocking 0ms Optimistic UI: render immediately with local data and show subtle sync bar while refreshing
+                    if (isLoading && validatedProf == null) {
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(2.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        )
+                    }
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        contentPadding = PaddingValues(top = 4.dp, bottom = navBarBottom + 32.dp)
+                    ) {
                         // 1. HERO COVER BANNER & AVATAR
                         item(key = "friend_profile_hero") {
                             val bannerUrl = validatedProf?.bannerUrl ?: friend.bannerUrl
                             val isPreset = isCoverPreset(bannerUrl)
                             val presetObj = if (isPreset) getCoverPreset(bannerUrl) else null
+                            val avatarRingBg = if (isLight) Color(0xFFFFFFFF) else Color(0xFF0A0B0E)
 
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(170.dp)
+                                    .height(172.dp)
                             ) {
                                 // Cover Banner
                                 val isDark = ConnectoTheme.colors.isDark
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(125.dp)
-                                        .clip(RoundedCornerShape(20.dp))
-                                        .border(1.dp, if (isDark) Color(0x0DFFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
+                                        .height(128.dp)
+                                        .clip(RoundedCornerShape(22.dp))
+                                        .border(1.dp, if (isDark) Color(0x14FFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.18f), RoundedCornerShape(22.dp))
                                 ) {
                                     if (isPreset && presetObj != null) {
                                         Box(
@@ -1105,24 +1131,36 @@ fun FriendProfileScreen(
                                                 )
                                         )
                                     }
+                                    // Subtle bottom depth scrim for crisp avatar separation
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(44.dp)
+                                            .align(Alignment.BottomCenter)
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.35f))
+                                                )
+                                            )
+                                    )
                                 }
 
-                                // Avatar overlapping bottom-left: 50% overlap of banner bottom (125 - 40 = 85dp)
+                                // Avatar overlapping bottom-left
                                 Box(
                                     modifier = Modifier
-                                        .offset(x = 16.dp, y = 85.dp)
+                                        .offset(x = 16.dp, y = 86.dp)
                                         .clickable(onClick = onViewPhoto)
                                 ) {
                                     ConnectoAvatar(
-                                        name = friend.name,
+                                        name = effectiveName,
                                         avatarUrl = friend.avatarUrl ?: validatedProf?.avatarUrl,
-                                        customSizeDp = 80.dp,
+                                        customSizeDp = 82.dp,
                                         customFontSizeSp = 28,
-                                        status = if (friend.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE,
+                                        status = if (friend.isOnline && !myHideOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE,
                                         borderWidth = 4.dp,
-                                        borderColor = Color(0xFF0A0B0E),
+                                        borderColor = avatarRingBg,
                                         statusBorderWidth = 3.dp,
-                                        statusBorderColor = Color(0xFF0A0B0E)
+                                        statusBorderColor = avatarRingBg
                                     )
                                 }
                             }
@@ -1134,28 +1172,57 @@ fun FriendProfileScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 4.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                verticalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 Text(
                                     text = effectiveName,
-                                    fontSize = 20.sp,
+                                    fontSize = 21.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
 
-                                Text(
-                                    text = "@$friendHandleClean",
-                                    fontSize = 13.5.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                                // 1-tap Copy @handle pill with optimistic "Copied" feedback
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                                        .clickable {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                            cm?.setPrimaryClip(android.content.ClipData.newPlainText("Connecto Handle", "@$friendHandleClean"))
+                                            handleCopied = true
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    AnimatedContent(
+                                        targetState = handleCopied,
+                                        transitionSpec = { fadeIn(tween(140)) togetherWith fadeOut(tween(140)) },
+                                        label = "copyHandleBadge"
+                                    ) { copied ->
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = if (copied) "Copied @$friendHandleClean" else "@$friendHandleClean",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = if (copied) OnlineGreen else MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Icon(
+                                                imageVector = if (copied) Icons.Default.Check else Icons.Default.ContentCopy,
+                                                contentDescription = "Copy username",
+                                                tint = if (copied) OnlineGreen else MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                        }
+                                    }
+                                }
 
                                 if (effectiveBio.isNotBlank()) {
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(3.dp))
                                     Text(
                                         text = effectiveBio,
-                                        fontSize = 13.sp,
-                                        lineHeight = 18.sp,
+                                        fontSize = 13.5.sp,
+                                        lineHeight = 19.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -1168,7 +1235,7 @@ fun FriendProfileScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     val isFriendOnlineEffective = friend.isOnline && !myHideOnline
-                                    val statusColor = if (isFriendOnlineEffective) OnlineGreen else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    val statusColor = if (isFriendOnlineEffective) OnlineGreen else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                                     val statusText = if (isFriendOnlineEffective) {
                                         "Online"
                                     } else if (!myHideLastSeen) {
@@ -1180,17 +1247,32 @@ fun FriendProfileScreen(
                                         "Offline"
                                     }
 
+                                    val pulseTransition = rememberInfiniteTransition(label = "onlinePulse")
+                                    val pulseScale by pulseTransition.animateFloat(
+                                        initialValue = 1f,
+                                        targetValue = if (isFriendOnlineEffective) 1.35f else 1f,
+                                        animationSpec = infiniteRepeatable(
+                                            animation = tween(1000),
+                                            repeatMode = RepeatMode.Reverse
+                                        ),
+                                        label = "pulseScale"
+                                    )
+
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(8.dp))
                                             .background(statusColor.copy(alpha = 0.14f))
                                             .border(1.dp, statusColor.copy(alpha = 0.40f), RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Box(
                                                 modifier = Modifier
                                                     .size(7.dp)
+                                                    .graphicsLayer {
+                                                        scaleX = pulseScale
+                                                        scaleY = pulseScale
+                                                    }
                                                     .clip(CircleShape)
                                                     .background(statusColor)
                                             )
@@ -1209,7 +1291,7 @@ fun FriendProfileScreen(
                                             .clip(RoundedCornerShape(8.dp))
                                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
                                             .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
@@ -1231,47 +1313,58 @@ fun FriendProfileScreen(
                             }
                         }
 
-                        // 3. QUICK ACTION BUTTONS ROW (Chat & Voice Call)
+                        // 3. QUICK ACTION BUTTONS ROW (Chat, Voice Call & Optimistic Mute)
                         item(key = "friend_quick_actions") {
                             val isDark = ConnectoTheme.colors.isDark
                             val chatInteraction = remember { MutableInteractionSource() }
                             val isChatPressed by chatInteraction.collectIsPressedAsState()
                             val chatScale by animateFloatAsState(
-                                targetValue = if (isChatPressed) 0.97f else 1.0f,
-                                animationSpec = spring(stiffness = 400f, dampingRatio = 0.8f),
+                                targetValue = if (isChatPressed) 0.95f else 1.0f,
+                                animationSpec = spring(stiffness = 450f, dampingRatio = 0.75f),
                                 label = "quickChatScale"
                             )
 
                             val callInteraction = remember { MutableInteractionSource() }
                             val isCallPressed by callInteraction.collectIsPressedAsState()
                             val callScale by animateFloatAsState(
-                                targetValue = if (isCallPressed) 0.97f else 1.0f,
-                                animationSpec = spring(stiffness = 400f, dampingRatio = 0.8f),
+                                targetValue = if (isCallPressed) 0.95f else 1.0f,
+                                animationSpec = spring(stiffness = 450f, dampingRatio = 0.75f),
                                 label = "quickCallScale"
+                            )
+
+                            val muteInteraction = remember { MutableInteractionSource() }
+                            val isMutePressed by muteInteraction.collectIsPressedAsState()
+                            val muteScale by animateFloatAsState(
+                                targetValue = if (isMutePressed) 0.95f else 1.0f,
+                                animationSpec = spring(stiffness = 450f, dampingRatio = 0.75f),
+                                label = "quickMuteScale"
                             )
 
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 // Message
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(46.dp)
+                                        .height(48.dp)
                                         .graphicsLayer {
                                             scaleX = chatScale
                                             scaleY = chatScale
                                         }
                                         .clip(RoundedCornerShape(14.dp))
                                         .background(if (isDark) Color(0xFF131620) else MaterialTheme.colorScheme.surfaceVariant)
-                                        .border(1.dp, if (isDark) Color(0x0DFFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f), RoundedCornerShape(14.dp))
                                         .clickable(
                                             interactionSource = chatInteraction,
                                             indication = null,
-                                            onClick = onOpenDirectChat
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                onOpenDirectChat()
+                                            }
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -1280,12 +1373,12 @@ fun FriendProfileScreen(
                                             imageVector = Icons.Default.Chat,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(18.dp)
+                                            modifier = Modifier.size(17.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = "Chat",
-                                            fontSize = 14.sp,
+                                            fontSize = 13.5.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
@@ -1296,18 +1389,21 @@ fun FriendProfileScreen(
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(46.dp)
+                                        .height(48.dp)
                                         .graphicsLayer {
                                             scaleX = callScale
                                             scaleY = callScale
                                         }
                                         .clip(RoundedCornerShape(14.dp))
                                         .background(if (isDark) Color(0xFF131620) else MaterialTheme.colorScheme.surfaceVariant)
-                                        .border(1.dp, if (isDark) Color(0x0DFFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                                        .border(1.dp, OnlineGreen.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
                                         .clickable(
                                             interactionSource = callInteraction,
                                             indication = null,
-                                            onClick = onInitiateVoiceCall
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                onInitiateVoiceCall()
+                                            }
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -1316,15 +1412,73 @@ fun FriendProfileScreen(
                                             imageVector = Icons.Default.Call,
                                             contentDescription = null,
                                             tint = OnlineGreen,
-                                            modifier = Modifier.size(18.dp)
+                                            modifier = Modifier.size(17.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = "Voice Call",
-                                            fontSize = 14.sp,
+                                            text = "Call",
+                                            fontSize = 13.5.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
+                                    }
+                                }
+
+                                // Optimistic Mute Toggle
+                                val muteColor = if (optimisticMuted) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurfaceVariant
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp)
+                                        .graphicsLayer {
+                                            scaleX = muteScale
+                                            scaleY = muteScale
+                                        }
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(
+                                            if (optimisticMuted) Color(0xFFF59E0B).copy(alpha = 0.14f)
+                                            else if (isDark) Color(0xFF131620)
+                                            else MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                        .border(
+                                            1.dp,
+                                            if (optimisticMuted) Color(0xFFF59E0B).copy(alpha = 0.45f)
+                                            else if (isDark) Color(0x0DFFFFFF)
+                                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                                            RoundedCornerShape(14.dp)
+                                        )
+                                        .clickable(
+                                            interactionSource = muteInteraction,
+                                            indication = null,
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                val next = !optimisticMuted
+                                                optimisticMuted = next
+                                                onToggleChatMute(next)
+                                            }
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AnimatedContent(
+                                        targetState = optimisticMuted,
+                                        transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(150)) },
+                                        label = "optimisticMuteBtn"
+                                    ) { muted ->
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = if (muted) Icons.Default.NotificationsOff else Icons.Default.Notifications,
+                                                contentDescription = null,
+                                                tint = if (muted) Color(0xFFF59E0B) else muteColor,
+                                                modifier = Modifier.size(17.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = if (muted) "Muted" else "Mute",
+                                                fontSize = 13.5.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = if (muted) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -1347,8 +1501,8 @@ fun FriendProfileScreen(
                                 title = "Chat & Lock",
                                 subtitle = "Lock chat with biometrics, mute notifications & security",
                                 icon = Icons.Default.Lock,
-                                badgeText = if (isChatLocked) "LOCKED" else if (isChatMuted) "MUTED" else "SECURED",
-                                badgeColor = if (isChatLocked) Color(0xFFEF4444) else if (isChatMuted) Color(0xFFF59E0B) else OnlineGreen,
+                                badgeText = if (isChatLocked) "LOCKED" else if (optimisticMuted) "MUTED" else "SECURED",
+                                badgeColor = if (isChatLocked) Color(0xFFEF4444) else if (optimisticMuted) Color(0xFFF59E0B) else OnlineGreen,
                                 onClick = { onNavigateSubPage("chat_lock") }
                             )
                         }
@@ -1425,39 +1579,90 @@ fun FriendProfileScreen(
                             }
                         }
 
-                        // 7. DANGER ZONE: UNFRIEND
+                        // 7. DANGER ZONE: INLINE 2-STEP OPTIMISTIC UNFRIEND
                         item(key = "danger_unfriend") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(Color(0xFFDC2626).copy(alpha = 0.10f))
-                                    .border(1.dp, Color(0xFFDC2626).copy(alpha = 0.35f), RoundedCornerShape(14.dp))
-                                    .clickable(onClick = onUnfriend),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.PersonRemove,
-                                        contentDescription = null,
-                                        tint = Color(0xFFEF4444),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "UNFRIEND @$friendHandleClean",
-                                        color = Color(0xFFEF4444),
-                                        fontSize = 12.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.5.sp
-                                    )
+                            AnimatedContent(
+                                targetState = confirmUnfriend,
+                                transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(150)) },
+                                label = "unfriendConfirmState"
+                            ) { confirming ->
+                                if (!confirming) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(48.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .background(Color(0xFFDC2626).copy(alpha = 0.10f))
+                                            .border(1.dp, Color(0xFFDC2626).copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                                            .clickable {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                confirmUnfriend = true
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.PersonRemove,
+                                                contentDescription = null,
+                                                tint = Color(0xFFEF4444),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "UNFRIEND @$friendHandleClean",
+                                                color = Color(0xFFEF4444),
+                                                fontSize = 12.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 0.5.sp
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(48.dp)
+                                                .clip(RoundedCornerShape(14.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                                .clickable { confirmUnfriend = false },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "Cancel",
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1.4f)
+                                                .height(48.dp)
+                                                .clip(RoundedCornerShape(14.dp))
+                                                .background(Color(0xFFDC2626))
+                                                .clickable {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    confirmUnfriend = false
+                                                    onUnfriend()
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "Confirm Unfriend",
+                                                color = Color.White,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                }
                 }
             }
         }
