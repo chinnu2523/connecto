@@ -733,19 +733,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.9.3/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.9.2/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.9.1/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/latest/download/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.9.2-b210-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.9.3-b211-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.9.2");
-          res.headers.set("X-Connecto-Build", "210");
+          res.headers.set("X-Connecto-Version", "v5.9.3");
+          res.headers.set("X-Connecto-Build", "211");
           return res;
         }
 
@@ -781,8 +781,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.9.2");
-              downloadHeaders.set("X-Connecto-Build", "210");
+              downloadHeaders.set("X-Connecto-Version", "v5.9.3");
+              downloadHeaders.set("X-Connecto-Build", "211");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -2460,11 +2460,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.9.2",
-        version_code: 210,
-        size_bytes: 38499358,
+        version_name: "5.9.3",
+        version_code: 211,
+        size_bytes: 38500254,
         size_formatted: "36.7 MB",
-        sha256: "a3721b31375b44fae8cdd5d83a40cc79549bf2af6af59fe057c40880d62fbcd6",
+        sha256: "00c6a798a63d24c8e367988a919b5f7668b7b9d2ad904572c3165363fb293714",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
@@ -6105,6 +6105,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
               VALUES (?, ?, ?, ?, ?)
               ON CONFLICT(user_id, channel_id) DO UPDATE SET last_read_at = ?
             `).bind(readId, callerRow.id, chId, now, now, now).run().catch(() => {});
+
+            // Persist read_at on all unread messages sent by the other participant in this DM
+            await env.DB.prepare(`
+              UPDATE messages SET read_at = COALESCE(read_at, ?)
+              WHERE channel_id = ? AND sender_id != ? AND lower(sender_id) != ? AND read_at IS NULL
+            `).bind(now, chId, callerRow.id, myUser).run().catch(() => {});
           }
 
           await env.DB.prepare(`
@@ -6113,6 +6119,27 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
               AND (lower(sender_username) = ? OR lower(sender_username) = ?) 
               AND type = 'message'
           `).bind(callerRow.id, myUser, targetUser, targetRow.username.toLowerCase()).run().catch(() => {});
+
+          // Broadcast real-time read receipt over WebSocket so sender sees "Seen" immediately
+          if (ctx) {
+            ctx.waitUntil(broadcastRealtime(env, {
+              type: "dm_read",
+              channel_id: canonName,
+              reader_username: myUser,
+              target_username: targetRow.username.toLowerCase(),
+              target_user_id: targetRow.id,
+              read_at: now
+            }));
+          } else {
+            await broadcastRealtime(env, {
+              type: "dm_read",
+              channel_id: canonName,
+              reader_username: myUser,
+              target_username: targetRow.username.toLowerCase(),
+              target_user_id: targetRow.id,
+              read_at: now
+            });
+          }
         }
       }
     } catch (_) {}
@@ -6721,6 +6748,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           nextCursor = pageResults.length > 0 ? pageResults[pageResults.length - 1].created_at : null;
           // Reverse back to ascending order (oldest to newest)
           pageResults.reverse();
+
+          // Resolve latest DM read timestamp from dm_read_states for the other participant
+          let peerLastReadAt = null;
+          if (reqUser && channelCandidates.some(c => c.startsWith("dm-") || c.startsWith("dm_"))) {
+            try {
+              const drPlaceholders = channelCandidates.map(() => "?").join(", ");
+              const drRow = await env.DB.prepare(
+                `SELECT MAX(last_read_at) as max_read FROM dm_read_states WHERE channel_id IN (${drPlaceholders}) AND user_id != ? AND lower(user_id) != ?`
+              ).bind(...channelCandidates, caller.id || reqUser, reqUser).first();
+              if (drRow && drRow.max_read) {
+                peerLastReadAt = drRow.max_read;
+              }
+            } catch (_) {}
+          }
+
           messages = pageResults.map(r => {
             let att = {};
             try {
@@ -6728,6 +6770,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
                 att = JSON.parse(r.attachments);
               }
             } catch (_) {}
+            const isPeerReadByState = Boolean(peerLastReadAt && r.created_at && peerLastReadAt >= r.created_at);
+            const effectiveReadAt = r.read_at || (isPeerReadByState ? peerLastReadAt : null);
           return {
             id: r.id,
             channelId: r.channel_id,
@@ -6762,10 +6806,10 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             isSilent: r.is_silent === 1 || att.is_silent === true || false,
             is_whisper: r.is_whisper === 1 || att.is_whisper === true || false,
             isWhisper: r.is_whisper === 1 || att.is_whisper === true || false,
-            read_at: r.read_at || null,
-            readAt: r.read_at || null,
-            is_read: r.read_at != null,
-            isRead: r.read_at != null,
+            read_at: effectiveReadAt,
+            readAt: effectiveReadAt,
+            is_read: effectiveReadAt != null,
+            isRead: effectiveReadAt != null,
           };
         });
         } catch (d1Err) {

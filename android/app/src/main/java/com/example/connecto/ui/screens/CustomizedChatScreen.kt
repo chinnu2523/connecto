@@ -2894,6 +2894,14 @@ fun CustomizedChatScreen(
                         } catch (_: Exception) {}
                     }
                 }
+                if (!isMe && selectedFriend?.isGroup == false) {
+                    val peerHandle = selectedFriend?.handle?.trim()?.lowercase()?.removePrefix("@") ?: ""
+                    if (peerHandle.isNotBlank()) {
+                        coroutineScope.launch {
+                            try { ConnectoApiClient.markDmRead(peerHandle) } catch (_: Exception) {}
+                        }
+                    }
+                }
 
                 // Update friends list entry — current chat always has 0 unread
                 val currentTs = System.currentTimeMillis()

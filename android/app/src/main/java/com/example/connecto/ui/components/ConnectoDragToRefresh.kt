@@ -11,16 +11,22 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -341,34 +347,76 @@ fun ConnectoDragToRefresh(
             val iconRotation = if (isRefreshing) spinRotation else (progress * 270f)
             val badgeAlpha = if (isRefreshing) 1f else progress
 
-            val badgeBg = if (colors.isDark) Color(0xFF161A26) else Color(0xFFFFFFFF)
-            val badgeBorder = if (colors.isDark) Color(0x1AFFFFFF) else Color(0x1F000000)
+            val badgeBg = if (colors.isDark) Color(0xFF141824) else Color(0xFFFFFFFF)
+            val badgeBorder = if (colors.isDark) Color(0x26FFFFFF) else Color(0x1F000000)
+            val accentPrimary = MaterialTheme.colorScheme.primary
+            val accentSecondary = Color(0xFF38BDF8)
+
+            // Smooth entry scale during drag + spring pop at threshold
+            val dragScale = if (isRefreshing) 1f else (0.72f + 0.28f * progress)
+            val effectiveScale = if (isRetracting) badgeExitScale.value else (dragScale * iconScaleAnim.value)
 
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .offset { IntOffset(0, badgeTranslateY.roundToInt()) }
                     .zIndex(20f)
-                    .scale(if (isRetracting) badgeExitScale.value else 1f)
+                    .scale(effectiveScale)
                     .alpha(if (isRetracting) badgeExitAlpha.value else badgeAlpha)
-                    .size(38.dp)
+                    .size(42.dp)
                     .shadow(
-                        elevation = 6.dp,
+                        elevation = if (isRefreshing) 10.dp else 6.dp,
                         shape = CircleShape,
-                        ambientColor = Color.Black.copy(alpha = 0.25f),
-                        spotColor = Color.Black.copy(alpha = 0.35f)
+                        ambientColor = accentPrimary.copy(alpha = 0.28f),
+                        spotColor = accentPrimary.copy(alpha = 0.35f)
                     )
                     .background(color = badgeBg, shape = CircleShape)
-                    .border(width = 1.dp, color = badgeBorder, shape = CircleShape),
+                    .border(
+                        width = 1.dp,
+                        color = if (isRefreshing || progress >= 1f) accentPrimary.copy(alpha = 0.45f) else badgeBorder,
+                        shape = CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
+                // Elastic arc progress ring during drag, dual-arc orbital spinner while refreshing
+                Canvas(modifier = Modifier.fillMaxSize().padding(3.dp)) {
+                    val strokeW = 2.4.dp.toPx()
+                    if (isRefreshing) {
+                        drawArc(
+                            brush = Brush.sweepGradient(
+                                listOf(accentPrimary, accentSecondary, accentPrimary.copy(alpha = 0.15f))
+                            ),
+                            startAngle = spinRotation,
+                            sweepAngle = 250f,
+                            useCenter = false,
+                            style = Stroke(width = strokeW, cap = StrokeCap.Round)
+                        )
+                        drawArc(
+                            color = accentSecondary.copy(alpha = 0.45f),
+                            startAngle = -spinRotation * 0.7f,
+                            sweepAngle = 95f,
+                            useCenter = false,
+                            style = Stroke(width = strokeW * 0.75f, cap = StrokeCap.Round)
+                        )
+                    } else if (progress > 0.02f) {
+                        drawArc(
+                            brush = Brush.sweepGradient(
+                                listOf(accentPrimary.copy(alpha = 0.4f), accentPrimary, accentSecondary)
+                            ),
+                            startAngle = -90f,
+                            sweepAngle = progress * 315f,
+                            useCenter = false,
+                            style = Stroke(width = strokeW, cap = StrokeCap.Round)
+                        )
+                    }
+                }
+
                 Icon(
                     imageVector = Icons.Rounded.Refresh,
                     contentDescription = "Refresh",
-                    tint = if (colors.isDark) Color.White else Color(0xFF0F172A),
+                    tint = if (isRefreshing || progress >= 1f) accentPrimary else if (colors.isDark) Color.White else Color(0xFF0F172A),
                     modifier = Modifier
-                        .size(20.dp)
-                        .scale(iconScaleAnim.value)
+                        .size(18.dp)
                         .rotate(iconRotation)
                 )
             }
